@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // For date formatting
 
 class MyApplicationsScreen extends StatefulWidget {
-  const MyApplicationsScreen({Key? key}) : super(key: key);
+  const MyApplicationsScreen({super.key});
 
   @override
   State<MyApplicationsScreen> createState() => _MyApplicationsScreenState();
