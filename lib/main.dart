@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_options.dart';
 
 // Import your screen files
 import 'screens/splash_screen.dart';
@@ -15,7 +16,20 @@ import 'screens/admin_dashboard.dart';
 void main() async {
   // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // If Firebase is already initialized, ignore the error
+    if (e.toString().contains('duplicate-app')) {
+      print('Firebase already initialized, continuing...');
+    } else {
+      print('Firebase initialization error: $e');
+    }
+  }
+  
   runApp(const PawsCareApp());
 }
 

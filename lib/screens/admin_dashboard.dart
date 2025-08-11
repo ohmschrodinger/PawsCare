@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 // This is the landing page for admin users.
 
 class AdminDashboardScreen extends StatelessWidget {
-  const AdminDashboardScreen({Key? key}) : super(key: key);
+  const AdminDashboardScreen({super.key});
 
   Future<void> _signOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();

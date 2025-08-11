@@ -5,7 +5,7 @@ import 'package:pawscare/screens/adoption_form_screen.dart'; // Import the new s
 class PetDetailScreen extends StatelessWidget {
   final Map<String, String> petData;
 
-  const PetDetailScreen({Key? key, required this.petData}) : super(key: key);
+  const PetDetailScreen({super.key, required this.petData});
 
   @override
   Widget build(BuildContext context) {

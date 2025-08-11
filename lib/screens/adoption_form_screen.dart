@@ -6,7 +6,7 @@ import 'package:pawscare/screens/my_applications_screen.dart';
 class AdoptionFormScreen extends StatefulWidget {
   final Map<String, String> petData;
 
-  const AdoptionFormScreen({Key? key, required this.petData}) : super(key: key);
+  const AdoptionFormScreen({super.key, required this.petData});
 
   @override
   State<AdoptionFormScreen> createState() => _AdoptionFormScreenState();

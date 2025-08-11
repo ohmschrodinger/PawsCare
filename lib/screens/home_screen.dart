@@ -1,6 +1,7 @@
 // screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/screens/my_applications_screen.dart'; // Import the new screen
 
@@ -77,6 +78,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0; // For Bottom Navigation Bar
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> _logout() async {
+    try {
+      await _auth.signOut();
+      Navigator.of(context).pushReplacementNamed('/login');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: $e')),
+      );
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -127,6 +140,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SnackBar(content: Text('Filter coming soon!')),
               );
             },
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle),
+            onSelected: (value) {
+              if (value == 'logout') {
+                _logout();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
