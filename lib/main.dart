@@ -13,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'screens/admin_dashboard.dart';
 import 'screens/firestore_recovery_screen.dart';
 import 'screens/post_animal_screen.dart';
+import 'screens/admin_animal_approval_screen.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -79,6 +80,7 @@ class PawsCareApp extends StatelessWidget {
         '/admin': (context) => const AdminDashboardScreen(),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/post-animal': (context) => const PostAnimalScreen(),
+        '/admin-animal-approval': (context) => const AdminAnimalApprovalScreen(),
       },
     );
   }

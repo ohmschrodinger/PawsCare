@@ -57,6 +57,18 @@ class AdminDashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/admin-animal-approval');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                ),
+                child: const Text('Animal Approvals'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
                 onPressed: () => _signOut(context),
                 child: const Text('Logout'),
               ),
