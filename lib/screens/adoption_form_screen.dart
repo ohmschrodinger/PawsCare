@@ -157,7 +157,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
 
         await FirebaseFirestore.instance.collection('applications').add({
           'userId': user.uid,
-          'petId': widget.petData['name'], // Using pet name as ID for mock data
+          'petId': widget.petData['id'] ?? widget.petData['name'], // Use Firestore ID if available
           'petName': widget.petData['name'],
           'petImage': widget.petData['image'],
           'applicantName': _fullNameController.text.trim(),

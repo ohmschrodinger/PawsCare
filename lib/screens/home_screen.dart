@@ -2,72 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
-import 'package:pawscare/screens/my_applications_screen.dart'; // Import the new screen
+import 'package:pawscare/screens/my_applications_screen.dart';
+import 'package:pawscare/screens/post_animal_screen.dart';
+import '../services/animal_service.dart';
 
-// Mock data for pets (retained from previous sprint)
-final List<Map<String, String>> mockPets = [
-  {
-    'name': 'Buddy',
-    'species': 'Dog',
-    'age': '2 years',
-    'status': 'Available for Adoption',
-    'image': 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Dog', // Placeholder image
-    'gender': 'Male',
-    'sterilization': 'Yes',
-    'vaccination': 'Up-to-date',
-    'rescueStory': 'Buddy was found wandering near a park, playful and friendly. He loves walks and cuddles.',
-    'motherStatus': 'Unknown',
-  },
-  {
-    'name': 'Whiskers',
-    'species': 'Cat',
-    'age': '1 year',
-    'status': 'Available for Adoption',
-    'image': 'https://via.placeholder.com/150/33FF57/FFFFFF?text=Cat',
-    'gender': 'Female',
-    'sterilization': 'Yes',
-    'vaccination': 'Up-to-date',
-    'rescueStory': 'Whiskers was rescued from a busy street. She is shy at first but very affectionate once she trusts you.',
-    'motherStatus': 'Unknown',
-  },
-  {
-    'name': 'Captain',
-    'species': 'Parrot',
-    'age': '3 years',
-    'status': 'Available for Adoption',
-    'image': 'https://via.placeholder.com/150/3357FF/FFFFFF?text=Bird',
-    'gender': 'Male',
-    'sterilization': 'N/A',
-    'vaccination': 'Up-to-date',
-    'rescueStory': 'Captain was surrendered by his previous owner who could no longer care for him. He loves to mimic sounds.',
-    'motherStatus': 'Unknown',
-  },
-  {
-    'name': 'Bubbles',
-    'species': 'Fish',
-    'age': '6 months',
-    'status': 'Available for Adoption',
-    'image': 'https://via.placeholder.com/150/F0FF33/FFFFFF?text=Fish',
-    'gender': 'Unknown',
-    'sterilization': 'N/A',
-    'vaccination': 'N/A',
-    'rescueStory': 'Bubbles was part of an overcrowded aquarium. He is now looking for a spacious new home.',
-    'motherStatus': 'Unknown',
-  },
-  {
-    'name': 'Shadow',
-    'species': 'Dog',
-    'age': '4 years',
-    'status': 'Available for Adoption',
-    'image': 'https://via.placeholder.com/150/8A2BE2/FFFFFF?text=Dog',
-    'gender': 'Female',
-    'sterilization': 'Yes',
-    'vaccination': 'Up-to-date',
-    'rescueStory': 'Shadow is a loyal companion, found abandoned but quick to trust. She is great with children and other pets.',
-    'motherStatus': 'Unknown',
-  },
-];
+// Mock data removed - now using Firestore data
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -105,6 +46,12 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
       );
+    } else if (index == 2) {
+      // Navigate to Post Animal
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
+      );
     } else {
       // For other tabs, you might show a snackbar or navigate to placeholder screens
       ScaffoldMessenger.of(context).showSnackBar(
@@ -129,6 +76,15 @@ class _HomeScreenState extends State<HomeScreen> {
               // TODO: Implement search functionality (placeholder)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Search coming soon!')),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () async {
+              await AnimalService.testAnimalsCollection();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Check console for debug info')),
               );
             },
           ),
@@ -165,19 +121,130 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two cards per row
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.75, // Adjust to make cards look good
-          ),
-          itemCount: mockPets.length,
-          itemBuilder: (context, index) {
-            final pet = mockPets[index];
-            return PetCard(pet: pet);
+        child: StreamBuilder<QuerySnapshot>(
+          stream: AnimalService.getAllAnimals(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              print('DEBUG: Firestore error: ${snapshot.error}');
+              return Center(
+                child: Text('Error: ${snapshot.error}'),
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              print('DEBUG: Waiting for Firestore connection...');
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            final animals = snapshot.data?.docs ?? [];
+            
+            print('DEBUG: Found ${animals.length} animals');
+            if (animals.isNotEmpty) {
+              print('DEBUG: First animal data: ${animals.first.data()}');
+            }
+
+            if (animals.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.pets,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No animals available for adoption yet',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Be the first to post an animal!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                                         ElevatedButton(
+                       onPressed: () {
+                         Navigator.push(
+                           context,
+                           MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
+                         );
+                       },
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: const Color(0xFF5AC8F2),
+                         foregroundColor: Colors.white,
+                       ),
+                       child: const Text('Post Animal'),
+                     ),
+                     const SizedBox(height: 16),
+                     ElevatedButton(
+                       onPressed: () async {
+                         await AnimalService.testAnimalsCollection();
+                       },
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: Colors.orange,
+                         foregroundColor: Colors.white,
+                       ),
+                       child: const Text('Test Collection'),
+                     ),
+                  ],
+                ),
+              );
+            }
+
+            return GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, // Two cards per row
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.75, // Adjust to make cards look good
+              ),
+              itemCount: animals.length,
+              itemBuilder: (context, index) {
+                                 final animalData = animals[index].data() as Map<String, dynamic>;
+                 print('DEBUG: Processing animal ${index + 1}: $animalData');
+                 
+                 final pet = <String, String>{
+                   'id': animals[index].id,
+                   'name': animalData['name']?.toString() ?? '',
+                   'species': animalData['species']?.toString() ?? '',
+                   'age': animalData['age']?.toString() ?? '',
+                   'status': animalData['status']?.toString() ?? 'Available for Adoption',
+                   'image': animalData['image']?.toString() ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal',
+                   'gender': animalData['gender']?.toString() ?? '',
+                   'sterilization': animalData['sterilization']?.toString() ?? '',
+                   'vaccination': animalData['vaccination']?.toString() ?? '',
+                   'rescueStory': animalData['rescueStory']?.toString() ?? '',
+                   'motherStatus': animalData['motherStatus']?.toString() ?? '',
+                 };
+                 
+                 print('DEBUG: Created pet object: $pet');
+                 return PetCard(pet: pet);
+              },
+            );
           },
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFF5AC8F2),
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+        tooltip: 'Post Animal',
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -208,6 +275,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// PetDetailScreen removed - importing from separate file
+
+
 class PetCard extends StatelessWidget {
   final Map<String, String> pet;
 
@@ -217,7 +287,6 @@ class PetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate to PetDetailScreen, passing the pet data
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -236,7 +305,7 @@ class PetCard extends StatelessWidget {
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
               child: Image.network(
-                pet['image']!,
+                pet['image'] ?? '',
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -256,7 +325,7 @@ class PetCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    pet['name']!,
+                    pet['name'] ?? '',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -266,7 +335,7 @@ class PetCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${pet['species']} • ${pet['age']}',
+                    '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -276,14 +345,14 @@ class PetCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE0F7FA), // Light blue background
+                      color: const Color(0xFFE0F7FA),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      pet['status']!,
+                      pet['status'] ?? '',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF00796B), // Darker green text
+                        color: Color(0xFF00796B),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
