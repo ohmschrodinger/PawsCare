@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
+import '../services/user_service.dart';
 
 class AdoptionFormScreen extends StatefulWidget {
   final Map<String, String> petData;
@@ -15,11 +16,13 @@ class AdoptionFormScreen extends StatefulWidget {
 class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isLoadingUserData = true;
 
-  // Hardcoded User Details for now
-  final String _userFullName = 'John Doe';
-  final String _userEmail = 'john.doe@example.com';
-  final String _userPhoneNumber = '123-456-7890';
+  // User Details - will be loaded dynamically
+  String _userFullName = '';
+  String _userEmail = '';
+  String _userPhoneNumber = '';
+  String _userAddress = '';
 
   // Controllers for pre-filled applicant information
   late TextEditingController _fullNameController;
@@ -67,9 +70,39 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(text: _userFullName);
-    _emailController = TextEditingController(text: _userEmail);
-    _phoneNumberController = TextEditingController(text: _userPhoneNumber);
+    _fullNameController = TextEditingController();
+    _emailController = TextEditingController();
+    _phoneNumberController = TextEditingController();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userData = await UserService.getUserData(user.uid);
+        if (userData != null) {
+          setState(() {
+            _userFullName = userData['fullName'] ?? '';
+            _userEmail = userData['email'] ?? '';
+            _userPhoneNumber = userData['phoneNumber'] ?? '';
+            _userAddress = userData['address'] ?? '';
+            
+            // Update controllers with user data
+            _fullNameController.text = _userFullName;
+            _emailController.text = _userEmail;
+            _phoneNumberController.text = _userPhoneNumber;
+            _addressController.text = _userAddress;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    } finally {
+      setState(() {
+        _isLoadingUserData = false;
+      });
+    }
   }
 
   @override
@@ -106,6 +139,22 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
       }
 
       try {
+        // Update user profile with the latest information from the form
+        try {
+          await UserService.updateUserProfile(
+            uid: user.uid,
+            data: {
+              'fullName': _fullNameController.text.trim(),
+              'phoneNumber': _phoneNumberController.text.trim(),
+              'address': _addressController.text.trim(),
+              'profileCompleted': true,
+            },
+          );
+        } catch (e) {
+          print('Warning: Failed to update user profile: $e');
+          // Don't block the application submission if profile update fails
+        }
+
         await FirebaseFirestore.instance.collection('applications').add({
           'userId': user.uid,
           'petId': widget.petData['name'], // Using pet name as ID for mock data
@@ -174,6 +223,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingUserData) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Adoption Application'),
+          centerTitle: true,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Adoption Application'),

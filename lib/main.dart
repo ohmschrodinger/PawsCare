@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
+
 import 'firebase_options.dart';
 
 // Import your screen files
@@ -9,6 +11,7 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard.dart';
+import 'screens/firestore_recovery_screen.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -16,6 +19,9 @@ import 'screens/admin_dashboard.dart';
 void main() async {
   // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables from .env file
+  // await dotenv.load(fileName: ".env");
   
   try {
     await Firebase.initializeApp(
@@ -70,6 +76,7 @@ class PawsCareApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/admin': (context) => const AdminDashboardScreen(),
+        '/recovery': (context) => const FirestoreRecoveryScreen(),
       },
     );
   }

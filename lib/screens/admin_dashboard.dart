@@ -45,6 +45,18 @@ class AdminDashboardScreen extends StatelessWidget {
                 ),
               const SizedBox(height: 32),
               ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/recovery');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5AC8F2),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                ),
+                child: const Text('Firestore Recovery'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
                 onPressed: () => _signOut(context),
                 child: const Text('Logout'),
               ),

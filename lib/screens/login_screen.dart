@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/user_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -72,6 +73,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = userCredential.user;
       if (user != null) {
+        // Ensure user document exists in Firestore (for users who signed up before collection was deleted)
+        try {
+          await UserService.ensureUserDocumentExists(
+            uid: user.uid,
+            email: email,
+            fullName: null,
+          );
+        } catch (e) {
+          print('Warning: Failed to ensure user document exists: $e');
+          // Don't block the login process if Firestore fails
+        }
+
         await user.reload(); // Ensure user data is fresh
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
@@ -110,6 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
+      final fullName = _fullNameController.text.trim();
 
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -118,6 +132,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final user = userCredential.user;
       if (user != null) {
+        // Create user document in Firestore
+        try {
+          await UserService.createUserDocument(
+            uid: user.uid,
+            email: email,
+            fullName: fullName.isNotEmpty ? fullName : null,
+          );
+        } catch (e) {
+          print('Warning: Failed to create user document in Firestore: $e');
+          // Don't block the signup process if Firestore fails
+        }
+
         await user.reload();
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
