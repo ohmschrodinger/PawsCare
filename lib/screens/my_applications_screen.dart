@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:pawscare/screens/post_animal_screen.dart';
+import 'package:pawscare/screens/my_posted_animals_screen.dart';
+import 'package:pawscare/screens/profile_screen.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});
@@ -114,10 +117,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             icon: Icon(Icons.pets),
             label: 'Post Animal',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: 1, // 'My History' is the active tab
         selectedItemColor: const Color(0xFF5AC8F2),
@@ -127,12 +128,20 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             Navigator.popUntil(context, ModalRoute.withName('/home'));
           } else if (index == 1) {
             // Already on My History
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Navigation to Tab ${index + 1} (Coming Soon!)'),
-                duration: const Duration(seconds: 1),
-              ),
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
+            );
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyPostedAnimalsScreen()),
+            );
+          } else if (index == 4) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
             );
           }
         },
