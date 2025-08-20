@@ -81,6 +81,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onChangePhoto: () => _pickAndUploadAvatar(user.uid),
                 ),
                 const SizedBox(height: 16),
+                // User stats: Animals Posted & Animals Adopted
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _UserStatTile(
+                            label: 'Animals Posted',
+                            icon: Icons.upload,
+                            stream: FirebaseFirestore.instance
+                                .collection('animals')
+                                .where('postedBy', isEqualTo: user.uid)
+                                .snapshots(),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _UserStatTile(
+                            label: 'Animals Adopted',
+                            icon: Icons.favorite,
+                            stream: FirebaseFirestore.instance
+                                .collection('applications')
+                                .where('userId', isEqualTo: user.uid)
+                                .where('status', isEqualTo: 'Accepted')
+                                .snapshots(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -456,6 +491,64 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class _UserStatTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Stream<QuerySnapshot> stream;
+
+  const _UserStatTile({Key? key, required this.label, required this.icon, required this.stream}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snapshot) {
+        final int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        return Container
+          (
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5AC8F2).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: const Color(0xFF5AC8F2), size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$count',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
