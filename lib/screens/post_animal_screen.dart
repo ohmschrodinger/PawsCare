@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../services/animal_service.dart';
+import '../services/storage_service.dart';
 
 class PostAnimalScreen extends StatefulWidget {
   const PostAnimalScreen({Key? key}) : super(key: key);
@@ -32,6 +35,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   String _selectedMotherStatus = 'Unknown';
   bool _isSubmitting = false;
 
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _images = [];
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +56,22 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     _rescueStoryController.dispose();
     _motherStatusController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (_images.length >= 4) return;
+    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
+    if (pickedFile != null) {
+      setState(() {
+        _images.add(pickedFile);
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _images.removeAt(index);
+    });
   }
 
   @override
@@ -551,7 +573,72 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               },
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Photo Upload Section
+            Text(
+              'Upload Animal Photos (1-4, mandatory)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _images.length < 4
+                      ? () => _pickImage(ImageSource.gallery)
+                      : null,
+                  icon: Icon(Icons.photo_library),
+                  label: Text('Gallery'),
+                ),
+                SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _images.length < 4
+                      ? () => _pickImage(ImageSource.camera)
+                      : null,
+                  icon: Icon(Icons.camera_alt),
+                  label: Text('Camera'),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            _images.isEmpty
+                ? Text('No images selected.', style: TextStyle(color: Colors.red))
+                : SizedBox(
+                    height: 100,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _images.length,
+                      separatorBuilder: (_, __) => SizedBox(width: 8),
+                      itemBuilder: (context, index) => Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              File(_images[index].path),
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            SizedBox(height: 16),
             
             // Submit Button
             ElevatedButton(
@@ -626,22 +713,52 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
+    if (_images.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload at least one photo of the animal.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() {
       _isSubmitting = true;
     });
 
     try {
-      await AnimalService.postAnimal(
-        name: _nameController.text.trim(),
-        species: _speciesController.text.trim(),
-        age: _ageController.text.trim(),
-        gender: _selectedGender,
-        sterilization: _selectedSterilization,
-        vaccination: _selectedVaccination,
-        rescueStory: _rescueStoryController.text.trim(),
-        motherStatus: _selectedMotherStatus,
-      );
+      // 1. Create a new animal document to get its ID
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User must be logged in to post an animal');
+      final animalDoc = await FirebaseFirestore.instance.collection('animals').add({
+        'name': _nameController.text.trim(),
+        'species': _speciesController.text.trim(),
+        'age': _ageController.text.trim(),
+        'status': 'Available for Adoption',
+        'gender': _selectedGender,
+        'sterilization': _selectedSterilization,
+        'vaccination': _selectedVaccination,
+        'rescueStory': _rescueStoryController.text.trim(),
+        'motherStatus': _selectedMotherStatus,
+        'postedBy': user.uid,
+        'postedByEmail': user.email,
+        'postedAt': FieldValue.serverTimestamp(),
+        'isActive': false, // will be updated after approval
+        'approvalStatus': 'pending',
+        'adminMessage': '',
+        'imageUrls': [], // placeholder
+      });
+      final animalId = animalDoc.id;
+
+      // 2. Upload images and get URLs
+      List<String> imageUrls = [];
+      for (int i = 0; i < _images.length; i++) {
+        final url = await StorageService.uploadAnimalImage(File(_images[i].path), animalId, i);
+        imageUrls.add(url);
+      }
+
+      // 3. Update animal document with image URLs
+      await animalDoc.update({'imageUrls': imageUrls, 'image': imageUrls.isNotEmpty ? imageUrls[0] : null});
 
       // Show success message
       if (mounted) {
@@ -651,8 +768,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             backgroundColor: Colors.green,
           ),
         );
-        
-        // Clear form
         _formKey.currentState!.reset();
         _nameController.clear();
         _speciesController.clear();
@@ -663,9 +778,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _selectedSterilization = 'Yes';
           _selectedVaccination = 'Yes';
           _selectedMotherStatus = 'Unknown';
+          _images.clear();
         });
-        
-        // Switch to pending requests tab to see the new post
         _tabController.animateTo(0);
       }
     } catch (e) {

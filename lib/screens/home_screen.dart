@@ -396,13 +396,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       final animalData = filteredAnimals[index].data() as Map<String, dynamic>;
                       
+                      final imageUrls = animalData['imageUrls'] as List<dynamic>?;
+                      final imageUrl = (imageUrls != null && imageUrls.isNotEmpty)
+                          ? imageUrls.first as String
+                          : (animalData['image'] ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal');
+                      
                       final pet = <String, String>{
                         'id': filteredAnimals[index].id,
                         'name': animalData['name']?.toString() ?? '',
                         'species': animalData['species']?.toString() ?? '',
                         'age': animalData['age']?.toString() ?? '',
                         'status': animalData['status']?.toString() ?? 'Available for Adoption',
-                        'image': animalData['image']?.toString() ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal',
+                        'image': imageUrl,
                         'gender': animalData['gender']?.toString() ?? '',
                         'sterilization': animalData['sterilization']?.toString() ?? '',
                         'vaccination': animalData['vaccination']?.toString() ?? '',

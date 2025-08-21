@@ -9,6 +9,7 @@ class PetDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrls = petData['imageUrls'] as List<String>? ?? (petData['image'] != null ? [petData['image']!] : []);
     return Scaffold(
       appBar: AppBar(
         title: Text(petData['name']!),
@@ -25,24 +26,8 @@ class PetDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Pet Image Carousel/Gallery (single image for now)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.network(
-                petData['image']!,
-                height: 250,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 250,
-                    width: double.infinity,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
-                  );
-                },
-              ),
-            ),
+            // Animal Image Gallery
+            _buildImageGallery(imageUrls),
             const SizedBox(height: 24),
 
             // Key Info Section
@@ -127,6 +112,42 @@ class PetDetailScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageGallery(List<String> imageUrls) {
+    if (imageUrls.isEmpty) {
+      return Container(
+        height: 250,
+        width: double.infinity,
+        color: Colors.grey[300],
+        child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+      );
+    }
+    return SizedBox(
+      height: 250,
+      child: PageView.builder(
+        itemCount: imageUrls.length,
+        itemBuilder: (context, index) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.network(
+              imageUrls[index],
+              height: 250,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 250,
+                  width: double.infinity,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+                );
+              },
+            ),
+          );
+        },
       ),
     );
   }
