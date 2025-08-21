@@ -16,7 +16,8 @@ class MyApplicationsScreen extends StatefulWidget {
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   // Placeholder for future 'My Listings' functionality
-  int _selectedTabIndex = 0; // 0 for My Applications, 1 for My Listings (inactive)
+  int _selectedTabIndex =
+      0; // 0 for My Applications, 1 for My Listings (inactive)
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +25,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
     if (currentUser == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('My History'),
-          centerTitle: true,
-        ),
+        appBar: AppBar(title: const Text('My History'), centerTitle: true),
         body: const Center(
           child: Text('Please log in to view your applications.'),
         ),
@@ -35,10 +33,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My History'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('My History'), centerTitle: true),
       body: Column(
         children: [
           // Tab/Segmented Control
@@ -49,7 +44,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 .get(),
             builder: (context, snapshot) {
               final bool isAdmin = snapshot.data?.get('role') == 'admin';
-              
+
               return Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -70,7 +65,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                               ? Colors.white
                               : Colors.black87,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           elevation: _selectedTabIndex == 0 ? 3 : 0,
                         ),
                         child: const Text('My Applications'),
@@ -93,7 +89,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                                 ? Colors.white
                                 : Colors.black87,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             elevation: _selectedTabIndex == 1 ? 3 : 0,
                           ),
                           child: const Text('All Applications'),
@@ -114,18 +111,12 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'My History',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pets),
-            label: 'Post Animal',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
           BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
@@ -145,7 +136,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const MyPostedAnimalsScreen()),
+              MaterialPageRoute(
+                builder: (context) => const MyPostedAnimalsScreen(),
+              ),
             );
           } else if (index == 4) {
             Navigator.push(
@@ -174,14 +167,17 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('You have no adoption applications yet.'));
+          return const Center(
+            child: Text('You have no adoption applications yet.'),
+          );
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16.0),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final appData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final appData =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
             final timestamp = appData['appliedAt'] as Timestamp?;
             final formattedDate = timestamp != null
                 ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
@@ -202,7 +198,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8.0),
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -213,16 +211,21 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            appData['petImage'] ?? 'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
+                            appData['petImage'] ??
+                                'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
                             height: 60,
                             width: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 60,
-                              width: 60,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.pets, color: Colors.grey),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  height: 60,
+                                  width: 60,
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.pets,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -257,11 +260,15 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         const Text(
                           'Current Status:',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
@@ -277,7 +284,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         ),
                       ],
                     ),
-                    if (appData['status'] == 'Rejected' && appData['adminMessage'] != null && appData['adminMessage'].isNotEmpty)
+                    if (appData['status'] == 'Rejected' &&
+                        appData['adminMessage'] != null &&
+                        appData['adminMessage'].isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 12.0),
                         child: Column(
@@ -286,12 +295,18 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                             const Text(
                               'Reason for Rejection:',
                               style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w600, color: Colors.red),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               appData['adminMessage'],
-                              style: const TextStyle(fontSize: 15, color: Colors.black87),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Colors.black87,
+                              ),
                             ),
                           ],
                         ),
@@ -338,7 +353,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           padding: const EdgeInsets.all(16.0),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final appData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final appData =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
             final timestamp = appData['appliedAt'] as Timestamp?;
             final formattedDate = timestamp != null
                 ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
@@ -359,7 +375,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8.0),
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -370,16 +388,21 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            appData['petImage'] ?? 'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
+                            appData['petImage'] ??
+                                'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
                             height: 60,
                             width: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 60,
-                              width: 60,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.pets, color: Colors.grey),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  height: 60,
+                                  width: 60,
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.pets,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -420,11 +443,16 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       children: [
                         const Text(
                           'Status:',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
@@ -446,7 +474,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => _showApplicationDetails(context, appData),
+                            onPressed: () =>
+                                _showApplicationDetails(context, appData),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF5AC8F2),
                               foregroundColor: Colors.white,
@@ -458,7 +487,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                         if (appData['status'] == 'Under Review') ...[
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showApproveDialog(context, snapshot.data!.docs[index].id),
+                              onPressed: () => _showApproveDialog(
+                                context,
+                                snapshot.data!.docs[index].id,
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
@@ -469,7 +501,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () => _showRejectDialog(context, snapshot.data!.docs[index].id),
+                              onPressed: () => _showRejectDialog(
+                                context,
+                                snapshot.data!.docs[index].id,
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
@@ -492,7 +527,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
   void _showApproveDialog(BuildContext context, String applicationId) {
     final messageController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -506,7 +541,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               controller: messageController,
               decoration: const InputDecoration(
                 labelText: 'Optional Message (for applicant)',
-                hintText: 'e.g., Congratulations! Your application has been approved.',
+                hintText:
+                    'e.g., Congratulations! Your application has been approved.',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -525,10 +561,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                     .collection('applications')
                     .doc(applicationId)
                     .update({
-                  'status': 'Accepted',
-                  'adminMessage': messageController.text.trim(),
-                  'reviewedAt': FieldValue.serverTimestamp(),
-                });
+                      'status': 'Accepted',
+                      'adminMessage': messageController.text.trim(),
+                      'reviewedAt': FieldValue.serverTimestamp(),
+                    });
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -560,7 +596,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
   void _showRejectDialog(BuildContext context, String applicationId) {
     final messageController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -597,16 +633,16 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 );
                 return;
               }
-              
+
               try {
                 await FirebaseFirestore.instance
                     .collection('applications')
                     .doc(applicationId)
                     .update({
-                  'status': 'Rejected',
-                  'adminMessage': messageController.text.trim(),
-                  'reviewedAt': FieldValue.serverTimestamp(),
-                });
+                      'status': 'Rejected',
+                      'adminMessage': messageController.text.trim(),
+                      'reviewedAt': FieldValue.serverTimestamp(),
+                    });
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -636,7 +672,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     );
   }
 
-  void _showApplicationDetails(BuildContext context, Map<String, dynamic> appData) {
+  void _showApplicationDetails(
+    BuildContext context,
+    Map<String, dynamic> appData,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -645,8 +684,13 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Status: ${appData['status']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                if (appData['status'] == 'Rejected' && appData['adminMessage'] != null && appData['adminMessage'].isNotEmpty)
+                Text(
+                  'Status: ${appData['status']}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                if (appData['status'] == 'Rejected' &&
+                    appData['adminMessage'] != null &&
+                    appData['adminMessage'].isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text('Reason: ${appData['adminMessage']}'),
@@ -658,28 +702,54 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 Text('Address: ${appData['applicantAddress']}'),
                 const Divider(),
                 const Divider(),
-                Text('Current Pets: ${appData['hasCurrentPets'] == true ? "Yes" : "No"}'),
+                Text(
+                  'Current Pets: ${appData['hasCurrentPets'] == true ? "Yes" : "No"}',
+                ),
                 if (appData['currentPetsDetails']?.isNotEmpty == true)
-                  Text('Current Pets Details: ${appData['currentPetsDetails']}'),
-                Text('Past Pets: ${appData['hasPastPets'] == true ? "Yes" : "No"}'),
+                  Text(
+                    'Current Pets Details: ${appData['currentPetsDetails']}',
+                  ),
+                Text(
+                  'Past Pets: ${appData['hasPastPets'] == true ? "Yes" : "No"}',
+                ),
                 if (appData['pastPetsDetails']?.isNotEmpty == true)
                   Text('Past Pets Details: ${appData['pastPetsDetails']}'),
-                Text('Home Ownership: ${appData['homeOwnership'] ?? "Not specified"}'),
-                Text('Household Members: ${appData['householdMembers'] ?? "Not specified"}'),
-                Text('All Members Agree: ${appData['allMembersAgree'] == true ? "Yes" : "No"}'),
-                Text('Hours Alone: ${appData['hoursLeftAlone'] ?? "Not specified"}'),
-                Text('Where Kept When Alone: ${appData['whereKeptWhenAlone'] ?? "Not specified"}'),
-                Text('Financially Prepared: ${appData['financiallyPrepared'] == true ? "Yes" : "No"}'),
-                Text('Has Veterinarian: ${appData['hasVeterinarian'] == true ? "Yes" : "No"}'),
+                Text(
+                  'Home Ownership: ${appData['homeOwnership'] ?? "Not specified"}',
+                ),
+                Text(
+                  'Household Members: ${appData['householdMembers'] ?? "Not specified"}',
+                ),
+                Text(
+                  'All Members Agree: ${appData['allMembersAgree'] == true ? "Yes" : "No"}',
+                ),
+                Text(
+                  'Hours Alone: ${appData['hoursLeftAlone'] ?? "Not specified"}',
+                ),
+                Text(
+                  'Where Kept When Alone: ${appData['whereKeptWhenAlone'] ?? "Not specified"}',
+                ),
+                Text(
+                  'Financially Prepared: ${appData['financiallyPrepared'] == true ? "Yes" : "No"}',
+                ),
+                Text(
+                  'Has Veterinarian: ${appData['hasVeterinarian'] == true ? "Yes" : "No"}',
+                ),
                 if (appData['vetContactInfo']?.isNotEmpty == true)
                   Text('Vet Contact: ${appData['vetContactInfo']}'),
-                Text('Will Provide Vet Care: ${appData['willingToProvideVetCare'] == true ? "Yes" : "No"}'),
-                Text('Lifetime Commitment: ${appData['preparedForLifetimeCommitment'] == true ? "Yes" : "No"}'),
+                Text(
+                  'Will Provide Vet Care: ${appData['willingToProvideVetCare'] == true ? "Yes" : "No"}',
+                ),
+                Text(
+                  'Lifetime Commitment: ${appData['preparedForLifetimeCommitment'] == true ? "Yes" : "No"}',
+                ),
                 if (appData['ifCannotKeepCare']?.isNotEmpty == true)
                   Text('If Cannot Keep: ${appData['ifCannotKeepCare']}'),
                 const Divider(),
                 if (appData['appliedAt'] != null)
-                  Text('Applied On: ${DateFormat('MMM d, yyyy hh:mm a').format((appData['appliedAt'] as Timestamp).toDate())}'),
+                  Text(
+                    'Applied On: ${DateFormat('MMM d, yyyy hh:mm a').format((appData['appliedAt'] as Timestamp).toDate())}',
+                  ),
               ],
             ),
           ),
