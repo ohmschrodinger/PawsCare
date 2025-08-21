@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
 
-import 'firebase_options.dart';
+// Removed firebase_options.dart to use platform-native configs (google-services.json / plist)
 
 // Import your screen files
 import 'screens/splash_screen.dart';
@@ -14,6 +14,7 @@ import 'screens/admin_dashboard.dart';
 import 'screens/firestore_recovery_screen.dart';
 import 'screens/post_animal_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
+import 'screens/profile_screen.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -26,9 +27,7 @@ void main() async {
   // await dotenv.load(fileName: ".env");
   
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await Firebase.initializeApp();
   } catch (e) {
     // If Firebase is already initialized, ignore the error
     if (e.toString().contains('duplicate-app')) {
@@ -81,6 +80,7 @@ class PawsCareApp extends StatelessWidget {
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/post-animal': (context) => const PostAnimalScreen(),
         '/admin-animal-approval': (context) => const AdminAnimalApprovalScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

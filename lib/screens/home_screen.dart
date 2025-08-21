@@ -7,6 +7,7 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
+import 'package:pawscare/screens/profile_screen.dart';
 import '../services/animal_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -126,24 +127,46 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
-      );
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      });
     } else if (index == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
-      );
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      });
     } else if (index == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const MyPostedAnimalsScreen()),
-      );
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      });
     } else if (index == 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile page coming soon!'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      });
     }
   }
 
