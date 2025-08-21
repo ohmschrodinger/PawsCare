@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart'; // Import the new screen
 
 class PetDetailScreen extends StatelessWidget {
-  final Map<String, String> petData;
+  final Map<String, dynamic> petData;
 
   const PetDetailScreen({super.key, required this.petData});
 
