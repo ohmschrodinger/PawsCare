@@ -25,17 +25,19 @@ class AnimalService {
       // Check user role
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       final userRole = userDoc.data()?['role'] ?? 'user';
-      
+
       // Determine approval status based on role
       final approvalStatus = userRole == 'admin' ? 'approved' : 'pending';
-      final isActive = userRole == 'admin'; // Only admin posts are active immediately
+      final isActive =
+          userRole == 'admin'; // Only admin posts are active immediately
 
       final animalData = {
         'name': name,
         'species': species,
         'age': age,
         'status': 'Available for Adoption',
-        'image': 'https://via.placeholder.com/150/FF5733/FFFFFF?text=$species', // Placeholder image
+        'image':
+            'https://via.placeholder.com/150/FF5733/FFFFFF?text=$species', // Placeholder image
         'gender': gender,
         'sterilization': sterilization,
         'vaccination': vaccination,
@@ -100,9 +102,7 @@ class AnimalService {
   /// Get all animals without filters (for debugging)
   static Stream<QuerySnapshot> getAllAnimals() {
     print('DEBUG: Starting getAllAnimals query');
-    return _firestore
-        .collection('animals')
-        .snapshots();
+    return _firestore.collection('animals').snapshots();
   }
 
   /// Get animal by ID
@@ -165,7 +165,7 @@ class AnimalService {
       print('Testing animals collection...');
       final snapshot = await _firestore.collection('animals').get();
       print('Total animals in collection: ${snapshot.docs.length}');
-      
+
       for (var doc in snapshot.docs) {
         print('Animal ID: ${doc.id}, Data: ${doc.data()}');
       }
@@ -178,13 +178,13 @@ class AnimalService {
   static Stream<QuerySnapshot> getPendingAnimals() {
     try {
       print('DEBUG: Starting getPendingAnimals query');
-      
+
       // Simple query first - if this works, your index should be created
       return _firestore
           .collection('animals')
           .where('approvalStatus', isEqualTo: 'pending')
           .snapshots();
-      
+
       // If you want ordering (requires the index), uncomment below after creating index:
       /*
       return _firestore
@@ -226,6 +226,11 @@ class AnimalService {
       if (user == null) {
         throw Exception('User must be logged in to approve animals');
       }
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userRole = userDoc.data()?['role'] ?? 'user';
+      if (userRole != 'admin') {
+        throw Exception('Only admins can approve animals');
+      }
 
       await _firestore.collection('animals').doc(animalId).update({
         'approvalStatus': 'approved',
@@ -250,6 +255,11 @@ class AnimalService {
       final user = _auth.currentUser;
       if (user == null) {
         throw Exception('User must be logged in to reject animals');
+      }
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final userRole = userDoc.data()?['role'] ?? 'user';
+      if (userRole != 'admin') {
+        throw Exception('Only admins can reject animals');
       }
 
       await _firestore.collection('animals').doc(animalId).update({
@@ -289,7 +299,7 @@ class AnimalService {
     try {
       final batch = _firestore.batch();
       final user = _auth.currentUser;
-      
+
       if (user == null) {
         throw Exception('User must be logged in');
       }
@@ -303,7 +313,7 @@ class AnimalService {
           'approvedBy': user.uid,
         });
       }
-      
+
       await batch.commit();
       print('Batch approved ${animalIds.length} animals');
     } catch (e) {

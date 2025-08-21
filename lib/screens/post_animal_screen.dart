@@ -17,7 +17,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
-  
+
   // Form controllers
   final _nameController = TextEditingController();
   final _speciesController = TextEditingController();
@@ -27,7 +27,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   final _vaccinationController = TextEditingController();
   final _rescueStoryController = TextEditingController();
   final _motherStatusController = TextEditingController();
-  
+
   // Form state
   String _selectedGender = 'Male';
   String _selectedSterilization = 'Yes';
@@ -60,7 +60,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Future<void> _pickImage(ImageSource source) async {
     if (_images.length >= 4) return;
-    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
     if (pickedFile != null) {
       setState(() {
         _images.add(pickedFile);
@@ -88,23 +91,14 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(
-              icon: Icon(Icons.pending_actions),
-              text: 'Pending Requests',
-            ),
-            Tab(
-              icon: Icon(Icons.add_circle),
-              text: 'Add New Animal',
-            ),
+            Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
+            Tab(icon: Icon(Icons.add_circle), text: 'Add New Animal'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildPendingRequestsTab(),
-          _buildAddNewAnimalTab(),
-        ],
+        children: [_buildPendingRequestsTab(), _buildAddNewAnimalTab()],
       ),
     );
   }
@@ -112,99 +106,52 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   Widget _buildPendingRequestsTab() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Center(child: Text('Please log in to view pending requests'));
+      return const Center(
+        child: Text('Please log in to view pending requests'),
+      );
     }
-
     return StreamBuilder<QuerySnapshot>(
       stream: AnimalService.getPendingAnimals(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
-
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
-
         final animals = snapshot.data?.docs ?? [];
-
-        if (animals.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  size: 64,
-                  color: Colors.green[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No pending requests!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[600],
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
+          builder: (context, roleSnapshot) {
+            String role = 'user';
+            if (roleSnapshot.connectionState == ConnectionState.done &&
+                roleSnapshot.hasData) {
+              role = roleSnapshot.data?.data() != null
+                  ? (roleSnapshot.data!.get('role') ?? 'user')
+                  : 'user';
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: animals.length,
+              itemBuilder: (context, index) {
+                final animalData =
+                    animals[index].data() as Map<String, dynamic>;
+                final animalId = animals[index].id;
+                final postedByEmail = animalData['postedByEmail'] ?? 'Unknown';
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'All animals have been reviewed',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: animals.length,
-          itemBuilder: (context, index) {
-            final animalData = animals[index].data() as Map<String, dynamic>;
-            final animalId = animals[index].id;
-            final postedByEmail = animalData['postedByEmail'] ?? 'Unknown';
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 16.0),
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Animal Image
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                    child: Image.network(
-                      animalData['image'] ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal',
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          width: double.infinity,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                        );
-                      },
-                    ),
-                  ),
-                  
-                  Padding(
+                  child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Animal Name and Posted By
                         Text(
                           animalData['name'] ?? '',
                           style: const TextStyle(
@@ -213,10 +160,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                             color: Color(0xFF5AC8F2),
                           ),
                         ),
-                        
                         const SizedBox(height: 8),
-                        
-                        // Basic Info
                         Text(
                           '${animalData['species'] ?? ''} • ${animalData['age'] ?? ''} • ${animalData['gender'] ?? ''}',
                           style: TextStyle(
@@ -224,10 +168,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                             color: Colors.grey[700],
                           ),
                         ),
-                        
                         const SizedBox(height: 8),
-                        
-                        // Posted By Info
                         Text(
                           'Posted by: $postedByEmail',
                           style: TextStyle(
@@ -236,10 +177,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-                        
                         const SizedBox(height: 8),
-                        
-                        // Posted Date
                         Text(
                           'Posted on: ${_formatDate(animalData['postedAt'])}',
                           style: TextStyle(
@@ -248,30 +186,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-                        
                         const SizedBox(height: 16),
-                        
-                        // Rescue Story
-                        if (animalData['rescueStory']?.isNotEmpty == true) ...[
-                          Text(
-                            'Rescue Story:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            animalData['rescueStory'] ?? '',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        
-                        // Medical Info
                         Row(
                           children: [
                             Expanded(
@@ -289,48 +204,56 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                             ),
                           ],
                         ),
-                        
                         const SizedBox(height: 16),
-                        
-                        // Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => _showApproveDialog(context, animalId),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                child: const Text(
-                                  'Approve',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => _showRejectDialog(context, animalId),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                child: const Text(
-                                  'Reject',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                        if (role == 'admin')
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _showApproveDialog(context, animalId),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Approve',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () =>
+                                      _showRejectDialog(context, animalId),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Reject',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -356,11 +279,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               ),
               child: Column(
                 children: [
-                  Icon(
-                    Icons.pets,
-                    size: 48,
-                    color: const Color(0xFF5AC8F2),
-                  ),
+                  Icon(Icons.pets, size: 48, color: const Color(0xFF5AC8F2)),
                   const SizedBox(height: 8),
                   Text(
                     'Add New Animal for Adoption',
@@ -374,18 +293,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   const SizedBox(height: 8),
                   Text(
                     'Fill out the form below to post a new animal. Admin posts are approved immediately.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     textAlign: TextAlign.center,
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Animal Name
             TextFormField(
               controller: _nameController,
@@ -401,9 +317,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Species
             TextFormField(
               controller: _speciesController,
@@ -419,9 +335,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Age
             TextFormField(
               controller: _ageController,
@@ -437,9 +353,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Gender
             DropdownButtonFormField<String>(
               value: _selectedGender,
@@ -466,9 +382,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Sterilization Status
             DropdownButtonFormField<String>(
               value: _selectedSterilization,
@@ -495,9 +411,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Vaccination Status
             DropdownButtonFormField<String>(
               value: _selectedVaccination,
@@ -524,9 +440,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Mother Status
             DropdownButtonFormField<String>(
               value: _selectedMotherStatus,
@@ -535,7 +451,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 prefixIcon: Icon(Icons.family_restroom),
                 border: OutlineInputBorder(),
               ),
-              items: ['With Mother', 'Without Mother', 'Unknown'].map((String value) {
+              items: ['With Mother', 'Without Mother', 'Unknown'].map((
+                String value,
+              ) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
@@ -553,16 +471,17 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Rescue Story
             TextFormField(
               controller: _rescueStoryController,
               decoration: const InputDecoration(
                 labelText: 'Rescue Story *',
-                prefixIcon: Icon(Icons.menu_book),   // book icon
-                hintText: 'Tell us about how this animal was found or their background...',
+                prefixIcon: Icon(Icons.menu_book), // book icon
+                hintText:
+                    'Tell us about how this animal was found or their background...',
               ),
               maxLines: 4,
               validator: (value) {
@@ -572,7 +491,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 return null;
               },
             ),
-            
+
             const SizedBox(height: 16),
 
             // Photo Upload Section
@@ -602,7 +521,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             ),
             SizedBox(height: 8),
             _images.isEmpty
-                ? Text('No images selected.', style: TextStyle(color: Colors.red))
+                ? Text(
+                    'No images selected.',
+                    style: TextStyle(color: Colors.red),
+                  )
                 : SizedBox(
                     height: 100,
                     child: ListView.separated(
@@ -630,7 +552,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                                   color: Colors.black54,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(Icons.close, color: Colors.white, size: 18),
+                                child: Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ),
@@ -639,7 +565,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                     ),
                   ),
             SizedBox(height: 16),
-            
+
             // Submit Button
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitForm,
@@ -660,7 +586,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -697,10 +625,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -729,36 +654,46 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     try {
       // 1. Create a new animal document to get its ID
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('User must be logged in to post an animal');
-      final animalDoc = await FirebaseFirestore.instance.collection('animals').add({
-        'name': _nameController.text.trim(),
-        'species': _speciesController.text.trim(),
-        'age': _ageController.text.trim(),
-        'status': 'Available for Adoption',
-        'gender': _selectedGender,
-        'sterilization': _selectedSterilization,
-        'vaccination': _selectedVaccination,
-        'rescueStory': _rescueStoryController.text.trim(),
-        'motherStatus': _selectedMotherStatus,
-        'postedBy': user.uid,
-        'postedByEmail': user.email,
-        'postedAt': FieldValue.serverTimestamp(),
-        'isActive': false, // will be updated after approval
-        'approvalStatus': 'pending',
-        'adminMessage': '',
-        'imageUrls': [], // placeholder
-      });
+      if (user == null)
+        throw Exception('User must be logged in to post an animal');
+      final animalDoc = await FirebaseFirestore.instance
+          .collection('animals')
+          .add({
+            'name': _nameController.text.trim(),
+            'species': _speciesController.text.trim(),
+            'age': _ageController.text.trim(),
+            'status': 'Available for Adoption',
+            'gender': _selectedGender,
+            'sterilization': _selectedSterilization,
+            'vaccination': _selectedVaccination,
+            'rescueStory': _rescueStoryController.text.trim(),
+            'motherStatus': _selectedMotherStatus,
+            'postedBy': user.uid,
+            'postedByEmail': user.email,
+            'postedAt': FieldValue.serverTimestamp(),
+            'isActive': false, // will be updated after approval
+            'approvalStatus': 'pending',
+            'adminMessage': '',
+            'imageUrls': [], // placeholder
+          });
       final animalId = animalDoc.id;
 
       // 2. Upload images and get URLs
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
-        final url = await StorageService.uploadAnimalImage(File(_images[i].path), animalId, i);
+        final url = await StorageService.uploadAnimalImage(
+          File(_images[i].path),
+          animalId,
+          i,
+        );
         imageUrls.add(url);
       }
 
       // 3. Update animal document with image URLs
-      await animalDoc.update({'imageUrls': imageUrls, 'image': imageUrls.isNotEmpty ? imageUrls[0] : null});
+      await animalDoc.update({
+        'imageUrls': imageUrls,
+        'image': imageUrls.isNotEmpty ? imageUrls[0] : null,
+      });
 
       // Show success message
       if (mounted) {
@@ -802,7 +737,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   void _showApproveDialog(BuildContext context, String animalId) {
     final messageController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -862,7 +797,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   void _showRejectDialog(BuildContext context, String animalId) {
     final messageController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -876,7 +811,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               controller: messageController,
               decoration: const InputDecoration(
                 labelText: 'Reason for Rejection *',
-                hintText: 'e.g., Incomplete information, inappropriate content...',
+                hintText:
+                    'e.g., Incomplete information, inappropriate content...',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
@@ -899,7 +835,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 );
                 return;
               }
-              
+
               try {
                 await AnimalService.rejectAnimal(
                   animalId: animalId,
@@ -932,7 +868,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'Unknown date';
-    
+
     try {
       if (timestamp is Timestamp) {
         final date = timestamp.toDate();
