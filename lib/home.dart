@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,6 +13,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final User? user = FirebaseAuth.instance.currentUser;
   bool _isSigningOut = false;
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _images = [];
 
   Future<void> _signOut() async {
     // Show confirmation dialog
@@ -76,6 +80,22 @@ class _HomePageState extends State<HomePage> {
     } else {
       return 'Good Evening';
     }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (_images.length >= 4) return;
+    final pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
+    if (pickedFile != null) {
+      setState(() {
+        _images.add(pickedFile);
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _images.removeAt(index);
+    });
   }
 
   @override
@@ -226,6 +246,75 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              
+              // Image Upload Section
+              SizedBox(height: 32),
+              Text(
+                'Upload Pictures (max 4)',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _images.length < 4
+                        ? () => _pickImage(ImageSource.gallery)
+                        : null,
+                    icon: Icon(Icons.photo_library),
+                    label: Text('Gallery'),
+                  ),
+                  SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _images.length < 4
+                        ? () => _pickImage(ImageSource.camera)
+                        : null,
+                    icon: Icon(Icons.camera_alt),
+                    label: Text('Camera'),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              _images.isEmpty
+                  ? Text('No images selected.')
+                  : SizedBox(
+                      height: 120,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _images.length,
+                        separatorBuilder: (_, __) => SizedBox(width: 8),
+                        itemBuilder: (context, index) => Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(_images[index].path),
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => _removeImage(index),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.close, color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
               
               Spacer(),
               
