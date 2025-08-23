@@ -120,6 +120,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(_isAdmin ? 'PAWS CARE - Admin' : 'PAWS CARE'),
         centerTitle: true,
+        backgroundColor: const Color(0xFF5AC8F2),
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -187,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // ...existing code...
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -350,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => const PostAnimalScreen(initialTab: 1),
+              builder: (context) => const PostAnimalScreen(),
             ),
           );
         },
@@ -359,13 +360,41 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add),
         tooltip: 'Post Animal',
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: const Color(0xFF5AC8F2),
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'Applications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Post',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pets),
+            label: 'My Posts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 }
 
-// PetCard and MyFavoritesScreen remain unchanged from your code.
-
-class PetCard extends StatelessWidget {
+// Fixed PetCard - Changed to StatefulWidget to support PageController and state management
+class PetCard extends StatefulWidget {
   final Map<String, dynamic> pet;
   final bool showAdminInfo;
   final VoidCallback? onLike;
@@ -399,8 +428,9 @@ class _PetCardState extends State<PetCard> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls =
-        pet['imageUrls'] as List<dynamic>? ?? [pet['image'] ?? ''];
+    final imageUrls = widget.pet['imageUrls'] as List<dynamic>? ?? 
+                     [widget.pet['image'] ?? 'https://via.placeholder.com/300x200/CCCCCC/666666?text=No+Image'];
+    
     return Card(
       elevation: 8,
       margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -410,54 +440,11 @@ class _PetCardState extends State<PetCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image gallery
-            SizedBox(
-              height: 250,
-              child: PageView.builder(
-                itemCount: imageUrls.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => Dialog(
-                          backgroundColor: Colors.black,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Image.network(
-                              imageUrls[index],
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        imageUrls[index],
-                        height: 250,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 250,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              size: 80,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            // Enhanced Image Gallery
+            _buildEnhancedImageGallery(imageUrls),
+            
             const SizedBox(height: 16),
+            
             // Pet name and info
             Row(
               children: [
@@ -466,14 +453,18 @@ class _PetCardState extends State<PetCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.pet['name'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+                        widget.pet['name']?.toString() ?? 'Unknown Name',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 24,
+                          color: Color(0xFF5AC8F2),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${widget.pet['species'] ?? ''} • ${widget.pet['age'] ?? ''}',
+                        '${widget.pet['species']?.toString() ?? ''} • ${widget.pet['age']?.toString() ?? ''}',
                         style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                       ),
                     ],
@@ -487,19 +478,20 @@ class _PetCardState extends State<PetCard> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            
+            const SizedBox(height: 12),
+            
+            // Rescue Story
             Text(
-              '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              pet['rescueStory'] ?? '',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              widget.pet['rescueStory']?.toString() ?? '',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 12),
+            
+            const SizedBox(height: 16),
+            
+            // Action Buttons
             Row(
               children: [
                 ElevatedButton.icon(
@@ -535,6 +527,26 @@ class _PetCardState extends State<PetCard> {
                 ),
               ],
             ),
+            
+            // Admin Info (if needed)
+            if (widget.showAdminInfo) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Text(
+                  'Status: ${widget.pet['approvalStatus'] ?? 'pending'}',
+                  style: TextStyle(
+                    color: Colors.orange[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -575,7 +587,7 @@ class _PetCardState extends State<PetCard> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Image.network(
-                      imageUrls[index],
+                      imageUrls[index].toString(),
                       height: 250,
                       width: double.infinity,
                       fit: BoxFit.cover,
@@ -642,11 +654,11 @@ class _PetCardState extends State<PetCard> {
             scrollPhysics: const BouncingScrollPhysics(),
             builder: (BuildContext context, int index) {
               return PhotoViewGalleryPageOptions(
-                imageProvider: NetworkImage(imageUrls[index]),
+                imageProvider: NetworkImage(imageUrls[index].toString()),
                 initialScale: PhotoViewComputedScale.contained,
                 minScale: PhotoViewComputedScale.contained * 0.8,
                 maxScale: PhotoViewComputedScale.covered * 2.0,
-                heroAttributes: PhotoViewHeroAttributes(tag: imageUrls[index]),
+                heroAttributes: PhotoViewHeroAttributes(tag: imageUrls[index].toString()),
               );
             },
             itemCount: imageUrls.length,
@@ -654,11 +666,6 @@ class _PetCardState extends State<PetCard> {
               child: CircularProgressIndicator(color: Colors.white),
             ),
             pageController: PageController(initialPage: initialIndex),
-            onPageChanged: (index) {
-              setState(() {
-                _currentImageIndex = index;
-              });
-            },
           ),
         ),
       ),
@@ -688,32 +695,60 @@ class _PetCardState extends State<PetCard> {
 }
 
 class MyFavoritesScreen extends StatelessWidget {
+  const MyFavoritesScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const Center(child: Text('Please log in'));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Favorites'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('My Favorites'), 
+        centerTitle: true,
+        backgroundColor: const Color(0xFF5AC8F2),
+        foregroundColor: Colors.white,
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('favorites')
             .where('userId', isEqualTo: user.uid)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
+          
           final favoriteDocs = snapshot.data!.docs;
-          if (favoriteDocs.isEmpty)
-            return const Center(child: Text('No favorites yet!'));
-          return ListView(
-            children: favoriteDocs.map((doc) {
+          if (favoriteDocs.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.favorite_border, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No favorites yet!', style: TextStyle(fontSize: 18)),
+                ],
+              ),
+            );
+          }
+          
+          return ListView.builder(
+            itemCount: favoriteDocs.length,
+            itemBuilder: (context, index) {
+              final doc = favoriteDocs[index];
               final animalId = doc['animalId'];
-              return ListTile(
-                title: Text('Animal ID: $animalId'),
-                trailing: const Icon(Icons.favorite, color: Colors.pinkAccent),
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text('Animal ID: $animalId'),
+                  trailing: const Icon(Icons.favorite, color: Colors.pinkAccent),
+                  onTap: () {
+                    // TODO: Navigate to animal details
+                  },
+                ),
               );
-            }).toList(),
+            },
           );
         },
       ),
