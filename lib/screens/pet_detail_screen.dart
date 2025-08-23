@@ -9,16 +9,21 @@ class PetDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Fix: Ensure imageUrls is always a List<String>
-    final dynamic imageUrlsRaw = petData['imageUrls'];
-    final List<String> imageUrls = (imageUrlsRaw is List)
-        ? List<String>.from(imageUrlsRaw)
-        : (imageUrlsRaw is String && imageUrlsRaw.isNotEmpty)
-            ? [imageUrlsRaw]
-            : (petData['image'] != null ? [petData['image']] : []);
+    // Robust handling for imageUrls
+    List<String> imageUrls = [];
+    final raw = petData['imageUrls'];
+    if (raw is List) {
+      imageUrls = raw.whereType<String>().toList();
+    } else if (raw is String && raw.isNotEmpty) {
+      imageUrls = [raw];
+    } else if (petData['image'] is String && petData['image'] != null) {
+      imageUrls = [petData['image']];
+    }
+    // Defensive null checks for all fields
+    String getField(String key) => petData[key]?.toString() ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: Text(petData['name']!),
+        title: Text(getField('name')),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -38,7 +43,7 @@ class PetDetailScreen extends StatelessWidget {
 
             // Key Info Section
             Text(
-              petData['name']!,
+              getField('name'),
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -46,22 +51,22 @@ class PetDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.cake, 'Age:', petData['age']!),
-            _buildInfoRow(Icons.pets, 'Species:', petData['species']!),
-            _buildInfoRow(petData['gender'] == 'Male' ? Icons.male : Icons.female, 'Gender:', petData['gender']!),
-            _buildInfoRow(Icons.medical_services, 'Sterilization:', petData['sterilization']!),
-            _buildInfoRow(Icons.local_hospital, 'Vaccination:', petData['vaccination']!),
+            _buildInfoRow(Icons.cake, 'Age:', getField('age')),
+            _buildInfoRow(Icons.pets, 'Species:', getField('species')),
+            _buildInfoRow(getField('gender') == 'Male' ? Icons.male : Icons.female, 'Gender:', getField('gender')),
+            _buildInfoRow(Icons.medical_services, 'Sterilization:', getField('sterilization')),
+            _buildInfoRow(Icons.local_hospital, 'Vaccination:', getField('vaccination')),
             const SizedBox(height: 24),
 
             // About Me / My Story Section
             _buildSectionHeader('About Me / My Story'),
             const SizedBox(height: 8),
             Text(
-              petData['rescueStory']!,
+              getField('rescueStory'),
               style: const TextStyle(fontSize: 16, height: 1.5),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow(Icons.family_restroom, 'Mother Status:', petData['motherStatus']!),
+            _buildInfoRow(Icons.family_restroom, 'Mother Status:', getField('motherStatus')),
             const SizedBox(height: 24),
 
             // Availability & Contact
@@ -74,7 +79,7 @@ class PetDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                petData['status']!,
+                getField('status'),
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
