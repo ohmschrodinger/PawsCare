@@ -223,11 +223,13 @@ class MyPostedAnimalsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.check_circle, color: Colors.green, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Your animal has been approved and is now visible to all users!',
-                  style: TextStyle(
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    'Your animal has been approved and is now visible to all users!',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -250,11 +252,13 @@ class MyPostedAnimalsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.cancel, color: Colors.red, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Your animal was not approved',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    'Your animal was not approved',
+                    style: TextStyle(
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -306,11 +310,13 @@ class MyPostedAnimalsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.schedule, color: Colors.orange, size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  'Your animal is waiting for admin approval',
-                  style: TextStyle(
-                    color: Colors.orange[700],
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    'Your animal is waiting for admin approval',
+                    style: TextStyle(
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -318,104 +324,15 @@ class MyPostedAnimalsScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'This usually takes 24-48 hours. You\'ll be notified once it\'s reviewed.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ],
-        ],
-      );
-      
-    case 'rejected':
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.cancel, color: Colors.red, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Your animal was not approved',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (adminMessage.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Admin Message:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red[700],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    adminMessage,
-                    style: TextStyle(color: Colors.red[700]),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (animalData['rejectedAt'] != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Rejected on: ${_formatDate(animalData['rejectedAt'])}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
               ),
             ),
           ],
-        ],
-      );
-      
-    case 'pending':
-    default:
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.schedule, color: Colors.orange, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Your animal is waiting for admin approval',
-                  style: TextStyle(
-                    color: Colors.orange[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This usually takes 24-48 hours. You\'ll be notified once it\'s reviewed.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      );
+        );
+    }
   }
-}
 
   Widget _buildEnhancedImageGallery(Map<String, dynamic> animalData) {
     List<String> imageUrls = [];
