@@ -24,20 +24,20 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       // Show splash for 2 seconds
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         // Check if user is already signed in
         final User? currentUser = FirebaseAuth.instance.currentUser;
-        
+
         print('Current user: ${currentUser?.uid ?? 'null'}'); // Debug log
-        
+
         // Force logout if there are any issues with the current user
         if (currentUser != null) {
           try {
             // Verify the user token is still valid
             await currentUser.getIdToken(true);
-            // If successful, navigate to home
-            Navigator.of(context).pushReplacementNamed('/home');
+            // If successful, navigate to main
+            Navigator.of(context).pushReplacementNamed('/main');
           } catch (e) {
             print('Token verification failed, logging out: $e');
             // If token verification fails, logout and go to login
@@ -57,8 +57,8 @@ class _SplashScreenState extends State<SplashScreen> {
       } catch (signOutError) {
         print('Error signing out: $signOutError');
       }
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
       }
     }
   }
@@ -71,11 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.pets,
-              size: 100,
-              color: Colors.white,
-            ),
+            Icon(Icons.pets, size: 100, color: Colors.white),
             SizedBox(height: 20),
             Text(
               "PAWS CARE",

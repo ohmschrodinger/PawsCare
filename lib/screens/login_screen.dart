@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         await user.reload(); // Ensure user data is fresh
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage;
@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         await user.reload();
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/main');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage;
@@ -279,9 +279,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(_isLogin
-                        ? "Don't have an account?"
-                        : "Already have an account?"),
+                    Text(
+                      _isLogin
+                          ? "Don't have an account?"
+                          : "Already have an account?",
+                    ),
                     TextButton(
                       onPressed: () {
                         setState(() {
