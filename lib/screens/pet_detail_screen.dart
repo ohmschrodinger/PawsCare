@@ -9,7 +9,13 @@ class PetDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls = petData['imageUrls'] as List<String>? ?? (petData['image'] != null ? [petData['image']!] : []);
+    // Fix: Ensure imageUrls is always a List<String>
+    final dynamic imageUrlsRaw = petData['imageUrls'];
+    final List<String> imageUrls = (imageUrlsRaw is List)
+        ? List<String>.from(imageUrlsRaw)
+        : (imageUrlsRaw is String && imageUrlsRaw.isNotEmpty)
+            ? [imageUrlsRaw]
+            : (petData['image'] != null ? [petData['image']] : []);
     return Scaffold(
       appBar: AppBar(
         title: Text(petData['name']!),
