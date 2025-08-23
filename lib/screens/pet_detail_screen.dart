@@ -3,13 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart'; // Import the new screen
 
 class PetDetailScreen extends StatelessWidget {
-  final Map<String, String> petData;
+  final Map<String, dynamic> petData;
 
   const PetDetailScreen({super.key, required this.petData});
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls = petData['imageUrls'] as List<String>? ?? (petData['image'] != null ? [petData['image']!] : []);
+    // Fix: Ensure imageUrls is always a List<String>
+    final dynamic imageUrlsRaw = petData['imageUrls'];
+    final List<String> imageUrls = (imageUrlsRaw is List)
+        ? List<String>.from(imageUrlsRaw)
+        : (imageUrlsRaw is String && imageUrlsRaw.isNotEmpty)
+            ? [imageUrlsRaw]
+            : (petData['image'] != null ? [petData['image']] : []);
     return Scaffold(
       appBar: AppBar(
         title: Text(petData['name']!),

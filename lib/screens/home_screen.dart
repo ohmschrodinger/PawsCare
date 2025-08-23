@@ -385,38 +385,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   }
 
-                  return GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.75,
-                    ),
+                  return ListView.builder(
                     itemCount: filteredAnimals.length,
                     itemBuilder: (context, index) {
                       final animalData = filteredAnimals[index].data() as Map<String, dynamic>;
-                      
                       final imageUrls = animalData['imageUrls'] as List<dynamic>?;
                       final imageUrl = (imageUrls != null && imageUrls.isNotEmpty)
                           ? imageUrls.first as String
                           : (animalData['image'] ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal');
-                      
-                      final pet = <String, String>{
+                      final pet = {
                         'id': filteredAnimals[index].id,
-                        'name': animalData['name']?.toString() ?? '',
-                        'species': animalData['species']?.toString() ?? '',
-                        'age': animalData['age']?.toString() ?? '',
-                        'status': animalData['status']?.toString() ?? 'Available for Adoption',
+                        'name': animalData['name'],
+                        'species': animalData['species'],
+                        'age': animalData['age'],
+                        'status': animalData['status'],
                         'image': imageUrl,
-                        'gender': animalData['gender']?.toString() ?? '',
-                        'sterilization': animalData['sterilization']?.toString() ?? '',
-                        'vaccination': animalData['vaccination']?.toString() ?? '',
-                        'rescueStory': animalData['rescueStory']?.toString() ?? '',
-                        'motherStatus': animalData['motherStatus']?.toString() ?? '',
-                        'approvalStatus': animalData['approvalStatus']?.toString() ?? 'approved',
+                        'imageUrls': imageUrls ?? [],
+                        'gender': animalData['gender'],
+                        'sterilization': animalData['sterilization'],
+                        'vaccination': animalData['vaccination'],
+                        'rescueStory': animalData['rescueStory'],
+                        'motherStatus': animalData['motherStatus'],
+                        'approvalStatus': animalData['approvalStatus'],
                       };
-                      
-                      return PetCard(pet: pet, showAdminInfo: _isAdmin);
+                      return PetCard(
+                        pet: pet,
+                        showAdminInfo: _isAdmin,
+                        onLike: () => _likeAnimal(context, pet['id']),
+                      );
                     },
                   );
                 },
@@ -456,111 +452,168 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class PetCard extends StatelessWidget {
-  final Map<String, String> pet;
+  final Map<String, dynamic> pet;
   final bool showAdminInfo;
+  final VoidCallback? onLike;
 
   const PetCard({
-    Key? key, 
+    Key? key,
     required this.pet,
     this.showAdminInfo = false,
+    this.onLike,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PetDetailScreen(petData: pet),
-          ),
-        );
-      },
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    final imageUrls = pet['imageUrls'] as List<dynamic>? ?? [pet['image'] ?? ''];
+    return Card(
+      elevation: 8,
+      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-              child: Image.network(
-                pet['image'] ?? '',
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 120,
-                    width: double.infinity,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image_not_supported, color: Colors.grey),
+            // Image gallery
+            SizedBox(
+              height: 250,
+              child: PageView.builder(
+                itemCount: imageUrls.length,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => Dialog(
+                          backgroundColor: Colors.black,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Image.network(
+                              imageUrls[index],
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        imageUrls[index],
+                        height: 250,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 250,
+                            width: double.infinity,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
                   );
                 },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    pet['name'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 16),
+            Text(
+              pet['name'] ?? '',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
+              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              pet['rescueStory'] ?? '',
+              style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: onLike,
+                  icon: const Icon(Icons.favorite_border),
+                  label: const Text('Like'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pinkAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F7FA),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            pet['status'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF00796B),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PetDetailScreen(petData: pet),
                         ),
-                      ),
-                      if (showAdminInfo && pet['approvalStatus'] == 'pending') ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'PENDING',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.orange[800],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                      );
+                    },
+                    child: const Text('View Details'),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class MyFavoritesScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Center(child: Text('Please log in'));
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Favorites'), centerTitle: true),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+          .collection('favorites')
+          .where('userId', isEqualTo: user.uid)
+          .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+          final favoriteDocs = snapshot.data!.docs;
+          if (favoriteDocs.isEmpty) return Center(child: Text('No favorites yet!'));
+          return ListView(
+            children: favoriteDocs.map((doc) {
+              final animalId = doc['animalId'];
+              return ListTile(
+                title: Text('Animal ID: $animalId'),
+                trailing: Icon(Icons.favorite, color: Colors.pinkAccent),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+void _likeAnimal(BuildContext context, String animalId) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  await FirebaseFirestore.instance.collection('favorites').add({
+    'userId': user.uid,
+    'animalId': animalId,
+    'likedAt': FieldValue.serverTimestamp(),
+  });
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Added to favorites!'), backgroundColor: Colors.pinkAccent),
+  );
 }
