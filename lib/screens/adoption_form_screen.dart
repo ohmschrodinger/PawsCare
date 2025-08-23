@@ -5,7 +5,7 @@ import 'package:pawscare/screens/my_applications_screen.dart';
 import '../services/user_service.dart';
 
 class AdoptionFormScreen extends StatefulWidget {
-  final Map<String, String> petData;
+  final Map<String, dynamic> petData;
 
   const AdoptionFormScreen({super.key, required this.petData});
 
