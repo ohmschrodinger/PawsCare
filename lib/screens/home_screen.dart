@@ -9,6 +9,9 @@ import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import '../services/animal_service.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
+import 'package:share_plus/share_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -451,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class PetCard extends StatelessWidget {
+class PetCard extends StatefulWidget {
   final Map<String, dynamic> pet;
   final bool showAdminInfo;
   final VoidCallback? onLike;
@@ -464,8 +467,28 @@ class PetCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<PetCard> createState() => _PetCardState();
+}
+
+class _PetCardState extends State<PetCard> {
+  late PageController _pageController;
+  int _currentImageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final imageUrls = pet['imageUrls'] as List<dynamic>? ?? [pet['image'] ?? ''];
+    final imageUrls = widget.pet['imageUrls'] as List<dynamic>? ?? [widget.pet['image'] ?? ''];
     return Card(
       elevation: 8,
       margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -475,64 +498,41 @@ class PetCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image gallery
-            SizedBox(
-              height: 250,
-              child: PageView.builder(
-                itemCount: imageUrls.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => Dialog(
-                          backgroundColor: Colors.black,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Image.network(
-                              imageUrls[index],
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        imageUrls[index],
-                        height: 250,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 250,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+            // Enhanced Image gallery with dots and zoom
+            _buildEnhancedImageGallery(imageUrls),
             const SizedBox(height: 16),
-            Text(
-              pet['name'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // Pet name and info
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.pet['name'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${widget.pet['species'] ?? ''} • ${widget.pet['age'] ?? ''}',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                ),
+                // Share button
+                IconButton(
+                  icon: const Icon(Icons.share, color: Color(0xFF5AC8F2)),
+                  onPressed: () => _sharePet(widget.pet),
+                  tooltip: 'Share this pet',
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
-              '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              pet['rescueStory'] ?? '',
+              widget.pet['rescueStory'] ?? '',
               style: TextStyle(fontSize: 14, color: Colors.grey[800]),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -541,7 +541,7 @@ class PetCard extends StatelessWidget {
             Row(
               children: [
                 ElevatedButton.icon(
-                  onPressed: onLike,
+                  onPressed: widget.onLike,
                   icon: const Icon(Icons.favorite_border),
                   label: const Text('Like'),
                   style: ElevatedButton.styleFrom(
@@ -557,10 +557,15 @@ class PetCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => PetDetailScreen(petData: pet),
+                          builder: (context) => PetDetailScreen(petData: widget.pet),
                         ),
                       );
                     },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5AC8F2),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     child: const Text('View Details'),
                   ),
                 ),
@@ -569,6 +574,151 @@ class PetCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEnhancedImageGallery(List<dynamic> imageUrls) {
+    if (imageUrls.isEmpty) {
+      return Container(
+        height: 250,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+      );
+    }
+
+    return Column(
+      children: [
+        // Image Gallery with PageView
+        SizedBox(
+          height: 250,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: imageUrls.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentImageIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => _showFullScreenGallery(context, imageUrls, index),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      imageUrls[index],
+                      height: 250,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 250,
+                          width: double.infinity,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        
+        // Slider Dots Indicator
+        if (imageUrls.length > 1) ...[
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              imageUrls.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentImageIndex == index
+                      ? const Color(0xFF5AC8F2)
+                      : Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showFullScreenGallery(BuildContext context, List<dynamic> imageUrls, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text('${widget.pet['name']} - Image ${initialIndex + 1} of ${imageUrls.length}'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.share),
+                onPressed: () => _sharePet(widget.pet),
+                tooltip: 'Share this pet',
+              ),
+            ],
+          ),
+          body: PhotoViewGallery.builder(
+            scrollPhysics: const BouncingScrollPhysics(),
+            builder: (BuildContext context, int index) {
+              return PhotoViewGalleryPageOptions(
+                imageProvider: NetworkImage(imageUrls[index]),
+                initialScale: PhotoViewComputedScale.contained,
+                minScale: PhotoViewComputedScale.contained * 0.8,
+                maxScale: PhotoViewComputedScale.covered * 2.0,
+                heroAttributes: PhotoViewHeroAttributes(tag: imageUrls[index]),
+              );
+            },
+            itemCount: imageUrls.length,
+            loadingBuilder: (context, event) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            pageController: PageController(initialPage: initialIndex),
+            onPageChanged: (index) {
+              setState(() {
+                _currentImageIndex = index;
+              });
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _sharePet(Map<String, dynamic> petData) {
+    final String petName = petData['name']?.toString() ?? 'Pet';
+    final String species = petData['species']?.toString() ?? '';
+    final String age = petData['age']?.toString() ?? '';
+    final String rescueStory = petData['rescueStory']?.toString() ?? '';
+    
+    String shareText = '🐾 Check out this adorable $species named $petName!';
+    if (age.isNotEmpty) {
+      shareText += '\nAge: $age';
+    }
+    if (rescueStory.isNotEmpty) {
+      shareText += '\n\n$rescueStory';
+    }
+    shareText += '\n\nFind your perfect companion at PawsCare! 🏠❤️';
+    
+    Share.share(
+      shareText,
+      subject: 'Adopt $petName - A Lovely $species Looking for a Home',
     );
   }
 }

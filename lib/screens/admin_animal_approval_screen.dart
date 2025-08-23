@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 import '../services/animal_service.dart';
 
 class AdminAnimalApprovalScreen extends StatelessWidget {
@@ -79,24 +81,8 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Animal Image
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                      child: Image.network(
-                        animalData['image'] ?? 'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal',
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 200,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                          );
-                        },
-                      ),
-                    ),
+                    // Enhanced Animal Image Gallery
+                    _buildEnhancedImageGallery(animalData),
                     
                     Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -408,5 +394,119 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
     } catch (e) {
       return 'Unknown date';
     }
+  }
+
+  Widget _buildEnhancedImageGallery(Map<String, dynamic> animalData) {
+    List<String> imageUrls = [];
+    final raw = animalData['imageUrls'];
+    if (raw is List) {
+      imageUrls = raw.whereType<String>().toList();
+    } else if (raw is String && raw.isNotEmpty) {
+      imageUrls = [raw];
+    } else if (animalData['image'] is String && animalData['image'] != null) {
+      imageUrls = [animalData['image']];
+    }
+
+    if (imageUrls.isEmpty) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+        ),
+        child: const Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+      );
+    }
+
+    return Column(
+      children: [
+        // Image Gallery with PageView
+        SizedBox(
+          height: 200,
+          child: PageView.builder(
+            itemCount: imageUrls.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () => _showFullScreenGallery(context, imageUrls, index),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                    child: Image.network(
+                      imageUrls[index],
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          width: double.infinity,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        
+        // Slider Dots Indicator (only show if multiple images)
+        if (imageUrls.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              imageUrls.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: index == 0 ? const Color(0xFF5AC8F2) : Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showFullScreenGallery(BuildContext context, List<String> imageUrls, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text('Animal Images - ${initialIndex + 1} of ${imageUrls.length}'),
+          ),
+          body: PhotoViewGallery.builder(
+            scrollPhysics: const BouncingScrollPhysics(),
+            builder: (BuildContext context, int index) {
+              return PhotoViewGalleryPageOptions(
+                imageProvider: NetworkImage(imageUrls[index]),
+                initialScale: PhotoViewComputedScale.contained,
+                minScale: PhotoViewComputedScale.contained * 0.8,
+                maxScale: PhotoViewComputedScale.covered * 2.0,
+                heroAttributes: PhotoViewHeroAttributes(tag: imageUrls[index]),
+              );
+            },
+            itemCount: imageUrls.length,
+            loadingBuilder: (context, event) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            pageController: PageController(initialPage: initialIndex),
+          ),
+        ),
+      ),
+    );
   }
 }
