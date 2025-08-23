@@ -7,7 +7,8 @@ import '../services/animal_service.dart';
 import '../services/storage_service.dart';
 
 class PostAnimalScreen extends StatefulWidget {
-  const PostAnimalScreen({Key? key}) : super(key: key);
+  final int initialTab;
+  const PostAnimalScreen({Key? key, this.initialTab = 0}) : super(key: key);
 
   @override
   State<PostAnimalScreen> createState() => _PostAnimalScreenState();
@@ -41,7 +42,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override

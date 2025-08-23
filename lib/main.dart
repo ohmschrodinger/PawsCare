@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
 
 // Removed firebase_options.dart to use platform-native configs (google-services.json / plist)
@@ -9,12 +7,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 // Import your screen files
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/admin_dashboard.dart';
 import 'screens/firestore_recovery_screen.dart';
-import 'screens/post_animal_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
-import 'screens/profile_screen.dart';
+import 'main_navigation_screen.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -22,10 +18,10 @@ import 'screens/profile_screen.dart';
 void main() async {
   // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables from .env file
   // await dotenv.load(fileName: ".env");
-  
+
   try {
     await Firebase.initializeApp();
   } catch (e) {
@@ -36,7 +32,7 @@ void main() async {
       print('Firebase initialization error: $e');
     }
   }
-  
+
   runApp(const PawsCareApp());
 }
 
@@ -72,15 +68,14 @@ class PawsCareApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const SplashScreen(), // Start with a splash screen to check auth state
+      home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
+        '/main': (context) => const MainNavigationScreen(),
         '/admin': (context) => const AdminDashboardScreen(),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
-        '/post-animal': (context) => const PostAnimalScreen(),
-        '/admin-animal-approval': (context) => const AdminAnimalApprovalScreen(),
-        '/profile': (context) => const ProfileScreen(),
+        '/admin-animal-approval': (context) =>
+            const AdminAnimalApprovalScreen(),
       },
     );
   }

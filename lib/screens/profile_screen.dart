@@ -17,31 +17,22 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedIndex = 4;
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
+  int _selectedIndex = 4;
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Profile'),
-          centerTitle: true,
-        ),
-        body: const Center(
-          child: Text('Please log in to view your profile.'),
-        ),
+        appBar: AppBar(title: const Text('Profile'), centerTitle: true),
+        body: const Center(child: Text('Please log in to view your profile.')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -51,20 +42,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-
           final data = snapshot.data?.data() as Map<String, dynamic>?;
 
-          final fullName = data?['fullName']?.toString().trim();
+          final fullName = data?['fullName']?.toString().trim() ?? '';
           final email = user.email ?? data?['email']?.toString() ?? '';
           final phone = data?['phoneNumber']?.toString() ?? '';
           final address = data?['address']?.toString() ?? '';
           final role = data?['role']?.toString() ?? 'user';
           final isActive = (data?['isActive'] as bool?) ?? true;
-          final profileCompleted = (data?['profileCompleted'] as bool?) ?? false;
+          final profileCompleted =
+              (data?['profileCompleted'] as bool?) ?? false;
           final createdAt = data?['createdAt'];
 
           return SingleChildScrollView(
@@ -73,151 +63,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _ProfileHeader(
-                  displayName: (fullName != null && fullName.isNotEmpty) ? fullName : (user.displayName ?? ''),
+                  displayName: fullName.isNotEmpty
+                      ? fullName
+                      : (user.displayName ?? ''),
                   email: email,
                   role: role,
-                  photoUrl: data?['photoUrl']?.toString(),
+                  photoUrl: data?['photoUrl']?.toString() ?? '',
                   isUploading: _isUploading,
                   onChangePhoto: () => _pickAndUploadAvatar(user.uid),
                 ),
-                const SizedBox(height: 16),
-                // User stats: Animals Posted & Animals Adopted
+                const SizedBox(height: 18),
+                // User info
                 Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _UserStatTile(
-                            label: 'Animals Posted',
-                            icon: Icons.upload,
-                            stream: FirebaseFirestore.instance
-                                .collection('animals')
-                                .where('postedBy', isEqualTo: user.uid)
-                                .snapshots(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _UserStatTile(
-                            label: 'Animals Adopted',
-                            icon: Icons.favorite,
-                            stream: FirebaseFirestore.instance
-                                .collection('applications')
-                                .where('userId', isEqualTo: user.uid)
-                                .where('status', isEqualTo: 'Accepted')
-                                .snapshots(),
-                          ),
-                        ),
-                      ],
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Account Info', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        _InfoRow(label: 'Email', value: email.isNotEmpty ? email : '—'),
-                        _InfoRow(label: 'Phone', value: phone.isNotEmpty ? phone : '—'),
-                        _InfoRow(label: 'Address', value: address.isNotEmpty ? address : '—'),
-                        _InfoRow(label: 'Role', value: role),
-                        _InfoRow(label: 'Active', value: isActive ? 'Yes' : 'No'),
-                        _InfoRow(label: 'Profile Completed', value: profileCompleted ? 'Yes' : 'No'),
-                        if (createdAt != null)
-                          _InfoRow(
-                            label: 'Joined',
-                            value: _formatTimestamp(createdAt),
-                          ),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _showEditProfileSheet(
-                              context: context,
-                              uid: user.uid,
-                              initialFullName: fullName ?? '',
-                              initialPhone: phone,
-                              initialAddress: address,
-                            ),
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Edit Profile'),
+                        _InfoRow(label: 'Phone', value: phone),
+                        _InfoRow(label: 'Address', value: address),
+                        _InfoRow(
+                          label: 'Account Active',
+                          value: isActive ? 'Yes' : 'No',
+                        ),
+                        _InfoRow(
+                          label: 'Profile Complete',
+                          value: profileCompleted ? 'Yes' : 'No',
+                        ),
+                        _InfoRow(
+                          label: 'Joined',
+                          value: _formatTimestamp(createdAt),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Edit Profile'),
+                          onPressed: () => _showEditProfileSheet(
+                            context: context,
+                            uid: user.uid,
+                            initialFullName: fullName,
+                            initialPhone: phone,
+                            initialAddress: address,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
+                // User stats
+                Row(
+                  children: [
+                    Expanded(
+                      child: _UserStatTile(
+                        label: 'Animals Posted',
+                        icon: Icons.upload,
+                        stream: FirebaseFirestore.instance
+                            .collection('animals')
+                            .where('postedBy', isEqualTo: user.uid)
+                            .snapshots(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _UserStatTile(
+                        label: 'Applications',
+                        icon: Icons.history,
+                        stream: FirebaseFirestore.instance
+                            .collection('applications')
+                            .where('userId', isEqualTo: user.uid)
+                            .snapshots(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await FirebaseAuth.instance.signOut();
-                      if (!mounted) return;
-                      Navigator.of(context).pushReplacementNamed('/login');
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error logging out: $e')),
-                      );
-                    }
-                  },
                   icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
                   ),
-                  label: const Text('Logout'),
+                  onPressed: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (!mounted) return;
+                    Navigator.of(context).pushReplacementNamed('/login');
+                  },
                 ),
               ],
             ),
           );
         },
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'My History'),
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
-          BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF5AC8F2),
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          if (index == 0) {
-            Navigator.popUntil(context, ModalRoute.withName('/home'));
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
-            );
-          } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyPostedAnimalsScreen()),
-            );
-          } else if (index == 4) {
-            // already here
-          }
-        },
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -320,14 +260,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAndUploadAvatar(String uid) async {
     try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
+      final picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        imageQuality: 85,
+      );
       if (picked == null) return;
       setState(() {
         _isUploading = true;
       });
 
       final file = File(picked.path);
-      final storageRef = FirebaseStorage.instance.ref().child('user_avatars/$uid.jpg');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'user_avatars/$uid.jpg',
+      );
       await storageRef.putFile(file);
       final url = await storageRef.getDownloadURL();
 
@@ -337,13 +283,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _isUploading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
     } catch (e) {
       if (mounted) {
         setState(() {
           _isUploading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     }
   }
@@ -369,7 +319,9 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = _computeInitials(displayName.isNotEmpty ? displayName : email);
+    final initials = _computeInitials(
+      displayName.isNotEmpty ? displayName : email,
+    );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -379,11 +331,17 @@ class _ProfileHeader extends StatelessWidget {
             CircleAvatar(
               radius: 38,
               backgroundColor: const Color(0xFF5AC8F2),
-              backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty) ? NetworkImage(photoUrl!) : null,
+              backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
+                  ? NetworkImage(photoUrl!)
+                  : null,
               child: (photoUrl == null || photoUrl!.isEmpty)
                   ? Text(
                       initials,
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     )
                   : null,
             ),
@@ -397,13 +355,25 @@ class _ProfileHeader extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                   padding: const EdgeInsets.all(6),
                   child: isUploading
-                      ? const SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.camera_alt, size: 18, color: Color(0xFF5AC8F2)),
+                      ? const SizedBox(
+                          height: 14,
+                          width: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(
+                          Icons.camera_alt,
+                          size: 18,
+                          color: Color(0xFF5AC8F2),
+                        ),
                 ),
               ),
             ),
@@ -416,7 +386,10 @@ class _ProfileHeader extends StatelessWidget {
             children: [
               Text(
                 displayName.isNotEmpty ? displayName : email,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -431,14 +404,18 @@ class _ProfileHeader extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: role == 'admin' ? Colors.orange[100] : const Color(0xFFE0F7FA),
+                  color: role == 'admin'
+                      ? Colors.orange
+                      : const Color(0xFFE0F7FA),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   role.toUpperCase(),
                   style: TextStyle(
                     fontSize: 12,
-                    color: role == 'admin' ? Colors.orange[800] : const Color(0xFF00796B),
+                    color: role == 'admin'
+                        ? Colors.orange
+                        : const Color(0xFF00796B),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -455,8 +432,9 @@ class _ProfileHeader extends StatelessWidget {
       final parts = text.trim().split(RegExp(r"\s+"));
       if (parts.isEmpty) return '?';
       if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-      return (parts[0].isNotEmpty ? parts[0][0] : ' ').toUpperCase() +
-          (parts[1].isNotEmpty ? parts[1][0] : ' ').toUpperCase();
+      // Concatenate first letter of first and second word
+      return (parts[0].isNotEmpty ? parts[0][0] : '') +
+          (parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '');
     } catch (_) {
       return '?';
     }
@@ -467,7 +445,8 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({Key? key, required this.label, required this.value}) : super(key: key);
+  const _InfoRow({Key? key, required this.label, required this.value})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -495,13 +474,17 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-
 class _UserStatTile extends StatelessWidget {
   final String label;
   final IconData icon;
   final Stream<QuerySnapshot> stream;
 
-  const _UserStatTile({Key? key, required this.label, required this.icon, required this.stream}) : super(key: key);
+  const _UserStatTile({
+    Key? key,
+    required this.label,
+    required this.icon,
+    required this.stream,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -509,8 +492,7 @@ class _UserStatTile extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         final int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-        return Container
-          (
+        return Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
             color: Colors.grey[100],
@@ -533,14 +515,20 @@ class _UserStatTile extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '$count',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -552,5 +540,3 @@ class _UserStatTile extends StatelessWidget {
     );
   }
 }
-
-

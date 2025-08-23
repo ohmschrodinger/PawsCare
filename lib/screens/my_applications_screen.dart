@@ -109,228 +109,196 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'My History',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
-          BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-        currentIndex: 1, // 'My History' is the active tab
-        selectedItemColor: const Color(0xFF5AC8F2),
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.popUntil(context, ModalRoute.withName('/home'));
-          } else if (index == 1) {
-            // Already on My History
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
-            );
-          } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MyPostedAnimalsScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 
-  Widget _buildMyApplicationsList(String userId) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('applications')
-          .where('userId', isEqualTo: userId)
-          .orderBy('appliedAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text('You have no adoption applications yet.'),
-          );
-        }
+Widget _buildMyApplicationsList(String userId) {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('applications')
+        .where('userId', isEqualTo: userId)
+        .orderBy('appliedAt', descending: true)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return const Center(
+          child: Text('You have no adoption applications yet.'),
+        );
+      }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final appData =
-                snapshot.data!.docs[index].data() as Map<String, dynamic>;
-            final timestamp = appData['appliedAt'] as Timestamp?;
-            final formattedDate = timestamp != null
-                ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
-                : 'N/A';
+      return ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: snapshot.data!.docs.length,
+        itemBuilder: (context, index) {
+          final appData =
+              snapshot.data!.docs[index].data() as Map<String, dynamic>;
+          final timestamp = appData['appliedAt'] as Timestamp?;
+          final formattedDate = timestamp != null
+              ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
+              : 'N/A';
 
-            Color statusColor;
-            switch (appData['status']) {
-              case 'Accepted':
-                statusColor = Colors.green;
-                break;
-              case 'Rejected':
-                statusColor = Colors.red;
-                break;
-              default:
-                statusColor = Colors.orange; // Under Review
-            }
+          Color statusColor;
+          switch (appData['status']) {
+            case 'Accepted':
+              statusColor = Colors.green;
+              break;
+            case 'Rejected':
+              statusColor = Colors.red;
+              break;
+            default:
+              statusColor = Colors.orange; // Under Review
+          }
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            appData['petImage'] ??
-                                'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8.0),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          appData['petImage'] ??
+                              'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
+                          height: 60,
+                          width: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
                             height: 60,
                             width: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  height: 60,
-                                  width: 60,
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.pets,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                appData['petName'] ?? 'Unknown Pet',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Applied on: $formattedDate',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Current Status:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            appData['status'] ?? 'N/A',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.pets,
+                              color: Colors.grey,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    if (appData['status'] == 'Rejected' &&
-                        appData['adminMessage'] != null &&
-                        appData['adminMessage'].isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Reason for Rejection:',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.red,
+                            Text(
+                              appData['petName'] ?? 'Unknown Pet',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 4),
                             Text(
-                              appData['adminMessage'],
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Colors.black87,
+                              'Applied on: $formattedDate',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: TextButton(
-                        onPressed: () {
-                          // TODO: Expand to show more details (read-only)
-                          _showApplicationDetails(context, appData);
-                        },
-                        child: const Text('View Details'),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Status:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          appData['status'] ?? 'Under Review',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              _showApplicationDetails(context, appData),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5AC8F2),
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('View Details'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (appData['status'] == 'Under Review') ...[
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _showApproveDialog(
+                              context,
+                              snapshot.data!.docs[index].id,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Approve'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _showRejectDialog(
+                              context,
+                              snapshot.data!.docs[index].id,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Reject'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildMyListingsPlaceholder() {
     return StreamBuilder<QuerySnapshot>(
