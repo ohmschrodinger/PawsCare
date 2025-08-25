@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -19,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _confirmPasswordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void dispose() {
@@ -66,13 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
 
-      final userCredential = await _auth.signInWithEmailAndPassword(
+      final userCredential = await AuthService.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       final user = userCredential.user;
       if (user != null) {
+        // Check if email is verified
+        if (!user.emailVerified) {
+          setState(() => _isLoading = false);
+          Navigator.pushNamed(context, '/email-verification');
+          return;
+        }
+
         // Ensure user document exists in Firestore (for users who signed up before collection was deleted)
         try {
           await UserService.ensureUserDocumentExists(
@@ -85,7 +92,6 @@ class _LoginScreenState extends State<LoginScreen> {
           // Don't block the login process if Firestore fails
         }
 
-        await user.reload(); // Ensure user data is fresh
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/main');
       }
@@ -125,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final password = _passwordController.text.trim();
       final fullName = _fullNameController.text.trim();
 
-      final userCredential = await _auth.createUserWithEmailAndPassword(
+      final userCredential = await AuthService.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -144,9 +150,11 @@ class _LoginScreenState extends State<LoginScreen> {
           // Don't block the signup process if Firestore fails
         }
 
-        await user.reload();
+        setState(() => _isLoading = false);
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/main');
+        
+        // Navigate to email verification screen instead of main screen
+        Navigator.pushReplacementNamed(context, '/email-verification');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage;
@@ -272,7 +280,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 if (_isLogin)
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/password-reset');
+                    },
                     child: const Text('Forgot Password?'),
                   ),
 

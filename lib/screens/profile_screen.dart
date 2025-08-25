@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../services/user_service.dart';
+import '../services/auth_service.dart';
 import 'post_animal_screen.dart';
 import 'my_posted_animals_screen.dart';
 import 'my_applications_screen.dart';
@@ -23,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService.getCurrentUser();
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Profile'), centerTitle: true),
@@ -149,7 +150,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
+                    await AuthService.signOut();
                     if (!mounted) return;
                     Navigator.of(context).pushReplacementNamed('/login');
                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 
 // screens/splash_screen.dart
 // This screen handles the initial routing logic. It checks if a user is
@@ -27,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (mounted) {
         // Check if user is already signed in
-        final User? currentUser = FirebaseAuth.instance.currentUser;
+        final User? currentUser = AuthService.getCurrentUser();
 
         print('Current user: ${currentUser?.uid ?? 'null'}'); // Debug log
 
@@ -36,12 +37,19 @@ class _SplashScreenState extends State<SplashScreen> {
           try {
             // Verify the user token is still valid
             await currentUser.getIdToken(true);
-            // If successful, navigate to main
-            Navigator.of(context).pushReplacementNamed('/main');
+            
+            // Check if email is verified
+            if (currentUser.emailVerified) {
+              // If successful and verified, navigate to main
+              Navigator.of(context).pushReplacementNamed('/main');
+            } else {
+              // If not verified, navigate to email verification
+              Navigator.of(context).pushReplacementNamed('/email-verification');
+            }
           } catch (e) {
             print('Token verification failed, logging out: $e');
             // If token verification fails, logout and go to login
-            await FirebaseAuth.instance.signOut();
+            await AuthService.signOut();
             Navigator.of(context).pushReplacementNamed('/login');
           }
         } else {
@@ -53,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
       print('Error in _checkAuthState: $e'); // Debug log
       // If there's an error, force logout and go to login screen
       try {
-        await FirebaseAuth.instance.signOut();
+        await AuthService.signOut();
       } catch (signOutError) {
         print('Error signing out: $signOutError');
       }
