@@ -7,7 +7,6 @@ import 'package:firebase_core/firebase_core.dart';
 // Import your screen files
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/admin_dashboard.dart';
 import 'screens/firestore_recovery_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
 import 'main_navigation_screen.dart';
@@ -72,7 +71,6 @@ class PawsCareApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/main': (context) => const MainNavigationScreen(),
-        '/admin': (context) => const AdminDashboardScreen(),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/admin-animal-approval': (context) =>
             const AdminAnimalApprovalScreen(),

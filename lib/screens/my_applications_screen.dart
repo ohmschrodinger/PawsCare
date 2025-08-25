@@ -113,186 +113,197 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   }
 
   Widget _buildMyApplicationsList(String userId) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('applications')
-          .where('userId', isEqualTo: userId)
-          .orderBy('appliedAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text('You have no adoption applications yet.'),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final appData =
-                snapshot.data!.docs[index].data() as Map<String, dynamic>;
-            final timestamp = appData['appliedAt'] as Timestamp?;
-            final formattedDate = timestamp != null
-                ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
-                : 'N/A';
-
-            Color statusColor;
-            switch (appData['status']) {
-              case 'Accepted':
-                statusColor = Colors.green;
-                break;
-              case 'Rejected':
-                statusColor = Colors.red;
-                break;
-              default:
-                statusColor = Colors.orange; // Under Review
+    final currentUser = FirebaseAuth.instance.currentUser;
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser!.uid)
+          .get(),
+      builder: (context, userSnapshot) {
+        final bool isAdmin = userSnapshot.data?.get('role') == 'admin';
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('applications')
+              .where('userId', isEqualTo: userId)
+              .orderBy('appliedAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(
+                child: Text('You have no adoption applications yet.'),
+              );
             }
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            return ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final appData =
+                    snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                final timestamp = appData['appliedAt'] as Timestamp?;
+                final formattedDate = timestamp != null
+                    ? DateFormat('MMM d, yyyy').format(timestamp.toDate())
+                    : 'N/A';
+
+                Color statusColor;
+                switch (appData['status']) {
+                  case 'Accepted':
+                    statusColor = Colors.green;
+                    break;
+                  case 'Rejected':
+                    statusColor = Colors.red;
+                    break;
+                  default:
+                    statusColor = Colors.orange; // Under Review
+                }
+
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            appData['petImage'] ??
-                                'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
-                            height: 60,
-                            width: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  height: 60,
-                                  width: 60,
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.pets,
-                                    color: Colors.grey,
+                        Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                appData['petImage'] ??
+                                    'https://via.placeholder.com/60/CCCCCC/FFFFFF?text=Pet',
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      height: 60,
+                                      width: 60,
+                                      color: Colors.grey[300],
+                                      child: const Icon(
+                                        Icons.pets,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    appData['petName'] ?? 'Unknown Pet',
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                          ),
+                                  Text(
+                                    'Applied on: $formattedDate',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                appData['petName'] ?? 'Unknown Pet',
-                                style: const TextStyle(
-                                  fontSize: 20,
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Status:',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                appData['status'] ?? 'Under Review',
+                                style: TextStyle(
+                                  fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: statusColor,
                                 ),
                               ),
-                              Text(
-                                'Applied on: $formattedDate',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    _showApplicationDetails(context, appData),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF5AC8F2),
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('View Details'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (isAdmin &&
+                                appData['status'] == 'Under Review') ...[
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => _showApproveDialog(
+                                    context,
+                                    snapshot.data!.docs[index].id,
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Approve'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () => _showRejectDialog(
+                                    context,
+                                    snapshot.data!.docs[index].id,
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Reject'),
                                 ),
                               ),
                             ],
-                          ),
+                          ],
                         ),
                       ],
                     ),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Status:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            appData['status'] ?? 'Under Review',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () =>
-                                _showApplicationDetails(context, appData),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF5AC8F2),
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('View Details'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (appData['status'] == 'Under Review') ...[
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _showApproveDialog(
-                                context,
-                                snapshot.data!.docs[index].id,
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Approve'),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _showRejectDialog(
-                                context,
-                                snapshot.data!.docs[index].id,
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Reject'),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         );
