@@ -108,163 +108,174 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  Widget _buildPendingRequestsTab() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Center(
-        child: Text('Please log in to view pending requests'),
-      );
-    }
-    return StreamBuilder<QuerySnapshot>(
-      stream: AnimalService.getPendingAnimals(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final animals = snapshot.data?.docs ?? [];
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get(),
-          builder: (context, roleSnapshot) {
-            String role = 'user';
-            if (roleSnapshot.connectionState == ConnectionState.done &&
-                roleSnapshot.hasData) {
-              role = roleSnapshot.data?.data() != null
-                  ? (roleSnapshot.data!.get('role') ?? 'user')
-                  : 'user';
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: animals.length,
-              itemBuilder: (context, index) {
-                final animalData =
-                    animals[index].data() as Map<String, dynamic>;
-                final animalId = animals[index].id;
-                final postedByEmail = animalData['postedByEmail'] ?? 'Unknown';
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16.0),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          animalData['name'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF5AC8F2),
-                          ),
+Widget _buildPendingRequestsTab() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return const Center(
+      child: Text('Please log in to view pending requests'),
+    );
+  }
+  return StreamBuilder<QuerySnapshot>(
+    stream: AnimalService.getPendingAnimals(),
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get(),
+        builder: (context, roleSnapshot) {
+          String role = 'user';
+          if (roleSnapshot.connectionState == ConnectionState.done &&
+              roleSnapshot.hasData) {
+            role = roleSnapshot.data?.data() != null
+                ? (roleSnapshot.data!.get('role') ?? 'user')
+                : 'user';
+          }
+
+          final allAnimals = snapshot.data?.docs ?? [];
+          List<DocumentSnapshot> animals;
+          if (role == 'admin') {
+            animals = allAnimals;
+          } else {
+            animals = allAnimals.where((doc) =>
+              (doc.data() as Map<String, dynamic>)['postedByEmail'] == user.email
+            ).toList();
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: animals.length,
+            itemBuilder: (context, index) {
+              final animalData =
+                  animals[index].data() as Map<String, dynamic>;
+              final animalId = animals[index].id;
+              final postedByEmail = animalData['postedByEmail'] ?? 'Unknown';
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16.0),
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        animalData['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5AC8F2),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${animalData['species'] ?? ''} • ${animalData['age'] ?? ''} • ${animalData['gender'] ?? ''}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[700],
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${animalData['species'] ?? ''} • ${animalData['age'] ?? ''} • ${animalData['gender'] ?? ''}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Posted by: $postedByEmail',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Posted by: $postedByEmail',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Posted on: ${_formatDate(animalData['postedAt'])}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Posted on: ${_formatDate(animalData['postedAt'])}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
                         ),
-                        const SizedBox(height: 16),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoChip(
+                              'Sterilization: ${animalData['sterilization'] ?? 'N/A'}',
+                              Icons.medical_services,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildInfoChip(
+                              'Vaccination: ${animalData['vaccination'] ?? 'N/A'}',
+                              Icons.vaccines,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (role == 'admin')
                         Row(
                           children: [
                             Expanded(
-                              child: _buildInfoChip(
-                                'Sterilization: ${animalData['sterilization'] ?? 'N/A'}',
-                                Icons.medical_services,
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    _showApproveDialog(context, animalId),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Approve',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
-                              child: _buildInfoChip(
-                                'Vaccination: ${animalData['vaccination'] ?? 'N/A'}',
-                                Icons.vaccines,
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    _showRejectDialog(context, animalId),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Reject',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        if (role == 'admin')
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () =>
-                                      _showApproveDialog(context, animalId),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Approve',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () =>
-                                      _showRejectDialog(context, animalId),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Reject',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+                ),
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
 
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
