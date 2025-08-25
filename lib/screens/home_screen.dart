@@ -243,7 +243,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? animals
                       : animals.where((doc) {
                           final data = doc.data() as Map<String, dynamic>;
-                          return data['approvalStatus'] == 'approved';
+                          return data['approvalStatus'] == 'approved' &&
+                              data['status'] != 'Adopted';
                         }).toList();
 
                   print(
