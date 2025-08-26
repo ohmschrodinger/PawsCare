@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isAdmin = false;
   bool _indexError = false;
   int _selectedIndex = 0;
+  int _animalTabIndex = 0; // 0: Available, 1: Adopted
 
   @override
   void initState() {
@@ -184,7 +185,54 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // ...existing code...
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 8.0,
+              horizontal: 16.0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _animalTabIndex = 0;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _animalTabIndex == 0
+                          ? const Color(0xFF5AC8F2)
+                          : Colors.grey[200],
+                      foregroundColor: _animalTabIndex == 0
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                    child: const Text('Available for Adoption'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _animalTabIndex = 1;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _animalTabIndex == 1
+                          ? Colors.green
+                          : Colors.grey[200],
+                      foregroundColor: _animalTabIndex == 1
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                    child: const Text('Adopted'),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -192,19 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 stream: _getAnimalsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    print('DEBUG: Firestore error: ${snapshot.error}');
-                    if (!_indexError &&
-                        snapshot.error.toString().contains(
-                          'requires an index',
-                        )) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          setState(() {
-                            _indexError = true;
-                          });
-                        }
-                      });
-                    }
+                    // ...existing error UI...
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -233,23 +269,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    print('DEBUG: Waiting for Firestore connection...');
                     return const Center(child: CircularProgressIndicator());
                   }
 
                   final animals = snapshot.data?.docs ?? [];
-                  // Only approved for normal users
-                  final filteredAnimals = _isAdmin
-                      ? animals
-                      : animals.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return data['approvalStatus'] == 'approved' &&
-                              data['status'] != 'Adopted';
-                        }).toList();
-
-                  print(
-                    'DEBUG: Found ${animals.length} total animals, ${filteredAnimals.length} filtered',
-                  );
+                  List filteredAnimals;
+                  if (_animalTabIndex == 0) {
+                    // Available for Adoption
+                    filteredAnimals = _isAdmin
+                        ? animals
+                        : animals.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            return data['approvalStatus'] == 'approved' &&
+                                data['status'] != 'Adopted';
+                          }).toList();
+                  } else {
+                    // Adopted
+                    filteredAnimals = animals.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['approvalStatus'] == 'approved' &&
+                          data['status'] == 'Adopted';
+                    }).toList();
+                  }
 
                   if (filteredAnimals.isEmpty) {
                     return Center(
@@ -259,34 +300,41 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(Icons.pets, size: 64, color: Colors.grey),
                           const SizedBox(height: 16),
                           Text(
-                            _isAdmin
-                                ? 'No animals posted yet'
-                                : 'No animals available for adoption yet',
+                            _animalTabIndex == 0
+                                ? (_isAdmin
+                                      ? 'No animals posted yet'
+                                      : 'No animals available for adoption yet')
+                                : 'No animals have been adopted yet',
                             style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Be the first to post an animal!',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const PostAnimalScreen(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF5AC8F2),
-                              foregroundColor: Colors.white,
+                          if (_animalTabIndex == 0)
+                            Text(
+                              'Be the first to post an animal!',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
                             ),
-                            child: const Text('Post Animal'),
-                          ),
-                          if (_isAdmin) ...[
+                          const SizedBox(height: 24),
+                          if (_animalTabIndex == 0)
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PostAnimalScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF5AC8F2),
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Post Animal'),
+                            ),
+                          if (_isAdmin && _animalTabIndex == 0) ...[
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () async {

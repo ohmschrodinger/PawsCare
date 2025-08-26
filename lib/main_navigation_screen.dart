@@ -4,6 +4,7 @@ import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
+import 'package:pawscare/screens/success_stories_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -20,6 +21,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     MyApplicationsScreen(),
     PostAnimalScreen(),
     MyPostedAnimalsScreen(),
+    SuccessStoriesScreen(),
     ProfileScreen(),
   ];
 
@@ -36,12 +38,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'My History',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'My History'),
           BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
           BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
+          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Stories'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
