@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
+import '../utils/auth_error_messages.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -96,26 +97,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/main');
       }
     } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'user-not-found':
-          errorMessage = 'No user found with this email address.';
-          break;
-        case 'wrong-password':
-          errorMessage = 'Incorrect password.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email format.';
-          break;
-        case 'user-disabled':
-          errorMessage = 'This account has been disabled.';
-          break;
-        default:
-          errorMessage = 'Login failed: ${e.message}';
-      }
-      _showErrorDialog(errorMessage);
+      _showErrorDialog(AuthErrorMessages.fromFirebaseAuthException(e));
     } catch (e) {
-      _showErrorDialog('Unexpected error: $e');
+      _showErrorDialog(AuthErrorMessages.general(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -157,23 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/email-verification');
       }
     } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'email-already-in-use':
-          errorMessage = 'An account with this email already exists.';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address.';
-          break;
-        case 'weak-password':
-          errorMessage = 'Password is too weak.';
-          break;
-        default:
-          errorMessage = 'Sign up failed: ${e.message}';
-      }
-      _showErrorDialog(errorMessage);
+      _showErrorDialog(AuthErrorMessages.fromFirebaseAuthException(e));
     } catch (e) {
-      _showErrorDialog('Unexpected error: $e');
+      _showErrorDialog(AuthErrorMessages.general(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -183,11 +153,11 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Authentication Error'),
+        title: const Text('Oops!'),
         content: Text(message),
         actions: [
           TextButton(
-            child: const Text('Okay'),
+            child: const Text('OK'),
             onPressed: () => Navigator.of(ctx).pop(),
           ),
         ],

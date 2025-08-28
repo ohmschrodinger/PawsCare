@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/auth_error_messages.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({Key? key}) : super(key: key);
@@ -39,9 +41,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           Navigator.of(context).pushReplacementNamed('/main');
         }
       }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorDialog(AuthErrorMessages.fromFirebaseAuthException(e));
     } catch (e) {
       setState(() => _isLoading = false);
-      _showErrorDialog('Failed to check verification status: $e');
+      _showErrorDialog(AuthErrorMessages.general(e));
     }
   }
 
@@ -63,9 +68,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       _startResendCooldown();
       
       _showSuccessDialog('Verification email sent successfully!');
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorDialog(AuthErrorMessages.fromFirebaseAuthException(e));
     } catch (e) {
       setState(() => _isLoading = false);
-      _showErrorDialog('Failed to send verification email: $e');
+      _showErrorDialog(AuthErrorMessages.general(e));
     }
   }
 
@@ -88,11 +96,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('Oops!'),
         content: Text(message),
         actions: [
           TextButton(
-            child: const Text('Okay'),
+            child: const Text('OK'),
             onPressed: () => Navigator.of(ctx).pop(),
           ),
         ],

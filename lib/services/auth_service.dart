@@ -12,8 +12,10 @@ class AuthService {
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
       }
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
-      throw Exception('Failed to send verification email: $e');
+      throw Exception('sendEmailVerification_generic');
     }
   }
 
@@ -35,8 +37,10 @@ class AuthService {
   static Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
-      throw Exception('Failed to send password reset email: $e');
+      throw Exception('sendPasswordResetEmail_generic');
     }
   }
 
@@ -55,8 +59,10 @@ class AuthService {
       await sendEmailVerification();
 
       return userCredential;
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
-      throw Exception('Failed to create user: $e');
+      throw Exception('createUserWithEmailAndPassword_generic');
     }
   }
 
@@ -75,8 +81,10 @@ class AuthService {
       await userCredential.user?.reload();
 
       return userCredential;
+    } on FirebaseAuthException catch (e) {
+      rethrow;
     } catch (e) {
-      throw Exception('Failed to sign in: $e');
+      throw Exception('signInWithEmailAndPassword_generic');
     }
   }
 
