@@ -8,6 +8,7 @@ import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import '../services/animal_service.dart';
+import '../utils/constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -22,6 +23,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _indexError = false;
   int _selectedIndex = 0;
   int _animalTabIndex = 0; // 0: Available, 1: Adopted
+  // Filters
+  String? _filterSpecies;
+  String? _filterGender;
+  String? _filterSterilization;
+  String? _filterVaccination;
 
   @override
   void initState() {
@@ -112,6 +118,114 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _openFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Filter Animals',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _filterSpecies,
+                decoration: const InputDecoration(
+                  labelText: 'Species',
+                  border: OutlineInputBorder(),
+                ),
+                items: [null, ...AppConstants.speciesOptions]
+                    .map((e) => DropdownMenuItem<String>(
+                          value: e,
+                          child: Text(e ?? 'Any'),
+                        ))
+                    .toList(),
+                onChanged: (value) => setState(() => _filterSpecies = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _filterGender,
+                decoration: const InputDecoration(
+                  labelText: 'Gender',
+                  border: OutlineInputBorder(),
+                ),
+                items: [null, 'Male', 'Female']
+                    .map((e) => DropdownMenuItem<String>(
+                          value: e,
+                          child: Text(e ?? 'Any'),
+                        ))
+                    .toList(),
+                onChanged: (value) => setState(() => _filterGender = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _filterSterilization,
+                decoration: const InputDecoration(
+                  labelText: 'Sterilization',
+                  border: OutlineInputBorder(),
+                ),
+                items: [null, 'Yes', 'No', 'Unknown']
+                    .map((e) => DropdownMenuItem<String>(
+                          value: e,
+                          child: Text(e ?? 'Any'),
+                        ))
+                    .toList(),
+                onChanged: (value) => setState(() => _filterSterilization = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _filterVaccination,
+                decoration: const InputDecoration(
+                  labelText: 'Vaccination',
+                  border: OutlineInputBorder(),
+                ),
+                items: [null, 'Yes', 'No', 'Unknown']
+                    .map((e) => DropdownMenuItem<String>(
+                          value: e,
+                          child: Text(e ?? 'Any'),
+                        ))
+                    .toList(),
+                onChanged: (value) => setState(() => _filterVaccination = value),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _filterSpecies = null;
+                          _filterGender = null;
+                          _filterSterilization = null;
+                          _filterVaccination = null;
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Clear'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Apply'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,9 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Filter coming soon!')),
-              );
+              _openFilterSheet();
             },
           ),
           PopupMenuButton<String>(
@@ -291,6 +403,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           data['status'] == 'Adopted';
                     }).toList();
                   }
+
+                  // Apply client-side filters
+                  filteredAnimals = filteredAnimals.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    bool matches = true;
+                    if (_filterSpecies != null && _filterSpecies!.isNotEmpty) {
+                      matches = matches && (data['species'] == _filterSpecies);
+                    }
+                    if (_filterGender != null && _filterGender!.isNotEmpty) {
+                      matches = matches && (data['gender'] == _filterGender);
+                    }
+                    if (_filterSterilization != null && _filterSterilization!.isNotEmpty) {
+                      matches = matches && (data['sterilization'] == _filterSterilization);
+                    }
+                    if (_filterVaccination != null && _filterVaccination!.isNotEmpty) {
+                      matches = matches && (data['vaccination'] == _filterVaccination);
+                    }
+                    return matches;
+                  }).toList();
 
                   if (filteredAnimals.isEmpty) {
                     return Center(
