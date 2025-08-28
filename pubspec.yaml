@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_core: ^4.0.0
   firebase_auth: ^6.0.1
+  google_sign_in: ^6.1.5
   cloud_firestore: ^6.0.0
   firebase_storage: ^13.0.0
   provider: ^6.0.5
@@ -68,6 +69,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/ 
 
   # To add assets to your application, add an assets section, like this:
   # assets:
