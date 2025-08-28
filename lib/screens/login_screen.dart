@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_error_messages.dart';
@@ -149,6 +150,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginWithGoogle() async {
+  setState(() => _isLoading = true);
+  try {
+    final userCredential = await AuthService.signInWithGoogle();
+    if (userCredential != null && mounted) {
+      // Navigate to main screen after successful Google sign-in
+      Navigator.pushReplacementNamed(context, '/main'); // Changed from '/home' to '/main'
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google sign-in failed: ${e.toString()}')),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
+
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -247,6 +268,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(_isLogin ? 'Login' : 'Sign Up'),
                       ),
                 const SizedBox(height: 16),
+
+                // Google Sign-In Button
+                if (_isLogin)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ElevatedButton.icon(
+                      icon: Image.asset(
+                        'assets/images/google_logo.png',
+                        height: 36,
+                        width: 36,
+                      ),
+                      label: const Text('Login with Google'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 48),
+                        side: const BorderSide(color: Color(0xFF5AC8F2)),
+                      ),
+                      onPressed: _isLoading ? null : _loginWithGoogle,
+                    ),
+                  ),
 
                 if (_isLogin)
                   TextButton(
