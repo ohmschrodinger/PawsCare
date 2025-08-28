@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../utils/auth_error_messages.dart';
 
 class PasswordResetScreen extends StatefulWidget {
   const PasswordResetScreen({Key? key}) : super(key: key);
@@ -43,9 +45,12 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         _isLoading = false;
         _emailSent = true;
       });
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorDialog(AuthErrorMessages.fromFirebaseAuthException(e));
     } catch (e) {
       setState(() => _isLoading = false);
-      _showErrorDialog('Failed to send password reset email: $e');
+      _showErrorDialog(AuthErrorMessages.general(e));
     }
   }
 
@@ -53,11 +58,11 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('Oops!'),
         content: Text(message),
         actions: [
           TextButton(
-            child: const Text('Okay'),
+            child: const Text('OK'),
             onPressed: () => Navigator.of(ctx).pop(),
           ),
         ],

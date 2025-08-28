@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/animal_service.dart';
 import '../services/storage_service.dart';
+import '../utils/constants.dart';
 
 class PostAnimalScreen extends StatefulWidget {
   final int initialTab;
@@ -28,6 +29,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   final _vaccinationController = TextEditingController();
   final _rescueStoryController = TextEditingController();
   final _motherStatusController = TextEditingController();
+  final _otherSpeciesController = TextEditingController();
 
   // Form state
   String _selectedGender = 'Male';
@@ -54,6 +56,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     _tabController.dispose();
     _nameController.dispose();
     _speciesController.dispose();
+    _otherSpeciesController.dispose();
     _ageController.dispose();
     _genderController.dispose();
     _sterilizationController.dispose();
@@ -344,20 +347,55 @@ Widget _buildPendingRequestsTab() {
             const SizedBox(height: 16),
 
             // Species
-            TextFormField(
-              controller: _speciesController,
+            DropdownButtonFormField<String>(
+              value: _speciesController.text.isNotEmpty
+                  ? _speciesController.text
+                  : null,
               decoration: const InputDecoration(
                 labelText: 'Species *',
                 prefixIcon: Icon(Icons.category),
-                hintText: 'e.g., Dog, Cat, Bird, Rabbit...',
+                border: OutlineInputBorder(),
               ),
+              items: AppConstants.speciesOptions.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _speciesController.text = newValue ?? '';
+                  if (_speciesController.text != 'Other') {
+                    _otherSpeciesController.clear();
+                  }
+                });
+              },
               validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter the species';
+                if (value == null || value.isEmpty) {
+                  return 'Please select the species';
                 }
                 return null;
               },
             ),
+
+            if (_speciesController.text == 'Other') ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _otherSpeciesController,
+                decoration: const InputDecoration(
+                  labelText: 'Please specify the species *',
+                  prefixIcon: Icon(Icons.edit),
+                ),
+                validator: (value) {
+                  if (_speciesController.text == 'Other') {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please tell us what animal it is';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
 
             const SizedBox(height: 16),
 
@@ -683,7 +721,9 @@ Widget _buildPendingRequestsTab() {
           .collection('animals')
           .add({
             'name': _nameController.text.trim(),
-            'species': _speciesController.text.trim(),
+            'species': _speciesController.text.trim() == 'Other'
+                ? _otherSpeciesController.text.trim()
+                : _speciesController.text.trim(),
             'age': _ageController.text.trim(),
             'status': 'Available for Adoption',
             'gender': _selectedGender,
