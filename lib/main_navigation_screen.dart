@@ -4,7 +4,7 @@ import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
-import 'package:pawscare/screens/success_stories_screen.dart';
+import 'package:pawscare/screens/community_feed_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -21,7 +21,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     MyApplicationsScreen(),
     PostAnimalScreen(),
     MyPostedAnimalsScreen(),
-    SuccessStoriesScreen(),
+    CommunityFeedScreen(),
     ProfileScreen(),
   ];
 
