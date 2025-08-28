@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 // import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
 
-// Removed firebase_options.dart to use platform-native configs (google-services.json / plist)
-
 // Import your screen files
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/signup_screen.dart'; // Import the new sign-up screen
 import 'screens/firestore_recovery_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
@@ -42,36 +41,59 @@ class PawsCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF5AC8F2);
+
     return MaterialApp(
       title: 'PawsCare Adoption',
+      // Define a centralized theme for a consistent, modern UI
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primaryColor: primaryColor,
+        scaffoldBackgroundColor: Colors.grey[50], // Light background for all screens
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF5AC8F2),
+          backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 0,
         ),
         inputDecorationTheme: InputDecorationTheme(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: primaryColor, width: 1.5),
           ),
           filled: true,
-          fillColor: Colors.grey[200],
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: primaryColor,
+            textStyle: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
       ),
       home: const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
+        '/signup': (context) => const SignUpScreen(), // Added signup route
         '/main': (context) => const MainNavigationScreen(),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/admin-animal-approval': (context) =>

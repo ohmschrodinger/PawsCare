@@ -1,14 +1,14 @@
-// screens/home_screen.dart
+// lib/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawscare/screens/full_animal_list_screen.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
-import 'package:pawscare/screens/my_applications_screen.dart';
-import 'package:pawscare/screens/post_animal_screen.dart';
-import 'package:pawscare/screens/my_posted_animals_screen.dart';
-import 'package:pawscare/screens/profile_screen.dart';
-import '../services/animal_service.dart';
-import '../utils/constants.dart';
+
+// NOTE: PostAnimalScreen import removed as FAB was removed, but you can add it back if needed.
+// import 'package:pawscare/screens/post_animal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -20,24 +20,50 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isAdmin = false;
-  bool _indexError = false;
-  int _selectedIndex = 0;
-  int _animalTabIndex = 0; // 0: Available, 1: Adopted
-  // Filters
-  String? _filterSpecies;
-  String? _filterGender;
-  String? _filterSterilization;
-  String? _filterVaccination;
+
+  late PageController _pageController;
+  int _currentPage = 0;
+
+  final List<Map<String, dynamic>> _infoPages = [
+    {
+      'title': 'A Winning Team',
+      'text':
+          'Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!',
+    },
+    {
+      'title': 'Our History',
+      'text':
+          "Seeing a nonprofit to support our community's animals, we formed our organization to provide sensible solutions. We've grown considerably since then, all thanks to the helping hands of this amazing community!",
+    },
+    {
+      'title': 'Animals Are Our Mission',
+      'text':
+          'We focus on making the maximum positive effect. Our members and volunteers provide the momentum we need. Using community driven models, we take actions that make a long-lasting difference.',
+    },
+    {
+      'title': 'Mission',
+      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
+    },
+    {
+      'title': 'Vision',
+      'text':
+          'Our Vision is to provide world’s most successful onsite treatment service for street animals free of cost. Introducing new technology projects that will help street animals and to educate society for a good cause.',
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
-    // TODO: Add logic here to set _isAdmin based on user role if needed.
+    _pageController = PageController();
   }
 
-  // Provide Stream for animal documents
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Stream<QuerySnapshot> _getAnimalsStream() {
-    // Always use unsorted collection stream
     return FirebaseFirestore.instance.collection('animals').snapshots();
   }
 
@@ -48,610 +74,305 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _selectedIndex = 0;
-          });
-        }
-      });
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const PostAnimalScreen()),
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _selectedIndex = 0;
-          });
-        }
-      });
-    } else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const MyPostedAnimalsScreen()),
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _selectedIndex = 0;
-          });
-        }
-      });
-    } else if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileScreen()),
-      ).then((_) {
-        if (mounted) {
-          setState(() {
-            _selectedIndex = 0;
-          });
-        }
-      });
-    }
-    // index 0 is Home, do nothing
-  }
-
-  // Like action, can be passed to PetCard
-  void _likeAnimal(BuildContext context, String animalId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    await FirebaseFirestore.instance.collection('favorites').add({
-      'userId': user.uid,
-      'animalId': animalId,
-      'likedAt': FieldValue.serverTimestamp(),
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Added to favorites!'),
-        backgroundColor: Colors.pinkAccent,
-      ),
-    );
-  }
-
-  void _openFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Filter Animals',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _filterSpecies,
-                decoration: const InputDecoration(
-                  labelText: 'Species',
-                  border: OutlineInputBorder(),
-                ),
-                items: [null, ...AppConstants.speciesOptions]
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e,
-                          child: Text(e ?? 'Any'),
-                        ))
-                    .toList(),
-                onChanged: (value) => setState(() => _filterSpecies = value),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _filterGender,
-                decoration: const InputDecoration(
-                  labelText: 'Gender',
-                  border: OutlineInputBorder(),
-                ),
-                items: [null, 'Male', 'Female']
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e,
-                          child: Text(e ?? 'Any'),
-                        ))
-                    .toList(),
-                onChanged: (value) => setState(() => _filterGender = value),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _filterSterilization,
-                decoration: const InputDecoration(
-                  labelText: 'Sterilization',
-                  border: OutlineInputBorder(),
-                ),
-                items: [null, 'Yes', 'No', 'Unknown']
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e,
-                          child: Text(e ?? 'Any'),
-                        ))
-                    .toList(),
-                onChanged: (value) => setState(() => _filterSterilization = value),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _filterVaccination,
-                decoration: const InputDecoration(
-                  labelText: 'Vaccination',
-                  border: OutlineInputBorder(),
-                ),
-                items: [null, 'Yes', 'No', 'Unknown']
-                    .map((e) => DropdownMenuItem<String>(
-                          value: e,
-                          child: Text(e ?? 'Any'),
-                        ))
-                    .toList(),
-                onChanged: (value) => setState(() => _filterVaccination = value),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _filterSpecies = null;
-                          _filterGender = null;
-                          _filterSterilization = null;
-                          _filterVaccination = null;
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Clear'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Apply'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final appBarColor = isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
+    final appBarTextColor = theme.textTheme.titleLarge?.color;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isAdmin ? 'PAWS CARE - Admin' : 'PAWS CARE'),
-        centerTitle: true,
+        systemOverlayStyle: isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        backgroundColor: appBarColor,
+        elevation: 0,
+        title: Text(
+          'PawsCare',
+          style: TextStyle(
+            color: appBarTextColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Search coming soon!')),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () async {
-              await AnimalService.testAnimalsCollection();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Check console for debug info')),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              _openFilterSheet();
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.account_circle),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _logout();
-              } else if (value == 'toggle_index_error') {
-                setState(() {
-                  _indexError = !_indexError;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Index error mode: $_indexError')),
+               ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Chat feature coming soon!')),
                 );
-              }
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.notifications_none, color: appBarTextColor),
+            onPressed: () {
+               ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Notifications coming soon!')),
+                );
+            },
+          ),
+           PopupMenuButton<String>(
+            icon: Icon(Icons.account_circle, color: appBarTextColor),
+            onSelected: (value) {
+              if (value == 'logout') _logout();
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'toggle_index_error',
-                child: Row(
-                  children: [
-                    Icon(Icons.bug_report),
-                    SizedBox(width: 8),
-                    Text('Toggle Index Error'),
-                  ],
-                ),
+                child: Row(children: [
+                  Icon(Icons.logout),
+                  SizedBox(width: 8),
+                  Text('Logout')
+                ]),
               ),
             ],
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 8.0,
-              horizontal: 16.0,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _animalTabIndex = 0;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _animalTabIndex == 0
-                          ? const Color(0xFF5AC8F2)
-                          : Colors.grey[200],
-                      foregroundColor: _animalTabIndex == 0
-                          ? Colors.white
-                          : Colors.black87,
-                    ),
-                    child: const Text('Available for Adoption'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _animalTabIndex = 1;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _animalTabIndex == 1
-                          ? Colors.green
-                          : Colors.grey[200],
-                      foregroundColor: _animalTabIndex == 1
-                          ? Colors.white
-                          : Colors.black87,
-                    ),
-                    child: const Text('Adopted'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _getAnimalsStream(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    // ...existing error UI...
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.error, size: 64, color: Colors.red),
-                          const SizedBox(height: 16),
-                          const Text('Error loading animals'),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Please create the required Firestore index',
-                            style: TextStyle(color: Colors.grey),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _indexError = true;
-                              });
-                            },
-                            child: const Text('Try Fallback Mode'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final animals = snapshot.data?.docs ?? [];
-                  List filteredAnimals;
-                  if (_animalTabIndex == 0) {
-                    // Available for Adoption
-                    filteredAnimals = _isAdmin
-                        ? animals
-                        : animals.where((doc) {
-                            final data = doc.data() as Map<String, dynamic>;
-                            return data['approvalStatus'] == 'approved' &&
-                                data['status'] != 'Adopted';
-                          }).toList();
-                  } else {
-                    // Adopted
-                    filteredAnimals = animals.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return data['approvalStatus'] == 'approved' &&
-                          data['status'] == 'Adopted';
-                    }).toList();
-                  }
-
-                  // Apply client-side filters
-                  filteredAnimals = filteredAnimals.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    bool matches = true;
-                    if (_filterSpecies != null && _filterSpecies!.isNotEmpty) {
-                      matches = matches && (data['species'] == _filterSpecies);
-                    }
-                    if (_filterGender != null && _filterGender!.isNotEmpty) {
-                      matches = matches && (data['gender'] == _filterGender);
-                    }
-                    if (_filterSterilization != null && _filterSterilization!.isNotEmpty) {
-                      matches = matches && (data['sterilization'] == _filterSterilization);
-                    }
-                    if (_filterVaccination != null && _filterVaccination!.isNotEmpty) {
-                      matches = matches && (data['vaccination'] == _filterVaccination);
-                    }
-                    return matches;
-                  }).toList();
-
-                  if (filteredAnimals.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.pets, size: 64, color: Colors.grey),
-                          const SizedBox(height: 16),
-                          Text(
-                            _animalTabIndex == 0
-                                ? (_isAdmin
-                                      ? 'No animals posted yet'
-                                      : 'No animals available for adoption yet')
-                                : 'No animals have been adopted yet',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 8),
-                          if (_animalTabIndex == 0)
-                            Text(
-                              'Be the first to post an animal!',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          const SizedBox(height: 24),
-                          if (_animalTabIndex == 0)
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PostAnimalScreen(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF5AC8F2),
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Post Animal'),
-                            ),
-                          if (_isAdmin && _animalTabIndex == 0) ...[
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () async {
-                                await AnimalService.testAnimalsCollection();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Test Collection'),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: filteredAnimals.length,
-                    itemBuilder: (context, index) {
-                      final animalData =
-                          filteredAnimals[index].data() as Map<String, dynamic>;
-                      final imageUrls =
-                          animalData['imageUrls'] as List<dynamic>? ?? [];
-                      final imageUrl =
-                          (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                          (animalData['image'] ??
-                              'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal');
-                      final pet = {
-                        'id': filteredAnimals[index].id,
-                        'name': animalData['name'],
-                        'species': animalData['species'],
-                        'age': animalData['age'],
-                        'status': animalData['status'],
-                        'image': imageUrl,
-                        'imageUrls': imageUrls,
-                        'gender': animalData['gender'],
-                        'sterilization': animalData['sterilization'],
-                        'vaccination': animalData['vaccination'],
-                        'rescueStory': animalData['rescueStory'],
-                        'motherStatus': animalData['motherStatus'],
-                        'approvalStatus': animalData['approvalStatus'],
-                      };
-                      return PetCard(
-                        pet: pet,
-                        showAdminInfo: _isAdmin,
-                        onLike: () => _likeAnimal(context, pet['id']),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PostAnimalScreen(initialTab: 1),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFF5AC8F2),
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-        tooltip: 'Post Animal',
-      ),
-    );
-  }
-}
-
-// PetCard and MyFavoritesScreen remain unchanged from your code.
-
-class PetCard extends StatelessWidget {
-  final Map<String, dynamic> pet;
-  final bool showAdminInfo;
-  final VoidCallback? onLike;
-
-  const PetCard({
-    Key? key,
-    required this.pet,
-    this.showAdminInfo = false,
-    this.onLike,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final imageUrls =
-        pet['imageUrls'] as List<dynamic>? ?? [pet['image'] ?? ''];
-    return Card(
-      elevation: 8,
-      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image gallery
-            SizedBox(
-              height: 250,
-              child: PageView.builder(
-                itemCount: imageUrls.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => Dialog(
-                          backgroundColor: Colors.black,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Image.network(
-                              imageUrls[index],
-                              fit: BoxFit.contain,
-                            ),
-                          ),
+            _buildWelcomeSection(),
+            const SizedBox(height: 24),
+            _buildStatsSection(),
+            const SizedBox(height: 24),
+            _buildAnimalSection(
+              title: "Adopt these Animals",
+              subtitle: "Look at these poor pets and adopt them",
+              statusFilter: 'Available',
+              emptyMessage: "No animals available right now",
+            ),
+            const SizedBox(height: 16),
+             _buildAnimalSection(
+              title: "Previously Adopted",
+              subtitle: "Happy pets who found their forever homes",
+              statusFilter: 'Adopted',
+              emptyMessage: "No animals adopted yet",
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          height: 250,
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _infoPages.length,
+                  onPageChanged: (int page) {
+                    setState(() {
+                      _currentPage = page;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return _buildInfoPage(
+                      title: _infoPages[index]['title'],
+                      text: _infoPages[index]['text'],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildPageIndicator(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoPage({required String title, required String text}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            text,
+            textAlign: TextAlign.start,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade700, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPageIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_infoPages.length, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          height: 8.0,
+          width: _currentPage == index ? 24.0 : 8.0,
+          decoration: BoxDecoration(
+            color: _currentPage == index
+                ? Theme.of(context).primaryColor
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ExpansionTile(
+          leading: Icon(Icons.bar_chart, color: Theme.of(context).primaryColor),
+          title: const Text(
+            'Pet Adoption Stats',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          children: const [
+            ListTile(
+              title: Text('Pets Adopted this Month'),
+              trailing: Text('14', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              title: Text('Active Rescues'),
+              trailing: Text('32', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // MODIFIED: The ListView.builder no longer has the problematic PageController.
+  Widget _buildAnimalSection({
+    required String title,
+    required String subtitle,
+    required String statusFilter,
+    required String emptyMessage,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(subtitle,
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                        overflow: TextOverflow.ellipsis,
                         ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        imageUrls[index],
-                        height: 250,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 250,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              size: 80,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FullAnimalListScreen(
+                        title: title,
+                        animalStatus: statusFilter,
                       ),
                     ),
                   );
                 },
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              pet['name'] ?? '',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${pet['species'] ?? ''} • ${pet['age'] ?? ''}',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              pet['rescueStory'] ?? '',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: onLike,
-                  icon: const Icon(Icons.favorite_border),
-                  label: const Text('Like'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.pinkAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                child: Row(
+                  children: const [
+                    Text("See More"),
+                    SizedBox(width: 4),
+                    Icon(Icons.chevron_right, size: 18),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 250,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _getAnimalsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return const Center(child: Text('Error'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final animals = snapshot.data?.docs ?? [];
+              List filteredAnimals;
+
+              if (statusFilter == 'Available') {
+                filteredAnimals = animals.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return data['approvalStatus'] == 'approved' &&
+                      data['status'] != 'Adopted';
+                }).toList();
+              } else {
+                filteredAnimals = animals.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return data['status'] == 'Adopted';
+                }).toList();
+              }
+
+              if (filteredAnimals.isEmpty) {
+                return Center(child: Text(emptyMessage));
+              }
+
+              final previewAnimals = filteredAnimals.take(10).toList();
+              
+              // FIX: Removed the PageController from the ListView. The card width is
+              // now controlled in the HorizontalPetCard widget itself.
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 16, right: 4), // Adjust padding
+                itemCount: previewAnimals.length,
+                itemBuilder: (context, index) {
+                  final animalData =
+                      previewAnimals[index].data() as Map<String, dynamic>;
+                  final imageUrls =
+                      animalData['imageUrls'] as List<dynamic>? ?? [];
+                  final imageUrl =
+                      (imageUrls.isNotEmpty ? imageUrls.first : null) ??
+                          (animalData['image'] ?? 'https://via.placeholder.com/150');
+                  final pet = {
+                    'id': previewAnimals[index].id,
+                    ...animalData,
+                    'image': imageUrl,
+                  };
+
+                  return HorizontalPetCard(
+                    pet: pet,
+                    onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -659,47 +380,87 @@ class PetCard extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Text('View Details'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+                  );
+                },
+              );
+            },
+          ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class MyFavoritesScreen extends StatelessWidget {
+// MODIFIED: Card width is now explicitly set to a fraction of the screen width.
+class HorizontalPetCard extends StatelessWidget {
+  final Map<String, dynamic> pet;
+  final VoidCallback onTap;
+
+  const HorizontalPetCard({
+    Key? key,
+    required this.pet,
+    required this.onTap,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return const Center(child: Text('Please log in'));
+    // FIX: Set a fixed width as a percentage of the screen width. This is a
+    // more reliable way to achieve the "1.x card" look without layout errors.
+    final cardWidth = MediaQuery.of(context).size.width * 0.75;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Favorites'), centerTitle: true),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('favorites')
-            .where('userId', isEqualTo: user.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData)
-            return const Center(child: CircularProgressIndicator());
-          final favoriteDocs = snapshot.data!.docs;
-          if (favoriteDocs.isEmpty)
-            return const Center(child: Text('No favorites yet!'));
-          return ListView(
-            children: favoriteDocs.map((doc) {
-              final animalId = doc['animalId'];
-              return ListTile(
-                title: Text('Animal ID: $animalId'),
-                trailing: const Icon(Icons.favorite, color: Colors.pinkAccent),
-              );
-            }).toList(),
-          );
-        },
+    return SizedBox(
+      width: cardWidth,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+          elevation: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Image.network(
+                  pet['image'],
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.pets, color: Colors.grey, size: 50),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        pet['name'] ?? 'Unknown',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 20),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
