@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 24,
                       width: 24,
                     ),
-                    label: const Text('Login with Google'),
+                    label: const Text('Signup/Login with Google'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,

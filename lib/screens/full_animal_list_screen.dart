@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
+import 'package:pawscare/widgets/animal_card.dart';
 import '../utils/constants.dart';
 
 class FullAnimalListScreen extends StatefulWidget {
@@ -27,6 +28,33 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
   String? _filterSterilization;
   String? _filterVaccination;
 
+  // Liked animals tracking
+  Set<String> _likedAnimals = {};
+  Set<String> _savedAnimals = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserPreferences();
+  }
+
+  void _loadUserPreferences() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Load liked animals
+    final favoritesSnapshot = await FirebaseFirestore.instance
+        .collection('favorites')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+    
+    setState(() {
+      _likedAnimals = favoritesSnapshot.docs
+          .map((doc) => doc.data()['animalId'] as String)
+          .toSet();
+    });
+  }
+
   Stream<QuerySnapshot> _getAnimalsStream() {
     return FirebaseFirestore.instance.collection('animals').snapshots();
   }
@@ -34,17 +62,67 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
   void _likeAnimal(BuildContext context, String animalId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    await FirebaseFirestore.instance.collection('favorites').add({
-      'userId': user.uid,
-      'animalId': animalId,
-      'likedAt': FieldValue.serverTimestamp(),
+
+    try {
+      if (_likedAnimals.contains(animalId)) {
+        // Unlike
+        final favoritesSnapshot = await FirebaseFirestore.instance
+            .collection('favorites')
+            .where('userId', isEqualTo: user.uid)
+            .where('animalId', isEqualTo: animalId)
+            .get();
+        
+        for (var doc in favoritesSnapshot.docs) {
+          await doc.reference.delete();
+        }
+        
+        setState(() {
+          _likedAnimals.remove(animalId);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Removed from favorites!'),
+            backgroundColor: Colors.grey,
+          ),
+        );
+      } else {
+        // Like
+        await FirebaseFirestore.instance.collection('favorites').add({
+          'userId': user.uid,
+          'animalId': animalId,
+          'likedAt': FieldValue.serverTimestamp(),
+        });
+        
+        setState(() {
+          _likedAnimals.add(animalId);
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Added to favorites!'),
+            backgroundColor: Colors.pinkAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error updating favorites. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _saveAnimal(String animalId) {
+    setState(() {
+      if (_savedAnimals.contains(animalId)) {
+        _savedAnimals.remove(animalId);
+      } else {
+        _savedAnimals.add(animalId);
+      }
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Added to favorites!'),
-        backgroundColor: Colors.pinkAccent,
-      ),
-    );
   }
 
   void _openFilterSheet() {
@@ -54,7 +132,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        // Using a StatefulBuilder to manage the state of the modal sheet locally
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalState) {
             return Padding(
@@ -86,7 +163,60 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                         modalState(() => _filterSpecies = value),
                   ),
                   const SizedBox(height: 12),
-                  // ... other filter dropdowns ...
+                  DropdownButtonFormField<String>(
+                    value: _filterGender,
+                    decoration: const InputDecoration(
+                      labelText: 'Gender',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [null, 'Male', 'Female']
+                        .map(
+                          (e) => DropdownMenuItem<String>(
+                            value: e,
+                            child: Text(e ?? 'Any'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        modalState(() => _filterGender = value),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _filterVaccination,
+                    decoration: const InputDecoration(
+                      labelText: 'Vaccination',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [null, 'Yes', 'No', 'Partial']
+                        .map(
+                          (e) => DropdownMenuItem<String>(
+                            value: e,
+                            child: Text(e ?? 'Any'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        modalState(() => _filterVaccination = value),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _filterSterilization,
+                    decoration: const InputDecoration(
+                      labelText: 'Sterilization',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [null, 'Yes', 'No']
+                        .map(
+                          (e) => DropdownMenuItem<String>(
+                            value: e,
+                            child: Text(e ?? 'Any'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        modalState(() => _filterSterilization = value),
+                  ),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
@@ -107,7 +237,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            // Apply filters by updating the main screen's state
                             setState(() {});
                             Navigator.pop(context);
                           },
@@ -154,210 +283,128 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: _getAnimalsStream(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return const Center(child: Text('Error loading animals.'));
-            }
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final animals = snapshot.data?.docs ?? [];
-            List filteredAnimals;
-
-            if (widget.animalStatus == 'Available') {
-              filteredAnimals = animals.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return data['approvalStatus'] == 'approved' &&
-                    data['status'] != 'Adopted';
-              }).toList();
-            } else {
-              // 'Adopted'
-              filteredAnimals = animals.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return data['status'] == 'Adopted';
-              }).toList();
-            }
-
-            // Apply client-side filters
-            filteredAnimals = filteredAnimals.where((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              bool matches = true;
-              if (_filterSpecies != null) {
-                matches = matches && (data['species'] == _filterSpecies);
-              }
-              if (_filterGender != null) {
-                matches = matches && (data['gender'] == _filterGender);
-              }
-              // ... add other filters
-              return matches;
-            }).toList();
-
-            if (filteredAnimals.isEmpty) {
-              return const Center(child: Text('No animals found.'));
-            }
-
-            return ListView.builder(
-              itemCount: filteredAnimals.length,
-              itemBuilder: (context, index) {
-                final animalData =
-                    filteredAnimals[index].data() as Map<String, dynamic>;
-                final imageUrls =
-                    animalData['imageUrls'] as List<dynamic>? ?? [];
-                final imageUrl =
-                    (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                    (animalData['image'] ?? 'https://via.placeholder.com/150');
-                final pet = {
-                  'id': filteredAnimals[index].id,
-                  ...animalData,
-                  'image': imageUrl,
-                };
-                return PetCard(
-                  pet: pet,
-                  onLike: () => _likeAnimal(context, pet['id']),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PetDetailScreen(petData: pet),
-                      ),
-                    );
-                  },
-                );
-              },
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _getAnimalsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(
+              child: Text(
+                'Error loading animals.',
+                style: TextStyle(fontSize: 16),
+              ),
             );
-          },
-        ),
-      ),
-    );
-  }
-}
+          }
+          
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-// ------------------- PET CARD WIDGET -------------------
-// This is used by the FullAnimalListScreen.
-// You can also move this to its own file e.g. `lib/widgets/pet_card.dart`
+          final animals = snapshot.data?.docs ?? [];
+          List filteredAnimals;
 
-class PetCard extends StatelessWidget {
-  final Map<String, dynamic> pet;
-  final VoidCallback? onLike;
-  final VoidCallback? onSave;
-  final VoidCallback? onTap;
+          // Filter by status
+          if (widget.animalStatus == 'Available') {
+            filteredAnimals = animals.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['approvalStatus'] == 'approved' &&
+                  data['status'] != 'Adopted';
+            }).toList();
+          } else {
+            // 'Adopted'
+            filteredAnimals = animals.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return data['status'] == 'Adopted';
+            }).toList();
+          }
 
-  const PetCard({
-    Key? key,
-    required this.pet,
-    this.onLike,
-    this.onSave,
-    this.onTap,
-  }) : super(key: key);
+          // Apply client-side filters
+          filteredAnimals = filteredAnimals.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            bool matches = true;
+            
+            if (_filterSpecies != null) {
+              matches = matches && (data['species'] == _filterSpecies);
+            }
+            if (_filterGender != null) {
+              matches = matches && (data['gender'] == _filterGender);
+            }
+            if (_filterVaccination != null) {
+              matches = matches && (data['vaccination'] == _filterVaccination);
+            }
+            if (_filterSterilization != null) {
+              matches = matches && (data['sterilization'] == _filterSterilization);
+            }
+            
+            return matches;
+          }).toList();
 
-  IconData _getGenderIcon(String? gender) =>
-      gender?.toLowerCase() == 'male' ? Icons.male : Icons.female;
-  Color _getGenderColor(String? gender) =>
-      gender?.toLowerCase() == 'male' ? Colors.blue : Colors.pink;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        elevation: 4,
-        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.network(
-              pet['image'],
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 200,
-                color: Colors.grey[200],
-                child: const Icon(Icons.pets, color: Colors.grey, size: 60),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
+          if (filteredAnimals.isEmpty) {
+            return Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        pet['name'] ?? 'Unknown',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _getGenderIcon(pet['gender']),
-                        color: _getGenderColor(pet['gender']),
-                        size: 20,
-                      ),
-                    ],
+                  Icon(
+                    Icons.pets_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 16),
                   Text(
-                    '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          pet['location'] ?? 'Not specified',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: onLike,
-                    icon: const Icon(
-                      Icons.favorite_border,
-                      color: Colors.pinkAccent,
+                    'No animals found.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
                     ),
-                    tooltip: 'Like',
                   ),
-                  IconButton(
-                    onPressed: onSave,
-                    icon: const Icon(Icons.bookmark_border, color: Colors.grey),
-                    tooltip: 'Save',
-                  ),
+                  if (_filterSpecies != null ||
+                      _filterGender != null ||
+                      _filterVaccination != null ||
+                      _filterSterilization != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Try adjusting your filters.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ),
-            const SizedBox(height: 4),
-          ],
-        ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            itemCount: filteredAnimals.length,
+            itemBuilder: (context, index) {
+              final animalDoc = filteredAnimals[index];
+              final animalData = animalDoc.data() as Map<String, dynamic>;
+              final animalId = animalDoc.id;
+              
+              final animal = {
+                'id': animalId,
+                ...animalData,
+              };
+
+              return AnimalCard(
+                animal: animal,
+                isLiked: _likedAnimals.contains(animalId),
+                isSaved: _savedAnimals.contains(animalId),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PetDetailScreen(petData: animal),
+                    ),
+                  );
+                },
+                onLike: () => _likeAnimal(context, animalId),
+                onSave: () => _saveAnimal(animalId),
+              );
+            },
+          );
+        },
       ),
     );
   }
