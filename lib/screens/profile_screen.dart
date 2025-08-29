@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'settings_screen.dart'; // Add this import
 
 // --- Assuming these services and screens exist in your project ---
 import '../services/user_service.dart';
@@ -143,24 +144,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: Icon(Icons.settings_outlined, color: appBarTextColor),
-          onPressed: () {
-            // Re-fetch latest data before showing the edit sheet
-            final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-            docRef.get().then((snapshot) {
-              if (!mounted || !snapshot.exists) return;
-              final data = snapshot.data() as Map<String, dynamic>;
-              _showEditProfileSheet(
-                context: context,
-                uid: user.uid,
-                initialFullName: data['fullName'] ?? '',
-                initialPhone: data['phoneNumber'] ?? '',
-                initialAddress: data['address'] ?? '',
+          // ... inside _buildAppBar method
+          IconButton(
+            icon: Icon(Icons.settings_outlined, color: appBarTextColor),
+            onPressed: () {
+              // Navigate to the new SettingsScreen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
-            });
-          },
-        ),
+            },
+          ),
         PopupMenuButton<String>(
           icon: Icon(Icons.more_vert, color: appBarTextColor),
           onSelected: (value) {

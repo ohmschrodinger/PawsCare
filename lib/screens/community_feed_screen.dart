@@ -37,29 +37,40 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get theme data to ensure UI consistency
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final appBarColor = isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
+    final appBarTextColor = theme.textTheme.titleLarge?.color;
+
     return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(), // dismiss keyboard
+      onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard
       child: Scaffold(
-        backgroundColor: Colors.grey[100],
+        // Use theme's background color for consistency
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: const Text('Community Feed'),
-          centerTitle: true,
-          backgroundColor: const Color(0xFF5AC8F2),
-          foregroundColor: Colors.white,
-          elevation: 1,
+          title: Text(
+            'Community Feed',
+            style: TextStyle(
+              color: appBarTextColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          // Align AppBar with other screens
+          centerTitle: false, 
+          backgroundColor: appBarColor,
+          elevation: 0, 
         ),
         body: Column(
           children: [
-            /// ✅ Wrap PostComposer so it only takes the height it needs
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: PostComposer(),
             ),
-
-            /// Filter chips row
+            
+            // Filter chips row
             Container(
-              color: Colors.white,
+              color: theme.cardColor, // Use cardColor for better theme adaptability
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -74,8 +85,9 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                         onSelected: (bool s) {
                           if (s) setState(() => _selectedFilter = filter);
                         },
-                        selectedColor: const Color(0xFF5AC8F2).withOpacity(0.2),
-                        checkmarkColor: const Color(0xFF5AC8F2),
+                        // Use theme colors for chips
+                        selectedColor: theme.primaryColor.withOpacity(0.2),
+                        checkmarkColor: theme.primaryColor,
                       ),
                     );
                   }).toList(),
@@ -83,7 +95,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
               ),
             ),
 
-            /// ✅ Expanded ensures the posts list takes all remaining space
+            // Post list
             Expanded(
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: _getPostsStream(),
