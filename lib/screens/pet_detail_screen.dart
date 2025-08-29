@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 // Note: You would need to create this adoption form screen or remove this import if not used.
 // import 'package:pawscare/screens/adoption_form_screen.dart'; 
 
+// --- THEME CONSTANTS FOR A CLEAN UI ---
+const Color kPrimaryColor = Colors.black;
+const Color kSecondaryColor = Color(0xFF616161); // Dark grey
+const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
+const Color kCardColor = Colors.white;
+
 // Converted to StatefulWidget to manage state for the new comment section
 class PetDetailScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -62,7 +68,6 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     List<String> imageUrls = getListField('imageUrls');
@@ -72,7 +77,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     }
     
     return Scaffold(
-      // We remove the AppBar to have a full-screen image header
+      backgroundColor: kBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,52 +91,107 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    getField('name'),
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  // Basic Info Card
+                  _buildFormSection(
+                    title: 'Basic Information',
+                    children: [
+                      Text(
+                        getField('name'),
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildBasicAttributes(),
+                      const SizedBox(height: 16),
+                      _buildIconInfoRow(Icons.pets, getField('breed')),
+                      _buildIconInfoRow(Icons.location_on_outlined, getField('location')),
+                      _buildIconInfoRow(Icons.access_time, 'Posted ${getField('postedDate')}'),
+                    ],
                   ),
-                  const SizedBox(height: 8),
 
-                  // Basic attributes row (e.g., Male • Senior • Medium)
-                  _buildBasicAttributes(),
-                  const SizedBox(height: 16),
-                  
-                  // Icon-based info rows for breed, location, etc.
-                  _buildIconInfoRow(Icons.pets, getField('breed')),
-                  _buildIconInfoRow(Icons.location_on_outlined, getField('location')),
-                  _buildIconInfoRow(Icons.access_time, 'Posted ${getField('postedDate')}'),
-                  const SizedBox(height: 20),
-
-                  // Tags/Chips for attributes
-                  _buildAttributeTags(),
-                  const SizedBox(height: 24),
-
-                  // Description
-                  Text(
-                    getField('description'), // Changed from 'rescueStory' to be more general
-                    style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black54),
+                  // Health & Wellness Card
+                  _buildFormSection(
+                    title: 'Health & Wellness',
+                    children: [
+                      _buildHealthStatusRow('Sterilized', getField('sterilization')),
+                      _buildHealthStatusRow('Vaccinated', getField('vaccination')),
+                      _buildHealthStatusRow('Dewormed', getField('deworming')),
+                      if (getField('medicalIssues').isNotEmpty)
+                        _buildIconInfoRow(Icons.medical_services, getField('medicalIssues')),
+                    ],
                   ),
-                  const SizedBox(height: 24),
 
-                  // Action Buttons (Call, Email, Text)
-                  _buildActionButtons(),
-                  const SizedBox(height: 24),
-                  
-                  const Divider(),
-                  const SizedBox(height: 16),
+                  // Behavior & Temperament Card
+                  _buildFormSection(
+                    title: 'Behavior & Temperament',
+                    children: [
+                      _buildCompatibilityRow('Children', getField('kidCompatibility')),
+                      _buildCompatibilityRow('Other Dogs', getField('dogCompatibility')),
+                      _buildCompatibilityRow('Cats', getField('catCompatibility')),
+                      _buildCompatibilityRow('Activity Level', getField('activityLevel')),
+                    ],
+                  ),
 
-                  // Rescue Center Info
-                  _buildRescueInfo(),
-                  const SizedBox(height: 24),
-                  
-                  const Divider(),
-                  const SizedBox(height: 16),
+                  // Description Card
+                  if (getField('description').isNotEmpty)
+                    _buildFormSection(
+                      title: 'About',
+                      children: [
+                        Text(
+                          getField('description'),
+                          style: const TextStyle(fontSize: 16, height: 1.5, color: kSecondaryColor),
+                        ),
+                      ],
+                    ),
 
-                  // Comment Section
-                  _buildCommentsSection(),
+                  // Action Buttons Card
+                  _buildFormSection(
+                    title: 'Contact Options',
+                    children: [
+                      _buildActionButtons(),
+                    ],
+                  ),
+
+                  // Rescue Center Info Card
+                  if (getField('rescueName').isNotEmpty)
+                    _buildFormSection(
+                      title: 'Rescue Center',
+                      children: [
+                        _buildRescueInfo(),
+                      ],
+                    ),
+
+                  // Comment Section Card
+                  _buildFormSection(
+                    title: 'Comments',
+                    children: [
+                      _buildCommentsSection(),
+                    ],
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds a form section with consistent styling
+  Widget _buildFormSection({required String title, required List<Widget> children}) {
+    return Card(
+      color: kCardColor,
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      margin: const EdgeInsets.symmetric(vertical: 12.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor)),
+            const Divider(height: 24),
+            ...children,
           ],
         ),
       ),
@@ -156,7 +216,8 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               if (imageUrls.isEmpty) {
                 return _buildPlaceholderImage();
               }
-              return ClipRRect( // Ensuring no sharp edges
+              return ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
                 child: Image.network(
                   imageUrls[index],
                   fit: BoxFit.cover,
@@ -171,7 +232,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           top: 40,
           left: 16,
           child: CircleAvatar(
-            backgroundColor: Colors.black.withOpacity(0.5),
+            backgroundColor: Colors.black.withOpacity(0.7),
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
@@ -183,7 +244,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           top: 40,
           right: 16,
           child: CircleAvatar(
-            backgroundColor: Colors.black.withOpacity(0.5),
+            backgroundColor: Colors.black.withOpacity(0.7),
             child: IconButton(
               icon: const Icon(Icons.favorite_border, color: Colors.redAccent),
               onPressed: () { /* Handle favorite action */ },
@@ -193,19 +254,20 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         // Page indicator dots
         if (imageUrls.length > 1)
           Positioned(
-            bottom: 10,
+            bottom: 20,
             left: 0,
             right: 0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(imageUrls.length, (index) {
-                return Container(
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 3.0),
+                  height: 8.0,
+                  width: _currentPage == index ? 24.0 : 8.0,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentPage == index ? Colors.white : Colors.white.withOpacity(0.5),
+                    color: Colors.white.withOpacity(_currentPage == index ? 0.9 : 0.6),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 );
               }),
@@ -219,7 +281,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   Widget _buildPlaceholderImage() {
     return Container(
       height: 350,
-      color: Colors.grey[300],
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+      ),
       child: const Icon(Icons.pets, size: 80, color: Colors.grey),
     );
   }
@@ -228,50 +293,125 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   Widget _buildBasicAttributes() {
     return Row(
       children: [
-        Text(getField('gender'), style: const TextStyle(fontSize: 16, color: Colors.black54)),
-        const Text(' • ', style: TextStyle(fontSize: 16, color: Colors.black54)),
-        Text(getField('age'), style: const TextStyle(fontSize: 16, color: Colors.black54)),
-        const Text(' • ', style: TextStyle(fontSize: 16, color: Colors.black54)),
-        Text(getField('size'), style: const TextStyle(fontSize: 16, color: Colors.black54)),
+        _buildAttributeChip(getField('gender')),
+        const SizedBox(width: 8),
+        _buildAttributeChip(getField('age')),
+        const SizedBox(width: 8),
+        _buildAttributeChip(getField('size')),
       ],
+    );
+  }
+
+  /// Builds an individual attribute chip
+  Widget _buildAttributeChip(String text) {
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: kPrimaryColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+      ),
     );
   }
 
   /// Builds a row with an icon and text, like for location or breed.
   Widget _buildIconInfoRow(IconData icon, String text) {
+    if (text.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
+          Icon(icon, color: kSecondaryColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
+              style: const TextStyle(fontSize: 16, color: kSecondaryColor),
             ),
           ),
         ],
       ),
     );
   }
-  
-  /// Builds the tags for pet attributes like "House Trined", "Kid Compatible".
-  Widget _buildAttributeTags() {
-    // Assumes petData['attributes'] is a List<String>
-    final attributes = getListField('attributes');
-    if (attributes.isEmpty) return const SizedBox.shrink();
 
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
-      children: attributes.map((attribute) => Chip(
-        label: Text(attribute),
-        backgroundColor: const Color(0xFFF0F0F0),
-        labelStyle: const TextStyle(color: Colors.black54),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      )).toList(),
+  /// Builds health status rows
+  Widget _buildHealthStatusRow(String label, String value) {
+    if (value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            value.toLowerCase() == 'true' || value.toLowerCase() == 'yes' 
+              ? Icons.check_circle 
+              : Icons.cancel,
+            color: value.toLowerCase() == 'true' || value.toLowerCase() == 'yes' 
+              ? Colors.green 
+              : Colors.red,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ${value.toLowerCase() == 'true' || value.toLowerCase() == 'yes' ? 'Yes' : 'No'}',
+            style: const TextStyle(fontSize: 16, color: kSecondaryColor),
+          ),
+        ],
+      ),
     );
+  }
+
+  /// Builds compatibility rows
+  Widget _buildCompatibilityRow(String label, String value) {
+    if (value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(
+            _getCompatibilityIcon(value),
+            color: _getCompatibilityColor(value),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '$label: $value',
+            style: const TextStyle(fontSize: 16, color: kSecondaryColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Gets the appropriate icon for compatibility
+  IconData _getCompatibilityIcon(String value) {
+    switch (value.toLowerCase()) {
+      case 'good':
+        return Icons.sentiment_satisfied;
+      case 'cautious':
+        return Icons.sentiment_neutral;
+      case 'not recommended':
+        return Icons.sentiment_dissatisfied;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  /// Gets the appropriate color for compatibility
+  Color _getCompatibilityColor(String value) {
+    switch (value.toLowerCase()) {
+      case 'good':
+        return Colors.green;
+      case 'cautious':
+        return Colors.orange;
+      case 'not recommended':
+        return Colors.red;
+      default:
+        return kSecondaryColor;
+    }
   }
 
   /// Builds the row of action buttons (Call, Email, Text).
@@ -280,7 +420,9 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildActionButton(Icons.call, 'Call', () { /* Handle call */ }),
+        const SizedBox(width: 12),
         _buildActionButton(Icons.email, 'Email', () { /* Handle email */ }),
+        const SizedBox(width: 12),
         _buildActionButton(Icons.message, 'Text', () { /* Handle text */ }),
       ],
     );
@@ -289,19 +431,16 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   /// Helper for creating a single action button.
   Widget _buildActionButton(IconData icon, String label, VoidCallback onPressed) {
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: ElevatedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon, size: 18),
-          label: Text(label),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF7C4DFF), // Purple color from image
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       ),
@@ -314,13 +453,20 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          getField('rescueName'), // e.g., "Ha Noi City Abandoned Animal Protection Center"
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          getField('rescueName'),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor),
         ),
-        const SizedBox(height: 4),
-        const Text(
-          "Type: Rescue", // This can also be made dynamic if needed
-          style: TextStyle(fontSize: 16, color: Colors.black54),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.blue[100],
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            "Rescue Center",
+            style: TextStyle(fontSize: 14, color: Colors.blue, fontWeight: FontWeight.w500),
+          ),
         ),
       ],
     );
@@ -331,45 +477,48 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Comments",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
         // List of comments
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(), // Important inside a SingleChildScrollView
-          itemCount: _comments.length,
-          itemBuilder: (context, index) {
-            final comment = _comments[index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    child: Text(comment['user']![0]), // First initial
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          comment['user']!,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(comment['comment']!),
-                      ],
+        if (_comments.isNotEmpty)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _comments.length,
+            itemBuilder: (context, index) {
+              final comment = _comments[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: kPrimaryColor,
+                      child: Text(
+                        comment['user']![0],
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            comment['user']!,
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            comment['comment']!,
+                            style: const TextStyle(color: kSecondaryColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         const SizedBox(height: 16),
         // Input field for new comment
         Row(
@@ -385,6 +534,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                     borderRadius: BorderRadius.circular(15),
                     borderSide: BorderSide.none,
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                  ),
                 ),
               ),
             ),
@@ -393,8 +546,8 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               icon: const Icon(Icons.send),
               onPressed: _addComment,
               style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white
+                backgroundColor: kPrimaryColor,
+                foregroundColor: Colors.white,
               ),
             ),
           ],
