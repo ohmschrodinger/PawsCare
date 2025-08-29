@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pawscare/screens/home_screen.dart';
+import 'package:pawscare/screens/home_wrapper.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
@@ -16,8 +16,8 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
+  final List<Widget> _screens = [
+    HomeWrapper(),
     MyApplicationsScreen(),
     PostAnimalScreen(),
     MyPostedAnimalsScreen(),

@@ -11,7 +11,9 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 // import 'package:pawscare/screens/post_animal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  final bool showAppBar;
+  
+  const HomeScreen({Key? key, this.showAppBar = true}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -42,7 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
     },
     {
       'title': 'Mission',
-      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
+      'text':
+          'Our Mission is to “Make a Difference in the life of street animal”',
     },
     {
       'title': 'Vision',
@@ -78,40 +81,41 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor = isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
+    final appBarColor = isDarkMode
+        ? theme.scaffoldBackgroundColor
+        : Colors.grey.shade50;
     final appBarTextColor = theme.textTheme.titleLarge?.color;
 
     return Scaffold(
-      appBar: AppBar(
-        systemOverlayStyle: isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      appBar: widget.showAppBar ? AppBar(
+        systemOverlayStyle: isDarkMode
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         backgroundColor: appBarColor,
         elevation: 0,
         title: Text(
           'PawsCare',
-          style: TextStyle(
-            color: appBarTextColor,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
         actions: [
           IconButton(
             icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
             onPressed: () {
-               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chat feature coming soon!')),
-                );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Chat feature coming soon!')),
+              );
             },
           ),
           IconButton(
             icon: Icon(Icons.notifications_none, color: appBarTextColor),
             onPressed: () {
-               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications coming soon!')),
-                );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Notifications coming soon!')),
+              );
             },
           ),
-           PopupMenuButton<String>(
+          PopupMenuButton<String>(
             icon: Icon(Icons.account_circle, color: appBarTextColor),
             onSelected: (value) {
               if (value == 'logout') _logout();
@@ -119,16 +123,18 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context) => [
               const PopupMenuItem(
                 value: 'logout',
-                child: Row(children: [
-                  Icon(Icons.logout),
-                  SizedBox(width: 8),
-                  Text('Logout')
-                ]),
+                child: Row(
+                  children: [
+                    Icon(Icons.logout),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
               ),
             ],
           ),
         ],
-      ),
+      ) : null,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
               emptyMessage: "No animals available right now",
             ),
             const SizedBox(height: 16),
-             _buildAnimalSection(
+            _buildAnimalSection(
               title: "Previously Adopted",
               subtitle: "Happy pets who found their forever homes",
               statusFilter: 'Adopted',
@@ -210,13 +216,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             text,
             textAlign: TextAlign.start,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade700, height: 1.4),
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey.shade700,
+              height: 1.4,
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildPageIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -252,11 +262,17 @@ class _HomeScreenState extends State<HomeScreen> {
           children: const [
             ListTile(
               title: Text('Pets Adopted this Month'),
-              trailing: Text('14', style: TextStyle(fontWeight: FontWeight.bold)),
+              trailing: Text(
+                '14',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             ListTile(
               title: Text('Active Rescues'),
-              trailing: Text('32', style: TextStyle(fontWeight: FontWeight.bold)),
+              trailing: Text(
+                '32',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -284,26 +300,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(subtitle,
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                        overflow: TextOverflow.ellipsis,
-                        ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
+                  Navigator.of(context, rootNavigator: false).push(
                     MaterialPageRoute(
                       builder: (context) => FullAnimalListScreen(
                         title: title,
                         animalStatus: statusFilter,
                       ),
+                      fullscreenDialog: false,
                     ),
                   );
                 },
@@ -349,13 +373,17 @@ class _HomeScreenState extends State<HomeScreen> {
               }
 
               final previewAnimals = filteredAnimals.take(10).toList();
-              
+
               // FIX: Removed the PageController from the ListView. The card width is
               // now controlled in the HorizontalPetCard widget itself.
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: 16, right: 4), // Adjust padding
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: previewAnimals.length,
+                physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
                   final animalData =
                       previewAnimals[index].data() as Map<String, dynamic>;
@@ -363,13 +391,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       animalData['imageUrls'] as List<dynamic>? ?? [];
                   final imageUrl =
                       (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                          (animalData['image'] ?? 'https://via.placeholder.com/150');
+                      (animalData['image'] ??
+                          'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
                     'image': imageUrl,
                   };
-
                   return HorizontalPetCard(
                     pet: pet,
                     onTap: () {
@@ -396,11 +424,8 @@ class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
 
-  const HorizontalPetCard({
-    Key? key,
-    required this.pet,
-    required this.onTap,
-  }) : super(key: key);
+  const HorizontalPetCard({Key? key, required this.pet, required this.onTap})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +439,9 @@ class HorizontalPetCard extends StatelessWidget {
         onTap: onTap,
         child: Card(
           clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
           elevation: 4,
           child: Column(
@@ -443,7 +470,9 @@ class HorizontalPetCard extends StatelessWidget {
                       Text(
                         pet['name'] ?? 'Unknown',
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),

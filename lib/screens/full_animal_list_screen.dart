@@ -63,17 +63,24 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Filter Animals',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Filter Animals',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: _filterSpecies,
                     decoration: const InputDecoration(
-                        labelText: 'Species', border: OutlineInputBorder()),
+                      labelText: 'Species',
+                      border: OutlineInputBorder(),
+                    ),
                     items: [null, ...AppConstants.speciesOptions]
-                        .map((e) => DropdownMenuItem<String>(
-                            value: e, child: Text(e ?? 'Any')))
+                        .map(
+                          (e) => DropdownMenuItem<String>(
+                            value: e,
+                            child: Text(e ?? 'Any'),
+                          ),
+                        )
                         .toList(),
                     onChanged: (value) =>
                         modalState(() => _filterSpecies = value),
@@ -120,12 +127,28 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final appBarColor = isDarkMode
+        ? theme.scaffoldBackgroundColor
+        : Colors.grey.shade50;
+    final appBarTextColor = theme.textTheme.titleLarge?.color;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: appBarColor,
+        elevation: 0,
+        title: Text(
+          widget.title,
+          style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: appBarTextColor),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: Icon(Icons.filter_list, color: appBarTextColor),
             tooltip: 'Filter Animals',
             onPressed: _openFilterSheet,
           ),
@@ -152,7 +175,8 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                 return data['approvalStatus'] == 'approved' &&
                     data['status'] != 'Adopted';
               }).toList();
-            } else { // 'Adopted'
+            } else {
+              // 'Adopted'
               filteredAnimals = animals.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
                 return data['status'] == 'Adopted';
@@ -184,7 +208,8 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                     filteredAnimals[index].data() as Map<String, dynamic>;
                 final imageUrls =
                     animalData['imageUrls'] as List<dynamic>? ?? [];
-                final imageUrl = (imageUrls.isNotEmpty ? imageUrls.first : null) ??
+                final imageUrl =
+                    (imageUrls.isNotEmpty ? imageUrls.first : null) ??
                     (animalData['image'] ?? 'https://via.placeholder.com/150');
                 final pet = {
                   'id': filteredAnimals[index].id,
@@ -211,7 +236,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
     );
   }
 }
-
 
 // ------------------- PET CARD WIDGET -------------------
 // This is used by the FullAnimalListScreen.
@@ -269,7 +293,9 @@ class PetCard extends StatelessWidget {
                       Text(
                         pet['name'] ?? 'Unknown',
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Icon(
@@ -287,14 +313,19 @@ class PetCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           pet['location'] ?? 'Not specified',
                           style: TextStyle(
-                              fontSize: 14, color: Colors.grey[600]),
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -303,14 +334,17 @@ class PetCard extends StatelessWidget {
                 ],
               ),
             ),
-             Padding(
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     onPressed: onLike,
-                    icon: const Icon(Icons.favorite_border, color: Colors.pinkAccent),
+                    icon: const Icon(
+                      Icons.favorite_border,
+                      color: Colors.pinkAccent,
+                    ),
                     tooltip: 'Like',
                   ),
                   IconButton(
