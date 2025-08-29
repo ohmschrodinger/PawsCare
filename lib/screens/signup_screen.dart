@@ -260,18 +260,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Google Sign-In Button
-                  ElevatedButton.icon(
+                  // Google Sign-In Button (smaller, subtler)
+                  OutlinedButton.icon(
                     icon: Image.asset(
                       'assets/images/google_logo.png',
-                      height: 24,
-                      width: 24,
+                      height: 18,
+                      width: 18,
                     ),
-                    label: const Text('Sign up with Google'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
+                    label: const Text('Continue with Google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       side: const BorderSide(color: primaryColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      foregroundColor: Colors.black87,
+                      backgroundColor: Colors.white,
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     onPressed: _isLoading ? null : _loginWithGoogle,
                   ),
