@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/services/auth_service.dart';
-import 'package:pawscare/services/user_service.dart'; // Corrected this line
+import 'package:pawscare/services/user_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -19,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _pushNotificationsEnabled = true; // State for notifications toggle
 
   @override
   void initState() {
@@ -56,6 +57,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _fullNameController.text = data['fullName'] ?? '';
         _phoneController.text = data['phoneNumber'] ?? '';
         _addressController.text = data['address'] ?? '';
+        // Load notification preference if it exists, otherwise default to true
+        if (mounted) {
+          setState(() {
+            _pushNotificationsEnabled = data['pushNotificationsEnabled'] ?? true;
+          });
+        }
       }
     } catch (e) {
       if (mounted) setState(() => _errorMessage = "Failed to load data.");
@@ -75,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'fullName': _fullNameController.text.trim(),
       'phoneNumber': _phoneController.text.trim(),
       'address': _addressController.text.trim(),
+      'pushNotificationsEnabled': _pushNotificationsEnabled,
     };
 
     try {
@@ -104,17 +112,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _toggleEditState(bool save) {
-    setState(() {
-      if (save) {
-        _saveProfile();
-      } else {
+    if (save) {
+      _saveProfile();
+    } else {
+      setState(() {
         _isEditing = !_isEditing;
-        // If canceling, reload original data
         if (!_isEditing) {
-          _loadUserData();
+          _loadUserData(); // Revert changes if canceling
         }
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -146,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   color: theme.primaryColor,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16
+                  fontSize: 16,
                 ),
               ),
             ),
@@ -179,19 +186,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildEditableTile(_addressController, 'Address', theme, keyboardType: TextInputType.streetAddress),
           
           if (_isEditing)
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-               child: TextButton(
-                 onPressed: () => _toggleEditState(false),
-                 child: const Text('Cancel', style: TextStyle(color: Colors.red)),
-               ),
-             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              child: TextButton(
+                onPressed: () => _toggleEditState(false),
+                child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              ),
+            ),
+          
+          const SizedBox(height: 20),
+          _buildSectionHeader('My Activity'),
+          _buildNavigationTile('My Posts', Icons.article_outlined, () { /* No redirect */ }),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildNavigationTile('My Applications', Icons.playlist_add_check_outlined, () { /* No redirect */ }),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+          _buildNavigationTile('Saved Posts', Icons.bookmark_border, () { /* No redirect */ }),
+          
+          const SizedBox(height: 20),
+          _buildSectionHeader('Preferences'),
+          _buildSwitchTile(
+            'Push Notifications',
+            Icons.notifications_outlined,
+            _pushNotificationsEnabled,
+            (value) {
+              setState(() => _pushNotificationsEnabled = value);
+              // Save immediately when toggled
+              _saveProfile();
+            },
+          ),
           
           const SizedBox(height: 20),
           _buildSectionHeader('Legal'),
-          _buildNavigationTile('Terms of Service', () { /* TODO */ }),
+          _buildNavigationTile('Terms of Service', null, () { /* TODO */ }),
           const Divider(height: 1, indent: 16, endIndent: 16),
-          _buildNavigationTile('Privacy Policy', () { /* TODO */ }),
+          _buildNavigationTile('Privacy Policy', null, () { /* TODO */ }),
+          
           const SizedBox(height: 40),
           Center(
             child: TextButton(
@@ -238,11 +267,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildNavigationTile(String title, VoidCallback? onTap) {
+  Widget _buildNavigationTile(String title, IconData? icon, VoidCallback? onTap) {
     return ListTile(
+      leading: icon != null ? Icon(icon, color: Colors.grey.shade700) : null,
       title: Text(title, style: const TextStyle(fontSize: 16)),
       trailing: onTap != null ? const Icon(Icons.chevron_right, color: Colors.grey) : null,
       onTap: onTap,
+    );
+  }
+
+  Widget _buildSwitchTile(String title, IconData icon, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      secondary: Icon(icon, color: Colors.grey.shade700),
+      title: Text(title, style: const TextStyle(fontSize: 16)),
+      value: value,
+      onChanged: onChanged,
+      activeColor: Theme.of(context).primaryColor,
     );
   }
 }

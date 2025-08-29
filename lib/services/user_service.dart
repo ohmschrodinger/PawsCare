@@ -5,7 +5,7 @@ class UserService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  /// Create a new user document in Firestore when a user signs up
+  /// Create a new user document in Firestore when a user signs up.
   static Future<void> createUserDocument({
     required String uid,
     required String email,
@@ -14,20 +14,18 @@ class UserService {
     String? address,
   }) async {
     try {
-      // Create the user document in the 'users' collection
       await _firestore.collection('users').doc(uid).set({
         'uid': uid,
         'email': email,
         'fullName': fullName ?? '',
         'phoneNumber': phoneNumber ?? '',
         'address': address ?? '',
-        'role': 'user', // Default role for new users
+        'role': 'user',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'isActive': true,
         'profileCompleted': false,
       });
-      
       print('User document created successfully for UID: $uid');
     } catch (e) {
       print('Error creating user document: $e');
@@ -35,35 +33,42 @@ class UserService {
     }
   }
 
-  /// Get user data from Firestore
+  /// Get user data from Firestore.
   static Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        return doc.data();
-      }
-      return null;
+      return doc.exists ? doc.data() : null;
     } catch (e) {
       print('Error getting user data: $e');
       return null;
     }
   }
 
-  /// Update user profile data
+  /// Update user profile data.
+  /// This method is now corrected to handle dynamic data properly.
   static Future<void> updateUserProfile({
     required String uid,
     required Map<String, dynamic> data,
   }) async {
     try {
-      data['updatedAt'] = FieldValue.serverTimestamp();
-      await _firestore.collection('users').doc(uid).update(data);
+      // Create a mutable copy of the data map to avoid modifying the original.
+      final Map<String, dynamic> updateData = Map<String, dynamic>.from(data);
+      
+      // Add the server timestamp for the 'updatedAt' field.
+      // This is the operation that caused the original type error.
+      updateData['updatedAt'] = FieldValue.serverTimestamp();
+      
+      // The .update() method correctly handles the Map<String, dynamic> type.
+      await _firestore.collection('users').doc(uid).update(updateData);
     } catch (e) {
       print('Error updating user profile: $e');
+      // The original error message you saw was thrown from here.
+      // This exception will now be avoided.
       throw Exception('Failed to update user profile: $e');
     }
   }
 
-  /// Check if user document exists
+  /// Check if a user document exists in Firestore.
   static Future<bool> userDocumentExists(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
@@ -74,7 +79,7 @@ class UserService {
     }
   }
 
-  /// Create user document if it doesn't exist (for existing users)
+  /// Ensure a user document exists, creating it if necessary.
   static Future<void> ensureUserDocumentExists({
     required String uid,
     required String email,
