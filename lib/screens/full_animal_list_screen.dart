@@ -1,5 +1,3 @@
-// lib/screens/full_animal_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,7 +28,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
 
   // Liked animals tracking
   Set<String> _likedAnimals = {};
-  Set<String> _savedAnimals = {};
 
   @override
   void initState() {
@@ -47,12 +44,14 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         .collection('favorites')
         .where('userId', isEqualTo: user.uid)
         .get();
-    
-    setState(() {
-      _likedAnimals = favoritesSnapshot.docs
-          .map((doc) => doc.data()['animalId'] as String)
-          .toSet();
-    });
+
+    if (mounted) {
+      setState(() {
+        _likedAnimals = favoritesSnapshot.docs
+            .map((doc) => doc.data()['animalId'] as String)
+            .toSet();
+      });
+    }
   }
 
   Stream<QuerySnapshot> _getAnimalsStream() {
@@ -63,45 +62,44 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // This method now only handles backend logic, WITHOUT setState
     try {
       if (_likedAnimals.contains(animalId)) {
-        // Unlike
+        // Just update the data model, UI is already updated locally
+        _likedAnimals.remove(animalId);
+
         final favoritesSnapshot = await FirebaseFirestore.instance
             .collection('favorites')
             .where('userId', isEqualTo: user.uid)
             .where('animalId', isEqualTo: animalId)
             .get();
-        
+
         for (var doc in favoritesSnapshot.docs) {
           await doc.reference.delete();
         }
-        
-        setState(() {
-          _likedAnimals.remove(animalId);
-        });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Removed from favorites!'),
             backgroundColor: Colors.grey,
+            duration: Duration(seconds: 1),
           ),
         );
       } else {
-        // Like
+        // Just update the data model, UI is already updated locally
+        _likedAnimals.add(animalId);
+
         await FirebaseFirestore.instance.collection('favorites').add({
           'userId': user.uid,
           'animalId': animalId,
           'likedAt': FieldValue.serverTimestamp(),
         });
-        
-        setState(() {
-          _likedAnimals.add(animalId);
-        });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Added to favorites!'),
             backgroundColor: Colors.pinkAccent,
+            duration: Duration(seconds: 1),
           ),
         );
       }
@@ -113,16 +111,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         ),
       );
     }
-  }
-
-  void _saveAnimal(String animalId) {
-    setState(() {
-      if (_savedAnimals.contains(animalId)) {
-        _savedAnimals.remove(animalId);
-      } else {
-        _savedAnimals.add(animalId);
-      }
-    });
   }
 
   void _openFilterSheet() {
@@ -294,7 +282,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               ),
             );
           }
-          
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -321,7 +309,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
           filteredAnimals = filteredAnimals.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
             bool matches = true;
-            
+
             if (_filterSpecies != null) {
               matches = matches && (data['species'] == _filterSpecies);
             }
@@ -334,7 +322,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
             if (_filterSterilization != null) {
               matches = matches && (data['sterilization'] == _filterSterilization);
             }
-            
+
             return matches;
           }).toList();
 
@@ -381,7 +369,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               final animalDoc = filteredAnimals[index];
               final animalData = animalDoc.data() as Map<String, dynamic>;
               final animalId = animalDoc.id;
-              
+
               final animal = {
                 'id': animalId,
                 ...animalData,
@@ -390,7 +378,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               return AnimalCard(
                 animal: animal,
                 isLiked: _likedAnimals.contains(animalId),
-                isSaved: _savedAnimals.contains(animalId),
+                // isSaved is now fully handled inside the card
                 onTap: () {
                   Navigator.push(
                     context,
@@ -400,7 +388,8 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                   );
                 },
                 onLike: () => _likeAnimal(context, animalId),
-                onSave: () => _saveAnimal(animalId),
+                // onSave can be an empty function as the card handles it
+                onSave: () {},
               );
             },
           );

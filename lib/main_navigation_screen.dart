@@ -18,11 +18,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   // Re-ordered for a more logical flow and removed MyPostedAnimalsScreen.
   // The "My Posts" feature is now accessible from the user's profile screen.
   final List<Widget> _screens = [
+
     const HomeWrapper(),
     const MyApplicationsScreen(),
     const PostAnimalScreen(),
     const CommunityFeedScreen(),
     const ProfileScreen(),
+
   ];
 
   void _onItemTapped(int index) {
