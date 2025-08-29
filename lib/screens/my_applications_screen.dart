@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
+import '../widgets/paws_care_app_bar.dart';
+import '../../main_navigation_screen.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   final bool showAppBar;
@@ -63,7 +65,25 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     return DefaultTabController(
       length: _isAdmin ? 2 : 1, // Dynamic length based on role
       child: Scaffold(
-        appBar: widget.showAppBar ? _buildAppBar() : null,
+        appBar: widget.showAppBar
+            ? buildPawsCareAppBar(
+                context: context,
+                onLogout: _logout,
+                onMenuSelected: (value) {
+                  if (value == 'profile') {
+                    if (mainNavKey.currentState != null) {
+                      mainNavKey.currentState!.selectTab(4);
+                    } else {
+                      Navigator.of(context).pushNamed('/main');
+                    }
+                  } else if (value == 'all_applications') {
+                    Navigator.of(context).pushNamed('/all-applications');
+                  } else if (value == 'my_applications') {
+                    Navigator.of(context).pushNamed('/my-applications');
+                  }
+                },
+              )
+            : null,
         body: Column(
           children: [
             // Modern TabBar that matches the Profile screen

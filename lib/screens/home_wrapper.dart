@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/home_screen.dart';
+import 'package:pawscare/widgets/paws_care_app_bar.dart';
+import '../../main_navigation_screen.dart';
 
 class HomeWrapper extends StatefulWidget {
   const HomeWrapper({super.key});
@@ -31,59 +33,25 @@ class _HomeWrapperState extends State<HomeWrapper> {
         return true;
       },
       child: Scaffold(
-        appBar: AppBar(
-          systemOverlayStyle: isDarkMode
-              ? SystemUiOverlayStyle.light
-              : SystemUiOverlayStyle.dark,
-          backgroundColor: appBarColor,
-          elevation: 0,
-          title: Text(
-            'PawsCare',
-            style: TextStyle(
-              color: appBarTextColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          centerTitle: false,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chat feature coming soon!')),
-                );
-              },
-            ),
-            IconButton(
-              icon: Icon(Icons.notifications_none, color: appBarTextColor),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notifications coming soon!')),
-                );
-              },
-            ),
-            PopupMenuButton<String>(
-              icon: Icon(Icons.account_circle, color: appBarTextColor),
-              onSelected: (value) {
-                if (value == 'logout') {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.of(context).pushReplacementNamed('/login');
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout),
-                      SizedBox(width: 8),
-                      Text('Logout'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+        appBar: buildPawsCareAppBar(
+          context: context,
+          onLogout: () {
+            FirebaseAuth.instance.signOut();
+            Navigator.of(context).pushReplacementNamed('/login');
+          },
+          onMenuSelected: (value) {
+            if (value == 'profile') {
+              if (mainNavKey.currentState != null) {
+                mainNavKey.currentState!.selectTab(4);
+              } else {
+                Navigator.of(context).pushNamed('/main');
+              }
+            } else if (value == 'all_applications') {
+              Navigator.of(context).pushNamed('/all-applications');
+            } else if (value == 'my_applications') {
+              Navigator.of(context).pushNamed('/my-applications');
+            }
+          },
         ),
         body: Navigator(
           key: _navigatorKey,
