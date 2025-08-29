@@ -137,7 +137,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         automaticallyImplyLeading: true,
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () async {
+              await AuthService.signOut();
+              if (!mounted) return;
+              Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+            },
             child: const Text(
               'Cancel',
               style: TextStyle(color: Colors.white),

@@ -43,8 +43,9 @@ class _SplashScreenState extends State<SplashScreen> {
               // If successful and verified, navigate to main
               Navigator.of(context).pushReplacementNamed('/main');
             } else {
-              // If not verified, navigate to email verification
-              Navigator.of(context).pushReplacementNamed('/email-verification');
+              // For unverified sessions, sign out and send to welcome for a clean start
+              await AuthService.signOut();
+              Navigator.of(context).pushReplacementNamed('/welcome');
             }
           } catch (e) {
             print('Token verification failed, logging out: $e');
@@ -53,8 +54,8 @@ class _SplashScreenState extends State<SplashScreen> {
             Navigator.of(context).pushReplacementNamed('/login');
           }
         } else {
-          // User is not signed in, navigate to login
-          Navigator.of(context).pushReplacementNamed('/login');
+          // User is not signed in, navigate to welcome screen
+          Navigator.of(context).pushReplacementNamed('/welcome');
         }
       }
     } catch (e) {
@@ -66,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
         print('Error signing out: $signOutError');
       }
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacementNamed('/welcome');
       }
     }
   }

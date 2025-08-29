@@ -11,6 +11,7 @@ import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
 import 'main_navigation_screen.dart';
+import 'screens/welcome_screen.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -92,6 +93,7 @@ class PawsCareApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
+        '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpScreen(), // Added signup route
         '/main': (context) => const MainNavigationScreen(),
