@@ -38,10 +38,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Applications'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Applications',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
           BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Community'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events),
+            label: 'Community',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Account'),
         ],
         currentIndex: _selectedIndex,

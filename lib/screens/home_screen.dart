@@ -12,7 +12,7 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
-  
+
   const HomeScreen({Key? key, this.showAppBar = true}) : super(key: key);
 
   @override
@@ -87,54 +87,63 @@ class _HomeScreenState extends State<HomeScreen> {
     final appBarTextColor = theme.textTheme.titleLarge?.color;
 
     return Scaffold(
-      appBar: widget.showAppBar ? AppBar(
-        systemOverlayStyle: isDarkMode
-            ? SystemUiOverlayStyle.light
-            : SystemUiOverlayStyle.dark,
-        backgroundColor: appBarColor,
-        elevation: 0,
-        title: Text(
-          'PawsCare',
-          style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chat feature coming soon!')),
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.notifications_none, color: appBarTextColor),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications coming soon!')),
-              );
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.account_circle, color: appBarTextColor),
-            onSelected: (value) {
-              if (value == 'logout') _logout();
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
+      appBar: widget.showAppBar
+          ? AppBar(
+              systemOverlayStyle: isDarkMode
+                  ? SystemUiOverlayStyle.light
+                  : SystemUiOverlayStyle.dark,
+              backgroundColor: appBarColor,
+              elevation: 0,
+              title: Text(
+                'PawsCare',
+                style: TextStyle(
+                  color: appBarTextColor,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-        ],
-      ) : null,
+              centerTitle: false,
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Chat feature coming soon!'),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.notifications_none, color: appBarTextColor),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Notifications coming soon!'),
+                      ),
+                    );
+                  },
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.account_circle, color: appBarTextColor),
+                  onSelected: (value) {
+                    if (value == 'logout') _logout();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout),
+                          SizedBox(width: 8),
+                          Text('Logout'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : null,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
