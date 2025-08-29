@@ -134,7 +134,20 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         title: const Text('Email Verification'),
         backgroundColor: const Color(0xFF5AC8F2),
         foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // Prevent back button
+        automaticallyImplyLeading: true,
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await AuthService.signOut();
+              if (!mounted) return;
+              Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+            },
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
