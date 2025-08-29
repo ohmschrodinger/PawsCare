@@ -126,6 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
     const primaryColor = Color(0xFF5AC8F2);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sign in'),
+        automaticallyImplyLeading: true,
+      ),
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: Center(

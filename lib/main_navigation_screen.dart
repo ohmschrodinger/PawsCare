@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:pawscare/screens/home_wrapper.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
-import 'package:pawscare/screens/my_posted_animals_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 
@@ -16,13 +15,16 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
+  // Re-ordered for a more logical flow and removed MyPostedAnimalsScreen.
+  // The "My Posts" feature is now accessible from the user's profile screen.
   final List<Widget> _screens = [
-    HomeWrapper(),
-    MyApplicationsScreen(),
-    PostAnimalScreen(),
-    const MyPostedAnimalsScreen(),
-    CommunityFeedScreen(),
-    ProfileScreen(),
+
+    const HomeWrapper(),
+    const MyApplicationsScreen(),
+    const PostAnimalScreen(),
+    const CommunityFeedScreen(),
+    const ProfileScreen(),
+
   ];
 
   void _onItemTapped(int index) {
@@ -34,27 +36,49 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          // Home
           BottomNavigationBarItem(
-            icon: Icon(Icons.history),
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+                    // Applications
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
             label: 'Applications',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Post Animal'),
-          BottomNavigationBarItem(icon: Icon(Icons.upload), label: 'My Posts'),
+                    // Post Animal
           BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events),
+            icon: Icon(Icons.add_circle_outline),
+            activeIcon: Icon(Icons.add_circle),
+            label: 'Post',
+          ),
+          // Community (with an improved icon)
+          BottomNavigationBarItem(
+            icon: Icon(Icons.groups_outlined),
+            activeIcon: Icon(Icons.groups),
             label: 'Community',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Account'),
+          // Account
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Account',
+          ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xFF5AC8F2),
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: Colors.grey.shade600,
         onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.fixed, // Ensures all labels are visible
+        showUnselectedLabels: true,
       ),
     );
   }
