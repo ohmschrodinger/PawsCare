@@ -1,14 +1,15 @@
-// lib/widgets/animal_card.dart
-
 import 'package:flutter/material.dart';
+import '../screens/gallery_screen.dart';
+import '../screens/pet_detail_screen.dart'; // Import PetDetailScreen
 
-class AnimalCard extends StatelessWidget {
+class AnimalCard extends StatefulWidget {
   final Map<String, dynamic> animal;
   final VoidCallback? onTap;
   final VoidCallback? onLike;
   final VoidCallback? onSave;
   final bool isLiked;
   final bool isSaved;
+  final int likeCount;
 
   const AnimalCard({
     Key? key,
@@ -18,10 +19,122 @@ class AnimalCard extends StatelessWidget {
     this.onSave,
     this.isLiked = false,
     this.isSaved = false,
+    this.likeCount = 0,
   }) : super(key: key);
 
+  @override
+  State<AnimalCard> createState() => _AnimalCardState();
+}
+
+class _AnimalCardState extends State<AnimalCard>
+    with TickerProviderStateMixin {
+  int _currentPage = 0;
+  late final PageController _pageController;
+  late final AnimationController _likeAnimationController;
+  late final Animation<double> _scaleAnimation;
+  late final AnimationController _heartAnimationController;
+  late final Animation<double> _heartAnimation;
+  bool _isHeartAnimating = false;
+  late bool _isLiked;
+  late bool _isSaved;
+  late int _likeCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _isLiked = widget.isLiked;
+    _isSaved = widget.isSaved;
+    _likeCount = widget.likeCount;
+
+    _likeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _likeAnimationController, curve: Curves.easeOut),
+    );
+
+    _heartAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _heartAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _heartAnimationController, curve: Curves.easeInOut),
+    );
+
+    _heartAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _isHeartAnimating = false);
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isLiked != _isLiked) setState(() => _isLiked = widget.isLiked);
+    if (widget.isSaved != _isSaved) setState(() => _isSaved = widget.isSaved);
+    if (widget.likeCount != _likeCount) setState(() => _likeCount = widget.likeCount);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _likeAnimationController.dispose();
+    _heartAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _handleDoubleTap() {
+    setState(() => _isHeartAnimating = true);
+    _heartAnimationController.forward(from: 0);
+    if (!_isLiked) _toggleLike();
+  }
+
+  void _toggleLike() {
+    setState(() {
+      if (_isLiked) {
+        _isLiked = false;
+        _likeCount--;
+      } else {
+        _isLiked = true;
+        _likeCount++;
+        _likeAnimationController.forward().then((_) => _likeAnimationController.reverse());
+      }
+    });
+    widget.onLike?.call();
+  }
+
+  void _toggleSave() {
+    setState(() => _isSaved = !_isSaved);
+    widget.onSave?.call();
+  }
+
+  void _openGallery(BuildContext context, List<String> imageUrls) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GalleryScreen(
+          imageUrls: imageUrls,
+          initialIndex: _currentPage,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToPetDetail(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PetDetailScreen(petData: widget.animal),
+      ),
+    );
+  }
+
+  // --- Helper Methods ---
   Color _getStatusColor() {
-    final status = animal['status']?.toString().toLowerCase() ?? 'available';
+    final status = widget.animal['status']?.toString().toLowerCase() ?? 'available';
     switch (status) {
       case 'available':
         return Colors.green;
@@ -34,302 +147,309 @@ class AnimalCard extends StatelessWidget {
     }
   }
 
-  String _getStatusText() {
-    final status = animal['status']?.toString() ?? 'Available';
-    return status;
-  }
+  String _getStatusText() => widget.animal['status']?.toString() ?? 'Available';
 
-  IconData _getGenderIcon(String? gender) {
-    return gender?.toLowerCase() == 'male' ? Icons.male : Icons.female;
-  }
+  IconData _getGenderIcon(String? gender) =>
+      gender?.toLowerCase() == 'male' ? Icons.male : Icons.female;
 
-  Color _getGenderColor(String? gender) {
-    return gender?.toLowerCase() == 'male' ? Colors.blue : Colors.pink;
-  }
+  Color _getGenderColor(String? gender) =>
+      gender?.toLowerCase() == 'male' ? Colors.blue : Colors.pink;
 
   String _getTimeAgo() {
-    final postedAt = animal['postedAt'];
-    if (postedAt == null) return 'Posted recently';
-    
+    final postedAt = widget.animal['postedAt'];
+    DateTime? postedDate;
+
     try {
-      DateTime postedDate;
       if (postedAt is DateTime) {
         postedDate = postedAt;
-      } else if (postedAt.runtimeType.toString().contains('Timestamp')) {
-        // Firebase Timestamp
+      } else if (postedAt != null && postedAt is dynamic && postedAt.toDate != null) {
+        // Firestore Timestamp
         postedDate = postedAt.toDate();
-      } else {
-        return 'Posted recently';
       }
-      
-      final now = DateTime.now();
-      final difference = now.difference(postedDate);
-      
-      if (difference.inDays > 0) {
-        return 'Posted ${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
-      } else if (difference.inHours > 0) {
-        return 'Posted ${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
-      } else {
-        return 'Posted recently';
-      }
-    } catch (e) {
-      return 'Posted recently';
-    }
+    } catch (_) {}
+
+    if (postedDate == null) return 'recently';
+
+    final difference = DateTime.now().difference(postedDate);
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    return 'just now';
+  }
+
+  Widget _buildInfoChip(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    
-    final imageUrls = animal['imageUrls'] as List<dynamic>? ?? [];
-    final imageUrl = (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-        (animal['image'] ?? 'https://via.placeholder.com/300x200');
+    final imageUrls = (widget.animal['imageUrls'] as List?)?.cast<String>() ?? [];
+    final hasImages = imageUrls.isNotEmpty;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => _navigateToPetDetail(context), // Navigate to PetDetailScreen
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         decoration: BoxDecoration(
-          color: isDarkMode ? theme.cardColor : Colors.white,
-          borderRadius: BorderRadius.circular(4), // Minimal rounded corners
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
-              spreadRadius: 0,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image with status badge
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(4),
-                  ),
-                  child: Image.network(
-                    imageUrl,
-                    height: 220,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: 220,
+            // --- Image Section ---
+            GestureDetector(
+              onDoubleTap: _handleDoubleTap,
+              onTap: hasImages 
+                  ? () => _openGallery(context, imageUrls) 
+                  : () => _navigateToPetDetail(context), // Navigate if no images
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Image PageView
+                    SizedBox(
+                      height: 300,
                       width: double.infinity,
-                      color: Colors.grey[200],
-                      child: Icon(
-                        Icons.pets,
-                        color: Colors.grey[400],
-                        size: 60,
-                      ),
-                    ),
-                  ),
-                ),
-                // Status badge
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    child: Text(
-                      _getStatusText(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                // Action buttons overlay
-                if (onLike != null || onSave != null)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Row(
-                      children: [
-                        if (onLike != null)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              shape: BoxShape.circle,
+                      child: hasImages
+                          ? PageView.builder(
+                              controller: _pageController,
+                              itemCount: imageUrls.length,
+                              onPageChanged: (index) =>
+                                  setState(() => _currentPage = index),
+                              itemBuilder: (context, index) {
+                                return Image.network(
+                                  imageUrls[index],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      child: Icon(Icons.pets,
+                                          size: 60, color: Colors.grey.shade400),
+                                    );
+                                  },
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey.shade200,
+                              child: Icon(Icons.pets,
+                                  size: 60, color: Colors.grey.shade400),
                             ),
-                            child: IconButton(
-                              onPressed: onLike,
-                              icon: Icon(
-                                isLiked ? Icons.favorite : Icons.favorite_border,
-                                color: isLiked ? Colors.red : Colors.grey[600],
-                                size: 20,
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
+                    ),
+
+                    // Big Heart Animation Overlay
+                    if (_isHeartAnimating)
+                      FadeTransition(
+                        opacity: _heartAnimation,
+                        child: ScaleTransition(
+                          scale: _heartAnimation.drive(
+                              Tween(begin: 0.5, end: 1.2)),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 80,
+                            shadows: [
+                              Shadow(color: Colors.black38, blurRadius: 10)
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Image Dots Indicator
+                    if (imageUrls.length > 1)
+                      Positioned(
+                        bottom: 10.0,
+                        child: Row(
+                          children: List.generate(
+                            imageUrls.length,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 3.0),
+                              height: 8.0,
+                              width: _currentPage == index ? 24.0 : 8.0,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(
+                                    _currentPage == index ? 0.9 : 0.6),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           ),
-                        if (onLike != null && onSave != null)
-                          const SizedBox(width: 8),
-                        if (onSave != null)
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              onPressed: onSave,
-                              icon: Icon(
-                                isSaved ? Icons.bookmark : Icons.bookmark_border,
-                                color: isSaved ? Colors.blue : Colors.grey[600],
-                                size: 20,
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              constraints: const BoxConstraints(
-                                minWidth: 36,
-                                minHeight: 36,
-                              ),
-                            ),
+                        ),
+                      ),
+
+                    // Status Tag
+                    Positioned(
+                      top: 12,
+                      left: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _getStatusText(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
-            // Animal details
+
+            // --- Info Section ---
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Name and gender
+                  // Name, Gender, and Action Buttons Row
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Left side: Name and Gender
                       Expanded(
-                        child: Text(
-                          animal['name'] ?? 'Unknown',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.animal['name'] as String? ??
+                                    'Unknown Pet',
+                                style: const TextStyle(
+                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              _getGenderIcon(widget.animal['gender'] as String?),
+                              color: _getGenderColor(
+                                  widget.animal['gender'] as String?),
+                              size: 24,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _getGenderIcon(animal['gender']),
-                        color: _getGenderColor(animal['gender']),
-                        size: 22,
+                      // Right side: Action Buttons (Like and Save)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Like Button and Count
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ScaleTransition(
+                                scale: _scaleAnimation,
+                                child: IconButton(
+                                  onPressed: _toggleLike,
+                                  icon: Icon(
+                                    _isLiked
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: _isLiked
+                                        ? Colors.red
+                                        : Colors.grey.shade700,
+                                    size: 24,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                              Text(
+                                '$_likeCount',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          // Save Button
+                          IconButton(
+                            onPressed: _toggleSave,
+                            icon: Icon(
+                              _isSaved
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              color: _isSaved
+                                  ? Colors.blueAccent
+                                  : Colors.grey.shade700,
+                              size: 24,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // Breed
+                  // Breed and Age
                   Text(
-                    animal['breed'] ?? animal['species'] ?? 'Mixed Breed',
+                    "${widget.animal['breed'] ?? 'Mixed Breed'} • ${widget.animal['age'] ?? 'Unknown age'}",
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Age and location
-                  Row(
-                    children: [
-                      Text(
-                        animal['age'] ?? 'Unknown age',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      if (animal['location'] != null) ...[
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            animal['location'],
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
+                        fontSize: 15, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 8),
-                  // Posted time
+                  // Location and Time
                   Row(
                     children: [
-                      Icon(
-                        Icons.schedule,
-                        size: 14,
-                        color: Colors.grey[500],
-                      ),
+                      Icon(Icons.location_on_outlined,
+                          size: 16, color: Colors.grey.shade500),
                       const SizedBox(width: 4),
-                      Text(
-                        _getTimeAgo(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
+                      Expanded(
+                        child: Text(
+                          "${widget.animal['location'] ?? 'Pune, Maharashtra'} • Posted ${_getTimeAgo()}",
+                          style: TextStyle(
+                              fontSize: 14, color: Colors.grey.shade500),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  // Description (if available)
-                  if (animal['description'] != null && 
-                      animal['description'].toString().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      animal['description'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  // Additional info chips
-                  if (animal['vaccination'] != null || 
-                      animal['sterilization'] != null) ...[
+                  // Medical Info Chips
+                  if (widget.animal['vaccination'] != null ||
+                      widget.animal['sterilization'] != null) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        if (animal['vaccination'] != null)
+                        if (widget.animal['vaccination'] != null)
                           _buildInfoChip(
-                            Icons.vaccines,
-                            'Vaccinated: ${animal['vaccination']}',
-                            Colors.green,
-                          ),
-                        if (animal['sterilization'] != null)
+                              Icons.vaccines, 'Vaccinated', Colors.green),
+                        if (widget.animal['sterilization'] != null)
                           _buildInfoChip(
-                            Icons.healing,
-                            'Sterilized: ${animal['sterilization']}',
-                            Colors.blue,
-                          ),
+                              Icons.healing, 'Sterilized', Colors.blue),
                       ],
                     ),
                   ],
@@ -338,39 +458,6 @@ class AnimalCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(2),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }

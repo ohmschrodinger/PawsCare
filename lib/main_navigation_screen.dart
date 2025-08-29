@@ -20,7 +20,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     HomeWrapper(),
     MyApplicationsScreen(),
     PostAnimalScreen(),
-    MyPostedAnimalsScreen(),
+    const MyPostedAnimalsScreen(),
     CommunityFeedScreen(),
     ProfileScreen(),
   ];

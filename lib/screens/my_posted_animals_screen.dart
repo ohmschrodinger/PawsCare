@@ -1,339 +1,184 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/animal_service.dart';
+import 'package:pawscare/screens/pet_detail_screen.dart';
+import 'package:pawscare/widgets/animal_card.dart';
+import '../utils/constants.dart';
 
-class MyPostedAnimalsScreen extends StatelessWidget {
+// Key Change: Renamed widget to MyPostedAnimalsScreen
+class MyPostedAnimalsScreen extends StatefulWidget {
   const MyPostedAnimalsScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  // Key Change: Renamed state class to _MyPostedAnimalsScreenState
+  State<MyPostedAnimalsScreen> createState() => _MyPostedAnimalsScreenState();
+}
+
+// Key Change: Renamed state class
+class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
+  // Filters remain the same
+  String? _filterSpecies;
+  String? _filterGender;
+  String? _filterSterilization;
+  String? _filterVaccination;
+
+  Set<String> _likedAnimals = {};
+  Set<String> _savedAnimals = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserPreferences();
+  }
+
+  void _loadUserPreferences() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favoritesSnapshot = await FirebaseFirestore.instance.collection('favorites').where('userId', isEqualTo: user.uid).get();
+    final likedIds = favoritesSnapshot.docs.map((doc) => doc.data()['animalId'] as String).toSet();
+
+    final savedSnapshot = await FirebaseFirestore.instance.collection('saved_animals').where('userId', isEqualTo: user.uid).get();
+    final savedIds = savedSnapshot.docs.map((doc) => doc.data()['animalId'] as String).toSet();
+
+    if (mounted) {
+      setState(() {
+        _likedAnimals = likedIds;
+        _savedAnimals = savedIds;
+      });
+    }
+  }
+
+  // Key Change: This stream now filters for the current user's posts
+  Stream<QuerySnapshot> _getAnimalsStream() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text('Please log in to view your posted animals')),
-      );
+      // Return an empty stream if the user is not logged in
+      return const Stream.empty();
     }
+    return FirebaseFirestore.instance
+        .collection('animals')
+        .where('postedByUserId', isEqualTo: user.uid) // This is the crucial filter!
+        .snapshots();
+  }
 
+  // Like and Save logic remains the same as in FullAnimalListScreen
+  void _likeAnimal(BuildContext context, String animalId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final animalRef = FirebaseFirestore.instance.collection('animals').doc(animalId);
+    if (_likedAnimals.contains(animalId)) {
+      _likedAnimals.remove(animalId);
+      animalRef.update({'likeCount': FieldValue.increment(-1)});
+      final favoritesSnapshot = await FirebaseFirestore.instance.collection('favorites').where('userId', isEqualTo: user.uid).where('animalId', isEqualTo: animalId).get();
+      for (var doc in favoritesSnapshot.docs) {
+        await doc.reference.delete();
+      }
+    } else {
+      _likedAnimals.add(animalId);
+      animalRef.update({'likeCount': FieldValue.increment(1)});
+      await FirebaseFirestore.instance.collection('favorites').add({'userId': user.uid, 'animalId': animalId, 'likedAt': FieldValue.serverTimestamp()});
+    }
+  }
+
+  void _saveAnimal(BuildContext context, String animalId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    if (_savedAnimals.contains(animalId)) {
+      _savedAnimals.remove(animalId);
+      final savedSnapshot = await FirebaseFirestore.instance.collection('saved_animals').where('userId', isEqualTo: user.uid).where('animalId', isEqualTo: animalId).get();
+      for (var doc in savedSnapshot.docs) {
+        await doc.reference.delete();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from saved items.'), duration: Duration(seconds: 1)));
+    } else {
+      _savedAnimals.add(animalId);
+      await FirebaseFirestore.instance.collection('saved_animals').add({'userId': user.uid, 'animalId': animalId, 'savedAt': FieldValue.serverTimestamp()});
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved for later!'), duration: Duration(seconds: 1)));
+    }
+  }
+
+  // _openFilterSheet is identical to FullAnimalListScreen, no changes needed.
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Posted Animals'),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF5AC8F2),
-        foregroundColor: Colors.white,
+        // You might want to remove actions if filtering isn't needed here
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: AnimalService.getAnimalsByUser(user.uid),
+        stream: _getAnimalsStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return const Center(child: Text('Something went wrong.'));
           }
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final animals = snapshot.data?.docs ?? [];
+          
+          // Key Change: The filtering logic is now inside the builder scope
+          // This ensures the `filteredAnimals` variable is always available.
+          List<DocumentSnapshot> filteredAnimals = animals.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            bool matches = true;
+            if (_filterSpecies != null) {
+              matches = matches && (data['species'] == _filterSpecies);
+            }
+            if (_filterGender != null) {
+              matches = matches && (data['gender'] == _filterGender);
+            }
+            // Add other filters if needed
+            return matches;
+          }).toList();
 
-          if (animals.isEmpty) {
-            return Center(
+          if (filteredAnimals.isEmpty) {
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.pets, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
+                  Icon(Icons.pets_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
                   Text(
-                    'You haven\'t posted any animals yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Start helping animals find their forever home!',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    'You have not posted any animals yet.',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                 ],
               ),
             );
           }
 
+          // Key Change: Now correctly uses the `filteredAnimals` variable
           return ListView.builder(
-            padding: const EdgeInsets.all(16.0),
-            itemCount: animals.length,
+            padding: const EdgeInsets.only(top: 8, bottom: 16),
+            itemCount: filteredAnimals.length,
             itemBuilder: (context, index) {
-              final animalData = animals[index].data() as Map<String, dynamic>;
-              final approvalStatus = animalData['approvalStatus'] ?? 'pending';
-              final adminMessage = animalData['adminMessage'] ?? '';
+              final animalDoc = filteredAnimals[index];
+              final animalData = animalDoc.data() as Map<String, dynamic>;
+              final animalId = animalDoc.id;
+              final animal = {'id': animalId, ...animalData};
+              final likeCount = (animalData['likeCount'] ?? 0) as int;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16.0),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Animal Image
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(15),
-                      ),
-                      child: Image.network(
-                        animalData['image'] ??
-                            'https://via.placeholder.com/150/FF5733/FFFFFF?text=Animal',
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 200,
-                            width: double.infinity,
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Animal Name and Status
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  animalData['name'] ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5AC8F2),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              _buildStatusChip(approvalStatus),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // Basic Info
-                          Text(
-                            '${animalData['species'] ?? ''} • ${animalData['age'] ?? ''} • ${animalData['gender'] ?? ''}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Approval Details
-                          _buildApprovalDetails(
-                            approvalStatus,
-                            animalData,
-                            adminMessage,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Posted Date
-                          Text(
-                            'Posted on: ${_formatDate(animalData['postedAt'])}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              return AnimalCard(
+                animal: animal,
+                isLiked: _likedAnimals.contains(animalId),
+                isSaved: _savedAnimals.contains(animalId),
+                likeCount: likeCount,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => PetDetailScreen(petData: animal)),
+                  );
+                },
+                onLike: () => _likeAnimal(context, animalId),
+                onSave: () => _saveAnimal(context, animalId),
               );
             },
           );
         },
       ),
     );
-  }
-
-  Widget _buildStatusChip(String status) {
-    Color backgroundColor;
-    Color textColor;
-    String statusText;
-
-    switch (status) {
-      case 'approved':
-        backgroundColor = Colors.green[100]!;
-        textColor = Colors.green[800]!;
-        statusText = 'Approved';
-        break;
-      case 'rejected':
-        backgroundColor = Colors.red[100]!;
-        textColor = Colors.red[800]!;
-        statusText = 'Rejected';
-        break;
-      case 'pending':
-      default:
-        backgroundColor = Colors.orange[100]!;
-        textColor = Colors.orange[800]!;
-        statusText = 'Pending';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        statusText,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildApprovalDetails(
-    String status,
-    Map<String, dynamic> animalData,
-    String adminMessage,
-  ) {
-    switch (status) {
-      case 'approved':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Your animal has been approved and is now visible to all users!',
-                  style: TextStyle(
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            if (animalData['approvedAt'] != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Approved on: ${_formatDate(animalData['approvedAt'])}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
-          ],
-        );
-
-      case 'rejected':
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.cancel, color: Colors.red, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Your animal was not approved',
-                  style: TextStyle(
-                    color: Colors.red[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            if (adminMessage.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Admin Message:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red[700],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      adminMessage,
-                      style: TextStyle(color: Colors.red[700]),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            if (animalData['rejectedAt'] != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Rejected on: ${_formatDate(animalData['rejectedAt'])}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              ),
-            ],
-          ],
-        );
-
-      case 'pending':
-      default:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.schedule, color: Colors.orange, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Your animal is waiting for admin approval',
-                  style: TextStyle(
-                    color: Colors.orange[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'This usually takes 24-48 hours. You\'ll be notified once it\'s reviewed.',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ],
-        );
-    }
-  }
-
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return 'Unknown date';
-
-    try {
-      if (timestamp is Timestamp) {
-        final date = timestamp.toDate();
-        return '${date.day}/${date.month}/${date.year}';
-      }
-      return 'Unknown date';
-    } catch (e) {
-      return 'Unknown date';
-    }
   }
 }
