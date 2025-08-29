@@ -85,6 +85,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
         setState(() => _isLoading = false);
         if (!mounted) return;
+        // Use pushReplacementNamed to prevent going back to signup screen
         Navigator.pushReplacementNamed(context, '/email-verification');
       }
     } on FirebaseAuthException catch (e) {
@@ -118,11 +119,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await FirebaseAuth.instance.signInWithCredential(credential);
 
       print("Google Sign-In successful ✅");
+      // Use pushReplacementNamed to prevent going back to signup screen
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/main');
+      }
     } catch (e) {
       print("Google Sign-In error: $e");
+      _showErrorDialog('Google sign-in failed. Please try again.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // Handle back button behavior
+  Future<bool> _onWillPop() async {
+    // If user tries to go back, show a dialog asking if they want to exit
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exit App?'),
+        content: const Text('Are you sure you want to exit the app?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Exit'),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   // ---------------- Error Dialog ----------------
@@ -147,156 +175,159 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFF5AC8F2);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
-          onPressed: () => Navigator.of(context).pop(),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.grey[800]),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        'Hello! Register to get started',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.waving_hand, color: Colors.amber),
-                    ],
-                  ),
-                  const SizedBox(height: 48),
-
-                  // Full Name Field
-                  TextFormField(
-                    controller: _fullNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Email Field
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email Address',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                    validator: _validateEmail,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Password Field
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                    validator: _validatePassword,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Confirm Password Field
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Confirm Password',
-                      prefixIcon: const Icon(Icons.lock_reset_outlined),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                    ),
-                    validator: _validateConfirmPassword,
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Register Button
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : ElevatedButton(
-                          onPressed: _signUp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('Register', style: TextStyle(fontSize: 18)),
+        backgroundColor: Colors.grey[50],
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          'Hello! Register to get started',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                  const SizedBox(height: 24),
-
-                  // Or Divider
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey[300])),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text('Or Register with',
-                            style: TextStyle(color: Colors.grey[600])),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey[300])),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Google Sign-In Button (smaller, subtler)
-                  OutlinedButton.icon(
-                    icon: Image.asset(
-                      'assets/images/google_logo.png',
-                      height: 18,
-                      width: 18,
+                        SizedBox(width: 8),
+                        Icon(Icons.waving_hand, color: Colors.amber),
+                      ],
                     ),
-                    label: const Text('Continue with Google'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: primaryColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      foregroundColor: Colors.black87,
-                      backgroundColor: Colors.white,
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    onPressed: _isLoading ? null : _loginWithGoogle,
-                  ),
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 48),
 
-                  // Login Navigation
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Already have an account?"),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Login Now',
-                            style: TextStyle(
-                                color: primaryColor,
-                                fontWeight: FontWeight.bold)),
+                    // Full Name Field
+                    TextFormField(
+                      controller: _fullNameController,
+                      decoration: InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email Field
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email Address',
+                        prefixIcon: const Icon(Icons.email_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      validator: _validateEmail,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password Field
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      validator: _validatePassword,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Confirm Password Field
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        prefixIcon: const Icon(Icons.lock_reset_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                      ),
+                      validator: _validateConfirmPassword,
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Register Button
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                            onPressed: _signUp,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Register', style: TextStyle(fontSize: 18)),
+                          ),
+                    const SizedBox(height: 24),
+
+                    // Or Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text('Or Register with',
+                              style: TextStyle(color: Colors.grey[600])),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Google Sign-In Button (smaller, subtler)
+                    OutlinedButton.icon(
+                      icon: Image.asset(
+                        'assets/images/google_logo.png',
+                        height: 18,
+                        width: 18,
+                      ),
+                      label: const Text('Continue with Google'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: primaryColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        foregroundColor: Colors.black87,
+                        backgroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      onPressed: _isLoading ? null : _loginWithGoogle,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Login Navigation
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Already have an account?"),
+                        TextButton(
+                          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                          child: const Text('Login Now',
+                              style: TextStyle(
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
