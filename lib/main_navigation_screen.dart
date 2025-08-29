@@ -48,13 +48,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-                    // Applications
+                      // Applications
           BottomNavigationBarItem(
             icon: Icon(Icons.history_outlined),
             activeIcon: Icon(Icons.history),
             label: 'Applications',
           ),
-                    // Post Animal
+                      // Post Animal
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             activeIcon: Icon(Icons.add_circle),
