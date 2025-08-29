@@ -129,6 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         title: const Text('Sign in'),
         automaticallyImplyLeading: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -229,17 +231,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   
                   // Google Sign-In Button
-                  ElevatedButton.icon(
+                  OutlinedButton.icon(
                     icon: Image.asset(
-                      'assets/images/google_logo.png', // Ensure you have this asset
-                      height: 24,
-                      width: 24,
+                      'assets/images/google_logo.png',
+                      height: 18,
+                      width: 18,
                     ),
-                    label: const Text('Signup/Login with Google'),
-                    style: ElevatedButton.styleFrom(
+                    label: const Text('Continue with Google'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF5AC8F2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      foregroundColor: Colors.black87,
                       backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      side: const BorderSide(color: primaryColor),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     onPressed: _isLoading ? null : _loginWithGoogle,
                   ),
