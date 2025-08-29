@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+
 import '../screens/gallery_screen.dart';
-import '../screens/pet_detail_screen.dart'; // Import PetDetailScreen
+import '../screens/pet_detail_screen.dart';
+
+// 🔹 Custom cache manager to control how long images stay cached
+final customCacheManager = CacheManager(
+  Config(
+    'animalImageCache',
+    stalePeriod: const Duration(days: 30), // cache images for 30 days
+    maxNrOfCacheObjects: 200, // store up to 200 images
+  ),
+);
 
 class AnimalCard extends StatefulWidget {
   final Map<String, dynamic> animal;
@@ -225,13 +237,13 @@ class _AnimalCardState extends State<AnimalCard>
               onDoubleTap: _handleDoubleTap,
               onTap: hasImages 
                   ? () => _openGallery(context, imageUrls) 
-                  : () => _navigateToPetDetail(context), // Navigate if no images
+                  : () => _navigateToPetDetail(context),
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Image PageView
+                    // Image PageView with caching
                     SizedBox(
                       height: 300,
                       width: double.infinity,
@@ -242,16 +254,21 @@ class _AnimalCardState extends State<AnimalCard>
                               onPageChanged: (index) =>
                                   setState(() => _currentPage = index),
                               itemBuilder: (context, index) {
-                                return Image.network(
-                                  imageUrls[index],
+                                return CachedNetworkImage(
+                                  cacheManager: customCacheManager,
+                                  imageUrl: imageUrls[index],
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey.shade200,
-                                      child: Icon(Icons.pets,
-                                          size: 60, color: Colors.grey.shade400),
-                                    );
-                                  },
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey.shade200,
+                                    child: Icon(Icons.pets,
+                                        size: 60, color: Colors.grey.shade400),
+                                  ),
                                 );
                               },
                             )
@@ -302,28 +319,7 @@ class _AnimalCardState extends State<AnimalCard>
                           ),
                         ),
                       ),
-
-                    // Status Tag
-                    Positioned(
-                      top: 12,
-                      left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _getStatusText(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Status Tag removed
                   ],
                 ),
               ),
@@ -345,8 +341,7 @@ class _AnimalCardState extends State<AnimalCard>
                           children: [
                             Flexible(
                               child: Text(
-                                widget.animal['name'] as String? ??
-                                    'Unknown Pet',
+                                widget.animal['name'] as String? ?? 'Unknown Pet',
                                 style: const TextStyle(
                                     fontSize: 22, fontWeight: FontWeight.bold),
                                 overflow: TextOverflow.ellipsis,
@@ -355,8 +350,7 @@ class _AnimalCardState extends State<AnimalCard>
                             const SizedBox(width: 8),
                             Icon(
                               _getGenderIcon(widget.animal['gender'] as String?),
-                              color: _getGenderColor(
-                                  widget.animal['gender'] as String?),
+                              color: _getGenderColor(widget.animal['gender'] as String?),
                               size: 24,
                             ),
                           ],
@@ -416,8 +410,7 @@ class _AnimalCardState extends State<AnimalCard>
                   // Breed and Age
                   Text(
                     "${widget.animal['breed'] ?? 'Mixed Breed'} • ${widget.animal['age'] ?? 'Unknown age'}",
-                    style: TextStyle(
-                        fontSize: 15, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 8),
                   // Location and Time
@@ -445,11 +438,9 @@ class _AnimalCardState extends State<AnimalCard>
                       runSpacing: 4,
                       children: [
                         if (widget.animal['vaccination'] != null)
-                          _buildInfoChip(
-                              Icons.vaccines, 'Vaccinated', Colors.green),
+                          _buildInfoChip(Icons.vaccines, 'Vaccinated', Colors.green),
                         if (widget.animal['sterilization'] != null)
-                          _buildInfoChip(
-                              Icons.healing, 'Sterilized', Colors.blue),
+                          _buildInfoChip(Icons.healing, 'Sterilized', Colors.blue),
                       ],
                     ),
                   ],
