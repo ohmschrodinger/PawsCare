@@ -96,7 +96,7 @@ class PawsCareApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpScreen(), // Added signup route
-        '/main': (context) => const MainNavigationScreen(),
+        '/main': (context) => MainNavigationScreen(key: mainNavKey),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/admin-animal-approval': (context) =>
             const AdminAnimalApprovalScreen(),

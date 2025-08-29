@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/screens/full_animal_list_screen.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
+import '../widgets/paws_care_app_bar.dart';
+import '../../main_navigation_screen.dart';
 
 // NOTE: PostAnimalScreen import removed as FAB was removed, but you can add it back if needed.
 // import 'package:pawscare/screens/post_animal_screen.dart';
@@ -88,60 +90,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: widget.showAppBar
-          ? AppBar(
-              systemOverlayStyle: isDarkMode
-                  ? SystemUiOverlayStyle.light
-                  : SystemUiOverlayStyle.dark,
-              backgroundColor: appBarColor,
-              elevation: 0,
-              title: Text(
-                'PawsCare',
-                style: TextStyle(
-                  color: appBarTextColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              centerTitle: false,
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Chat feature coming soon!'),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.notifications_none, color: appBarTextColor),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifications coming soon!'),
-                      ),
-                    );
-                  },
-                ),
-                PopupMenuButton<String>(
-                  icon: Icon(Icons.account_circle, color: appBarTextColor),
-                  onSelected: (value) {
-                    if (value == 'logout') _logout();
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'logout',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout),
-                          SizedBox(width: 8),
-                          Text('Logout'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          ? buildPawsCareAppBar(
+              context: context,
+              onLogout: _logout,
+              onMenuSelected: (value) {
+                if (value == 'profile') {
+                  if (mainNavKey.currentState != null) {
+                    mainNavKey.currentState!.selectTab(4);
+                  } else {
+                    Navigator.of(context).pushNamed('/main');
+                  }
+                } else if (value == 'all_applications') {
+                  Navigator.of(context).pushNamed('/all-applications');
+                } else if (value == 'my_applications') {
+                  Navigator.of(context).pushNamed('/my-applications');
+                }
+              },
             )
           : null,
       body: SingleChildScrollView(

@@ -6,9 +6,16 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/services/storage_service.dart';
-import 'package:pawscare/utils/constants.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../widgets/paws_care_app_bar.dart';
+import '../main_navigation_screen.dart';
+
+// --- THEME CONSTANTS FOR A CLEAN UI ---
+const Color kPrimaryColor = Colors.black;
+const Color kSecondaryColor = Color(0xFF616161); // Dark grey
+const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
+const Color kCardColor = Colors.white;
 
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
@@ -26,22 +33,27 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
 
-  // Form controllers
+  // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
-  final _speciesController = TextEditingController();
+  final _breedController = TextEditingController();
   final _ageController = TextEditingController();
-  final _genderController = TextEditingController();
-  final _sterilizationController = TextEditingController();
-  final _vaccinationController = TextEditingController();
   final _rescueStoryController = TextEditingController();
-  final _motherStatusController = TextEditingController();
-  final _otherSpeciesController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _contactPhoneController = TextEditingController();
+  final _medicalIssuesController = TextEditingController();
 
-  // Form state
-  String _selectedGender = 'Male';
-  String _selectedSterilization = 'Yes';
-  String _selectedVaccination = 'Yes';
-  String _selectedMotherStatus = 'Unknown';
+  // --- FORM STATE VARIABLES ---
+  String? _species;
+  String? _gender;
+  String? _breedType; // "Indie" or "Specific Breed"
+  bool? _isSterilized;
+  bool? _isVaccinated;
+  bool? _isDewormed;
+  String? _kidCompatibility;
+  String? _dogCompatibility;
+  String? _catCompatibility;
+  String? _activityLevel;
+
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
@@ -61,22 +73,24 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   void dispose() {
     _tabController.dispose();
     _nameController.dispose();
-    _speciesController.dispose();
-    _otherSpeciesController.dispose();
+    _breedController.dispose();
     _ageController.dispose();
-    _genderController.dispose();
-    _sterilizationController.dispose();
-    _vaccinationController.dispose();
     _rescueStoryController.dispose();
-    _motherStatusController.dispose();
+    _locationController.dispose();
+    _contactPhoneController.dispose();
+    _medicalIssuesController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    if (_images.length >= 4) return;
+    if (_images.length >= 5) {
+      _showSnackBar('You can upload a maximum of 5 photos.', isError: true);
+      return;
+    }
     final pickedFile = await _picker.pickImage(
       source: source,
-      imageQuality: 80,
+      imageQuality: 85,
+      maxWidth: 1080,
     );
     if (pickedFile != null) {
       setState(() {
@@ -101,7 +115,27 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.showAppBar ? _buildAppBar() : null,
+      backgroundColor: kBackgroundColor,
+      appBar: buildPawsCareAppBar(
+        context: context,
+        onLogout: _logout,
+        onMenuSelected: (value) {
+          if (value == 'profile') {
+            // Switch to the profile tab in MainNavigationScreen
+            if (mainNavKey.currentState != null) {
+              mainNavKey.currentState!.selectTab(4); // Profile tab index
+            } else {
+              Navigator.of(context).pushNamed('/main');
+              // After navigation, the splash or login logic should land on main and then set the tab
+              // This is a fallback for when the key is not yet available
+            }
+          } else if (value == 'all_applications') {
+            Navigator.of(context).pushNamed('/all-applications');
+          } else if (value == 'my_applications') {
+            Navigator.of(context).pushNamed('/my-applications');
+          }
+        },
+      ),
       body: Column(
         children: [
           _buildTabBar(),
@@ -116,152 +150,75 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  AppBar _buildAppBar() {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor =
-        isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
-    return AppBar(
-      systemOverlayStyle:
-          isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      backgroundColor: appBarColor,
-      elevation: 0,
-      title: Text(
-        'PawsCare',
-        style: TextStyle(
-          color: appBarTextColor,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      centerTitle: false,
-      actions: [
-        IconButton(
-          icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Chat feature coming soon!')),
-            );
-          },
-        ),
-        IconButton(
-          icon: Icon(Icons.notifications_none, color: appBarTextColor),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Notifications coming soon!')),
-            );
-          },
-        ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.account_circle, color: appBarTextColor),
-          onSelected: (value) {
-            if (value == 'logout') _logout();
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'logout',
-              child: Row(
-                children: [
-                  Icon(Icons.logout),
-                  SizedBox(width: 8),
-                  Text('Logout'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  // Simple AppBar builder to resolve missing method error
 
   Widget _buildTabBar() {
     return Material(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: kCardColor,
       child: TabBar(
         controller: _tabController,
-        indicatorColor: Theme.of(context).primaryColor,
-        labelColor: Theme.of(context).primaryColor,
-        unselectedLabelColor: Colors.grey.shade600,
+        indicatorColor: kPrimaryColor,
+        labelColor: kPrimaryColor,
+        unselectedLabelColor: kSecondaryColor,
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
-          Tab(icon: Icon(Icons.add_circle), text: 'Add New Animal'),
+          Tab(icon: Icon(Icons.add_circle_outline), text: 'Add New Animal'),
         ],
       ),
     );
   }
-
+  
+  // This tab now uses the updated _PendingAnimalCard with the new theme
   Widget _buildPendingRequestsTab() {
+    // Logic remains the same, but the UI will be updated via _PendingAnimalCard
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Center(
-        child: Text('Please log in to view pending requests'),
-      );
+      return const Center(child: Text('Please log in to view pending requests'));
     }
     return StreamBuilder<QuerySnapshot>(
       stream: AnimalService.getPendingAnimals(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }
+        if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
         }
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get(),
+          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
           builder: (context, roleSnapshot) {
-            String role = 'user';
-            if (roleSnapshot.connectionState == ConnectionState.done &&
-                roleSnapshot.hasData) {
-              role = roleSnapshot.data?.data() != null
-                  ? (roleSnapshot.data!.get('role') ?? 'user')
-                  : 'user';
-            }
-
+            String role = (roleSnapshot.data?.get('role') ?? 'user');
+            
             final allAnimals = snapshot.data?.docs ?? [];
-            List<DocumentSnapshot> animals;
-            if (role == 'admin') {
-              animals = allAnimals;
-            } else {
-              animals = allAnimals
-                  .where((doc) =>
-                      (doc.data() as Map<String, dynamic>)['postedByEmail'] ==
-                      user.email)
-                  .toList();
-            }
+            List<DocumentSnapshot> animals = (role == 'admin')
+              ? allAnimals
+              : allAnimals.where((doc) => doc['postedByEmail'] == user.email).toList();
 
-            return animals.isEmpty
-                ? Center(
-                    child: Text(
-                      'No pending requests for now',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(top: 8, bottom: 16),
-                    itemCount: animals.length,
-                    itemBuilder: (context, index) {
-                      final animalData =
-                          animals[index].data() as Map<String, dynamic>;
-                      final animalId = animals[index].id;
-                      return _PendingAnimalCard(
-                        animalData: animalData,
-                        animalId: animalId,
-                        isAdmin: role == 'admin',
-                      );
-                    },
-                  );
+            if (animals.isEmpty) {
+              return const Center(
+                child: Text('No pending requests for now', style: TextStyle(fontSize: 18, color: Colors.grey)),
+              );
+            }
+            
+            return ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 16),
+              itemCount: animals.length,
+              itemBuilder: (context, index) {
+                final animalData = animals[index].data() as Map<String, dynamic>;
+                final animalId = animals[index].id;
+                return _PendingAnimalCard(
+                  animalData: animalData,
+                  animalId: animalId,
+                  isAdmin: role == 'admin',
+                );
+              },
+            );
           },
         );
       },
     );
   }
 
+  // --- NEW AND IMPROVED ADD ANIMAL FORM ---
   Widget _buildAddNewAnimalTab() {
-    // This form tab remains unchanged as it is already well-structured.
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Form(
@@ -269,145 +226,136 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF5AC8F2).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF5AC8F2)),
-              ),
-              child: Column(
-                children: [
-                  Icon(Icons.pets, size: 48, color: const Color(0xFF5AC8F2)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add New Animal for Adoption',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF5AC8F2),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Fill out the form below. Your post will be reviewed by an admin before it goes live.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Animal Name *'),
-              validator: (v) =>
-                  v!.isEmpty ? "Name is required" : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _speciesController.text.isNotEmpty
-                  ? _speciesController.text
-                  : null,
-              decoration: const InputDecoration(labelText: 'Species *'),
-              items: AppConstants.speciesOptions
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (v) => setState(() => _speciesController.text = v!),
-              validator: (v) => v == null ? "Species is required" : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _ageController,
-              decoration: const InputDecoration(labelText: 'Age *'),
-              validator: (v) => v!.isEmpty ? "Age is required" : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedGender,
-              decoration: const InputDecoration(labelText: 'Gender *'),
-              items: ['Male', 'Female']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedGender = v!),
-            ),
-            const SizedBox(height: 16),
-            // ... Other form fields remain the same
-            Text(
-              'Upload Photos (1-4 required)',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            const Text(
+              'Add a New Friend',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kPrimaryColor),
             ),
             const SizedBox(height: 8),
-            Row(
+            Text(
+              'Your submission will be reviewed by an admin before going live.',
+              style: TextStyle(fontSize: 14, color: kSecondaryColor),
+            ),
+            const SizedBox(height: 24),
+            
+            // --- SECTION 1: BASIC INFO ---
+            _buildFormSection(
+              title: 'Basic Information',
               children: [
-                ElevatedButton.icon(
-                  onPressed: _images.length < 4
-                      ? () => _pickImage(ImageSource.gallery)
-                      : null,
-                  icon: Icon(Icons.photo_library),
-                  label: Text('Gallery'),
+                _buildTextField(_nameController, 'Name*', 'e.g., Bruno, Kitty', validator: (v) => v!.isEmpty ? "Name is required" : null),
+                _buildChoiceChipQuestion(
+                  question: 'Species*',
+                  options: ['Dog', 'Cat', 'Other'],
+                  selectedValue: _species,
+                  onSelected: (val) => setState(() => _species = val),
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _images.length < 4
-                      ? () => _pickImage(ImageSource.camera)
-                      : null,
-                  icon: Icon(Icons.camera_alt),
-                  label: Text('Camera'),
+                if (_species == 'Other')
+                  _buildTextField(_breedController, 'Species Name*', 'e.g., Rabbit , Cow', validator: (v) => v!.isEmpty ? "Species is required" : null),
+                _buildChoiceChipQuestion(
+                  question: 'Is this a specific breed or an Indie?*',
+                  options: ['Indie', 'Specific Breed'],
+                  selectedValue: _breedType,
+                  onSelected: (val) => setState(() => _breedType = val),
+                ),
+                if (_breedType == 'Specific Breed')
+                  _buildTextField(_breedController, 'Breed Name*', 'e.g., Labrador, Persian', validator: (v) => v!.isEmpty ? "Breed is required" : null),
+                _buildTextField(_ageController, 'Age*', 'e.g., 2 years, 5 months', validator: (v) => v!.isEmpty ? "Age is required" : null),
+                _buildChoiceChipQuestion(
+                  question: 'Gender*',
+                  options: ['Male', 'Female'],
+                  selectedValue: _gender,
+                  onSelected: (val) => setState(() => _gender = val),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            _images.isEmpty
-                ? Text('No images selected.', style: TextStyle(color: Colors.red))
-                : SizedBox(
-                    height: 100,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _images.length,
-                      itemBuilder: (context, index) => Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(_images[index].path),
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: () => _removeImage(index),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.close,
-                                    color: Colors.white, size: 18),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+            
+            // --- SECTION 2: HEALTH & WELLNESS ---
+            _buildFormSection(
+              title: 'Health & Wellness',
+              children: [
+                 _buildBinaryQuestion('Is the animal sterilized (neutered/spayed)?*', _isSterilized, (val) => setState(() => _isSterilized = val)),
+                 _buildBinaryQuestion('Are vaccinations up to date?*', _isVaccinated, (val) => setState(() => _isVaccinated = val)),
+                 _buildBinaryQuestion('Has the animal been dewormed recently?*', _isDewormed, (val) => setState(() => _isDewormed = val)),
+                 _buildTextField(_medicalIssuesController, 'Known Medical Issues', 'e.g., Skin allergy, missing a limb. Write "None" if not applicable.'),
+              ]
+            ),
+
+            // --- SECTION 3: BEHAVIOR ---
+            _buildFormSection(
+              title: 'Behavior & Temperament',
+              children: [
+                _buildChoiceChipQuestion(
+                  question: 'Compatibility with Children',
+                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
+                  selectedValue: _kidCompatibility,
+                  onSelected: (val) => setState(() => _kidCompatibility = val),
+                ),
+                _buildChoiceChipQuestion(
+                  question: 'Compatibility with other Dogs',
+                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
+                  selectedValue: _dogCompatibility,
+                  onSelected: (val) => setState(() => _dogCompatibility = val),
+                ),
+                 _buildChoiceChipQuestion(
+                  question: 'Compatibility with Cats',
+                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
+                  selectedValue: _catCompatibility,
+                  onSelected: (val) => setState(() => _catCompatibility = val),
+                ),
+                 _buildChoiceChipQuestion(
+                  question: 'Activity Level',
+                  options: ['Low', 'Moderate', 'High'],
+                  selectedValue: _activityLevel,
+                  onSelected: (val) => setState(() => _activityLevel = val),
+                ),
+              ]
+            ),
+            
+            // --- SECTION 4: LOCATION & STORY ---
+            _buildFormSection(
+              title: 'Location, Contact & Story',
+              children: [
+                // For a real app, you would integrate the Google Places API here.
+                // 1. Add `Maps_flutter` and `google_places_flutter` to pubspec.yaml
+                // 2. Enable Places API in your Google Cloud Console.
+                // 3. On tap, open a search screen that uses the API to find and return an address.
+                _buildTextField(_locationController, 'Location of Animal*', 'e.g., Koregaon Park, Pune', validator: (v) => v!.isEmpty ? "Location is required" : null),
+                _buildTextField(_contactPhoneController, 'Your Contact Number*', 'Adopters will contact this number', 
+                  isPhoneNumber: true, 
+                  validator: (v) {
+                    if (v!.isEmpty) return "Phone number is required";
+                    if (v.length != 10) return "Please enter a valid 10-digit number";
+                    return null;
+                  }
+                ),
+                _buildTextField(_rescueStoryController, 'Rescue Story / About the Animal', 'Share their story...', maxLines: 5),
+              ],
+            ),
+            
+            // --- SECTION 5: PHOTOS ---
+            _buildFormSection(
+              title: 'Photos*',
+              children: [
+                _buildImagePicker(),
+                if (_images.isEmpty && _isSubmitting) // Show error only on submit attempt
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: Text('At least one photo is required.', style: TextStyle(color: Colors.red, fontSize: 12)),
                   ),
-            const SizedBox(height: 16),
+              ]
+            ),
+
+            const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitForm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5AC8F2),
+                backgroundColor: kPrimaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: _isSubmitting
-                  ? CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                  : const Text('Post Animal', style: TextStyle(fontSize: 18)),
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                  : const Text('Submit for Review', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -415,75 +363,238 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate() || _images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please fill all fields and add photos.')),
+  // --- FORM HELPER WIDGETS ---
+  
+  Widget _buildFormSection({required String title, required List<Widget> children}) {
+    return Card(
+      color: kCardColor,
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      margin: const EdgeInsets.symmetric(vertical: 12.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor)),
+            const Divider(height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {FormFieldValidator<String>? validator, int maxLines = 1, bool isPhoneNumber = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
+        inputFormatters: isPhoneNumber ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)] : [],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          prefixIcon: isPhoneNumber ? const Padding(padding: EdgeInsets.all(12.0), child: Text('+91')) : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildChoiceChipQuestion({
+    required String question,
+    required List<String> options,
+    required String? selectedValue,
+    required ValueChanged<String> onSelected,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(question, style: const TextStyle(fontSize: 16, color: kSecondaryColor)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: options.map((option) {
+              final isSelected = selectedValue == option;
+              return ChoiceChip(
+                label: Text(option),
+                selected: isSelected,
+                onSelected: (_) => onSelected(option),
+                selectedColor: kPrimaryColor,
+                labelStyle: TextStyle(color: isSelected ? Colors.white : kPrimaryColor),
+                backgroundColor: Colors.grey[200],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                showCheckmark: false,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBinaryQuestion(String question, bool? value, ValueChanged<bool> onChanged) {
+      return _buildChoiceChipQuestion(
+        question: question,
+        options: ['Yes', 'No'],
+        selectedValue: value == null ? null : (value ? 'Yes' : 'No'),
+        onSelected: (val) => onChanged(val == 'Yes'),
       );
+  }
+
+  Widget _buildImagePicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_images.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(_images.length, (index) {
+              return Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(File(_images[index].path), width: 80, height: 80, fit: BoxFit.cover),
+                  ),
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: IconButton(
+                      icon: const CircleAvatar(backgroundColor: Colors.black54, radius: 12, child: Icon(Icons.close, color: Colors.white, size: 14)),
+                      onPressed: () => _removeImage(index),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            OutlinedButton.icon(
+              onPressed: _images.length < 5 ? () => _pickImage(ImageSource.gallery) : null,
+              icon: const Icon(Icons.photo_library),
+              label: const Text('Gallery'),
+              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+            ),
+            const SizedBox(width: 12),
+            OutlinedButton.icon(
+              onPressed: _images.length < 5 ? () => _pickImage(ImageSource.camera) : null,
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Camera'),
+               style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  
+  void _showSnackBar(String message, {bool isError = false}) {
+     ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.redAccent : Colors.green,
+        ),
+      );
+  }
+
+  // --- FORM SUBMISSION LOGIC ---
+  Future<void> _submitForm() async {
+    // Force validation check to show error messages
+    setState(() {}); 
+    if (!_formKey.currentState!.validate() || _images.isEmpty) {
+      _showSnackBar('Please fill all required fields (*) and add at least one photo.', isError: true);
       return;
     }
     setState(() => _isSubmitting = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser!;
-      final animalDoc =
-          await FirebaseFirestore.instance.collection('animals').add({
+      
+      // Step 1: Create the document first to get an ID
+      final animalDoc = await FirebaseFirestore.instance.collection('animals').add({
         'name': _nameController.text.trim(),
-        'species': _speciesController.text.trim(),
+        'species': _species,
+        'breedType': _breedType,
+        'breed': _breedType == 'Indie' ? 'Indie' : _breedController.text.trim(),
         'age': _ageController.text.trim(),
-        'gender': _selectedGender,
-        'sterilization': _selectedSterilization,
-        'vaccination': _selectedVaccination,
+        'gender': _gender,
+        'sterilization': _isSterilized,
+        'vaccination': _isVaccinated,
+        'deworming': _isDewormed,
+        'medicalIssues': _medicalIssuesController.text.trim(),
+        'kidCompatibility': _kidCompatibility,
+        'dogCompatibility': _dogCompatibility,
+        'catCompatibility': _catCompatibility,
+        'activityLevel': _activityLevel,
+        'location': _locationController.text.trim(),
+        'contactPhone': '+91${_contactPhoneController.text.trim()}',
         'rescueStory': _rescueStoryController.text.trim(),
-        'motherStatus': _selectedMotherStatus,
         'postedBy': user.uid,
         'postedByEmail': user.email,
         'postedAt': FieldValue.serverTimestamp(),
-        'approvalStatus': 'pending',
-        'imageUrls': [],
+        'approvalStatus': 'pending', // 'approved', 'rejected'
+        'imageUrls': [], // Will be updated after upload
       });
       final animalId = animalDoc.id;
 
+      // Step 2: Upload images using the document ID
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
-        final url = await StorageService.uploadAnimalImage(
-            File(_images[i].path), animalId, i);
+        final url = await StorageService.uploadAnimalImage(File(_images[i].path), animalId, i);
         imageUrls.add(url);
       }
 
+      // Step 3: Update the document with the image URLs
       await animalDoc.update({'imageUrls': imageUrls});
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Animal posted for review!'),
-              backgroundColor: Colors.green),
-        );
+        _showSnackBar('Animal submitted for review!', isError: false);
         _formKey.currentState!.reset();
         _nameController.clear();
-        _speciesController.clear();
+        _breedController.clear();
         _ageController.clear();
         _rescueStoryController.clear();
+        _locationController.clear();
+        _contactPhoneController.clear();
+        _medicalIssuesController.clear();
         setState(() {
           _images.clear();
-          _tabController.animateTo(0);
+          _species = null;
+          _gender = null;
+          _breedType = null;
+          _isSterilized = null;
+          _isVaccinated = null;
+          _isDewormed = null;
+          _kidCompatibility = null;
+          _dogCompatibility = null;
+          _catCompatibility = null;
+          _activityLevel = null;
+          _tabController.animateTo(0); // Switch to pending tab
         });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      if (mounted) _showSnackBar('Error: $e', isError: true);
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 }
 
-// A new styled card for pending animal requests
+// --- UPDATED PENDING ANIMAL CARD ---
 class _PendingAnimalCard extends StatefulWidget {
   final Map<String, dynamic> animalData;
   final String animalId;
@@ -511,28 +622,17 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls =
-        (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
+    final imageUrls = (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
 
     final postedAt = widget.animalData['postedAt'] as Timestamp?;
-    final postedDate = postedAt != null
-        ? DateFormat('MMM d, yyyy').format(postedAt.toDate())
-        : 'N/A';
-
-    return Container(
+    final postedDate = postedAt != null ? DateFormat('MMM d, yyyy').format(postedAt.toDate()) : 'N/A';
+    
+    return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -547,21 +647,14 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                       ? PageView.builder(
                           controller: _pageController,
                           itemCount: imageUrls.length,
-                          onPageChanged: (index) =>
-                              setState(() => _currentPage = index),
-                          itemBuilder: (context, index) {
-                            return Image.network(
-                              imageUrls[index],
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const Icon(Icons.error),
-                            );
-                          },
+                          onPageChanged: (index) => setState(() => _currentPage = index),
+                          itemBuilder: (context, index) => Image.network(
+                            imageUrls[index],
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.error, color: kSecondaryColor),
+                          ),
                         )
-                      : Container(
-                          color: Colors.grey.shade200,
-                          child: Icon(Icons.pets,
-                              size: 60, color: Colors.grey.shade400)),
+                      : Container(color: Colors.grey.shade200, child: Icon(Icons.pets, size: 60, color: Colors.grey.shade400)),
                 ),
                 if (imageUrls.length > 1)
                   Positioned(
@@ -578,8 +671,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           height: 8.0,
                           width: _currentPage == i ? 24.0 : 8.0,
                           decoration: BoxDecoration(
-                            color: Colors.white
-                                .withOpacity(_currentPage == i ? 0.9 : 0.6),
+                            color: Colors.white.withOpacity(_currentPage == i ? 0.9 : 0.6),
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
@@ -596,42 +688,45 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
               children: [
                 Text(
                   widget.animalData['name'] ?? 'No Name',
-                  style: const TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryColor),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  style: const TextStyle(fontSize: 14, color: kSecondaryColor),
                 ),
-                const Divider(height: 24),
-                if (widget.isAdmin)
+                if (widget.isAdmin) ...[
+                  const Divider(height: 24),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _showApproveDialog(context, widget.animalId),
-                          icon: const Icon(Icons.check),
+                          onPressed: () => _showApproveDialog(context, widget.animalId),
+                          icon: const Icon(Icons.check_circle_outline),
                           label: const Text('Approve'),
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green),
+                            backgroundColor: Colors.green[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _showRejectDialog(context, widget.animalId),
-                          icon: const Icon(Icons.close),
+                          onPressed: () => _showRejectDialog(context, widget.animalId),
+                          icon: const Icon(Icons.highlight_off),
                           label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red),
+                             backgroundColor: Colors.red[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
                         ),
                       ),
                     ],
                   ),
+                ]
               ],
             ),
           ),
@@ -640,6 +735,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 
+  // Dialogs remain largely the same, just styled slightly better.
   void _showApproveDialog(BuildContext context, String animalId) {
     showDialog(
       context: context,
@@ -647,9 +743,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         title: const Text('Approve Animal'),
         content: const Text('This will make the animal visible for adoption.'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               await AnimalService.approveAnimal(animalId: animalId);
@@ -671,13 +765,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         title: const Text('Reject Animal'),
         content: TextField(
           controller: messageController,
-          decoration:
-              const InputDecoration(labelText: 'Reason for Rejection *'),
+          decoration: const InputDecoration(labelText: 'Reason for Rejection *', border: OutlineInputBorder()),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               if (messageController.text.trim().isEmpty) return;

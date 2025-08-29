@@ -5,6 +5,8 @@ import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 
+final mainNavKey = GlobalKey<_MainNavigationScreenState>();
+
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
 
@@ -28,6 +30,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void selectTab(int index) {
     setState(() {
       _selectedIndex = index;
     });
