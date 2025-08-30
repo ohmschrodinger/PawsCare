@@ -57,9 +57,9 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             ),
           ),
           // Align AppBar with other screens
-          centerTitle: false, 
+          centerTitle: false,
           backgroundColor: appBarColor,
-          elevation: 0, 
+          elevation: 0,
         ),
         body: Column(
           children: [
