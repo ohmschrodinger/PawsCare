@@ -1,48 +1,29 @@
 // lib/screens/home_screen.dart
 
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pawscare/screens/full_animal_list_screen.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
+import 'package:pawscare/services/animal_service.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
-
-
-// NOTE: PostAnimalScreen import removed as FAB was removed, but you can add it back if needed.
-// import 'package:pawscare/screens/post_animal_screen.dart';
-
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
 
-
   const HomeScreen({Key? key, this.showAppBar = true}) : super(key: key);
-
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-
-  Stream<QuerySnapshot> _getAnimalsStream() {
-    return FirebaseFirestore.instance.collection('animals').snapshots();
-  }
-
-
   void _logout() async {
     await FirebaseAuth.instance.signOut();
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -53,11 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onLogout: _logout,
               onMenuSelected: (value) {
                 if (value == 'profile') {
-                  if (mainNavKey.currentState != null) {
-                    mainNavKey.currentState!.selectTab(4);
-                  } else {
-                    Navigator.of(context).pushNamed('/main');
-                  }
+                  mainNavKey.currentState?.selectTab(4);
                 } else if (value == 'all_applications') {
                   Navigator.of(context).pushNamed('/all-applications');
                 } else if (value == 'my_applications') {
@@ -70,8 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // OPTIMIZATION: Replaced the method call with a standalone widget
-            // to prevent the whole screen from rebuilding on page swipe.
             const WelcomeSection(),
             const SizedBox(height: 24),
             _buildStatsSection(),
@@ -95,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   Widget _buildStatsSection() {
     return Padding(
@@ -130,7 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   Widget _buildAnimalSection({
     required String title,
     required String subtitle,
@@ -164,70 +137,45 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 14,
                         color: Colors.grey.shade600,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: false).push(
-                    MaterialPageRoute(
-                      builder: (context) => FullAnimalListScreen(
-                        title: title,
-                        animalStatus: statusFilter,
-                      ),
-                      fullscreenDialog: false,
-                    ),
-                  );
-                },
-                child: Row(
-                  children: const [
-                    Text("See More"),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 18),
-                  ],
+              if (statusFilter == 'Available')
+                TextButton(
+                  onPressed: () {
+                    mainNavKey.currentState?.selectTab(1);
+                  },
+                  child: Row(
+                    children: const [
+                      Text("See More"),
+                      SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 18),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),
         SizedBox(
           height: 250,
           child: StreamBuilder<QuerySnapshot>(
-            stream: _getAnimalsStream(),
+            stream: statusFilter == 'Available'
+                ? AnimalService.getAvailableAnimals()
+                : AnimalService.getAdoptedAnimals(),
             builder: (context, snapshot) {
               if (snapshot.hasError) return const Center(child: Text('Error'));
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-
               final animals = snapshot.data?.docs ?? [];
-              List filteredAnimals;
 
-
-              if (statusFilter == 'Available') {
-                filteredAnimals = animals.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['approvalStatus'] == 'approved' &&
-                      data['status'] != 'Adopted';
-                }).toList();
-              } else {
-                filteredAnimals = animals.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['status'] == 'Adopted';
-                }).toList();
-              }
-
-
-              if (filteredAnimals.isEmpty) {
+              if (animals.isEmpty) {
                 return Center(child: Text(emptyMessage));
               }
 
-
-              final previewAnimals = filteredAnimals.take(10).toList();
-
+              final previewAnimals = animals.take(10).toList();
 
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
@@ -244,8 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       animalData['imageUrls'] as List<dynamic>? ?? [];
                   final imageUrl =
                       (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                          (animalData['image'] ??
-                              'https://via.placeholder.com/150');
+                      (animalData['image'] ??
+                          'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
@@ -272,22 +220,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-
-// NEW WIDGET: This new StatefulWidget encapsulates the PageView and its state.
-// Now, only this widget rebuilds on swipe, not the entire HomeScreen.
 class WelcomeSection extends StatefulWidget {
   const WelcomeSection({Key? key}) : super(key: key);
-
 
   @override
   _WelcomeSectionState createState() => _WelcomeSectionState();
 }
 
-
 class _WelcomeSectionState extends State<WelcomeSection> {
   late PageController _pageController;
   int _currentPage = 0;
-
 
   final List<Map<String, dynamic>> _infoPages = [
     {
@@ -307,7 +249,8 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     },
     {
       'title': 'Mission',
-      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
+      'text':
+          'Our Mission is to “Make a Difference in the life of street animal”',
     },
     {
       'title': 'Vision',
@@ -316,20 +259,17 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     },
   ];
 
-
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
   }
 
-
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +310,6 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
-
   Widget _buildInfoPage({required String title, required String text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -397,7 +336,6 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
-
   Widget _buildPageIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -419,20 +357,16 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   }
 }
 
-
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
 
-
   const HorizontalPetCard({Key? key, required this.pet, required this.onTap})
-      : super(key: key);
-
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final cardWidth = MediaQuery.of(context).size.width * 0.75;
-
 
     return SizedBox(
       width: cardWidth,

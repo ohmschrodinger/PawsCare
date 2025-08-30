@@ -1,20 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../constants/animal_status.dart';
 
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Post a new animal for adoption
-  static Future<void> postAnimal({
+  static Future<DocumentReference> postAnimal({
     required String name,
     required String species,
     required String age,
     required String gender,
-    required String sterilization,
-    required String vaccination,
-    required String rescueStory,
-    required String motherStatus,
+    required String breedType,
+    required String breed,
+    required bool sterilization,
+    required bool vaccination,
+    required bool deworming,
+    String? medicalIssues,
+    required String location,
+    required String contactPhone,
+    String? rescueStory,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -34,15 +40,18 @@ class AnimalService {
       final animalData = {
         'name': name,
         'species': species,
+        'breedType': breedType,
+        'breed': breed,
         'age': age,
-        'status': 'Available for Adoption',
-        'image':
-            'https://via.placeholder.com/150/FF5733/FFFFFF?text=$species', // Placeholder image
+        'status': AnimalStatus.available,
         'gender': gender,
         'sterilization': sterilization,
         'vaccination': vaccination,
-        'rescueStory': rescueStory,
-        'motherStatus': motherStatus,
+        'deworming': deworming,
+        'medicalIssues': medicalIssues ?? '',
+        'location': location,
+        'contactPhone': contactPhone,
+        'rescueStory': rescueStory ?? '',
         'postedBy': user.uid,
         'postedByEmail': user.email,
         'postedAt': FieldValue.serverTimestamp(),
@@ -51,12 +60,13 @@ class AnimalService {
         'approvedAt': userRole == 'admin' ? FieldValue.serverTimestamp() : null,
         'approvedBy': userRole == 'admin' ? user.uid : null,
         'adminMessage': '',
+        'imageUrls': [], // Will be updated after images are uploaded
       };
 
-      final docRef = await _firestore.collection('animals').add(animalData);
-      print('Animal posted successfully: $name with ID: ${docRef.id}');
-      print('Animal data: $animalData');
-      print('Approval status: $approvalStatus');
+      // Add the animal document and return its reference
+      return await _firestore.collection('animals').add(animalData);
+
+      // This code has been replaced by the return statement below
     } catch (e) {
       print('Error posting animal: $e');
       throw Exception('Failed to post animal: $e');
@@ -79,6 +89,40 @@ class AnimalService {
           .where('approvalStatus', isEqualTo: 'approved')
           .snapshots();
     }
+  }
+
+  /// Get available animals for adoption
+  static Stream<QuerySnapshot> getAvailableAnimals() {
+    print('DEBUG: Fetching available animals...');
+    return _firestore
+        .collection('animals')
+        .where('approvalStatus', isEqualTo: 'approved')
+        .where(
+          'status',
+          isEqualTo: AnimalStatus.available,
+        ) // Use the constant that matches DB
+        .where('isActive', isEqualTo: true)
+        .orderBy('postedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          print('DEBUG: Found ${snapshot.docs.length} available animals');
+          return snapshot;
+        });
+  }
+
+  /// Get adopted animals
+  static Stream<QuerySnapshot> getAdoptedAnimals() {
+    print('DEBUG: Fetching adopted animals...');
+    return _firestore
+        .collection('animals')
+        .where('approvalStatus', isEqualTo: 'approved')
+        .where('status', isEqualTo: 'Adopted')
+        .orderBy('postedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          print('DEBUG: Found ${snapshot.docs.length} adopted animals');
+          return snapshot;
+        });
   }
 
   /// Fallback method for active animals without ordering
@@ -120,10 +164,26 @@ class AnimalService {
   }
 
   /// Update animal status (e.g., mark as adopted)
+  /// Valid status values are:
+  /// - "Available" (for animals available for adoption)
+  /// - "Adopted" (for animals that have been adopted)
+  /// - "Pending" (for animals with pending adoption applications)
   static Future<void> updateAnimalStatus({
     required String animalId,
     required String status,
   }) async {
+    // Validate status
+    final validStatuses = [
+      AnimalStatus.available,
+      AnimalStatus.adopted,
+      AnimalStatus.pending,
+    ];
+    if (!validStatuses.contains(status)) {
+      throw Exception(
+        'Invalid status. Must be one of: ${validStatuses.join(", ")}',
+      );
+    }
+
     try {
       await _firestore.collection('animals').doc(animalId).update({
         'status': status,
@@ -166,8 +226,20 @@ class AnimalService {
       final snapshot = await _firestore.collection('animals').get();
       print('Total animals in collection: ${snapshot.docs.length}');
 
+      if (snapshot.docs.isEmpty) {
+        print('No animals found in the collection!');
+        return;
+      }
+
       for (var doc in snapshot.docs) {
-        print('Animal ID: ${doc.id}, Data: ${doc.data()}');
+        final data = doc.data();
+        print('\nAnimal ID: ${doc.id}');
+        print('Status: ${data['status']}');
+        print('Approval Status: ${data['approvalStatus']}');
+        print('Name: ${data['name']}');
+        print('Posted By: ${data['postedByEmail']}');
+        print('Posted At: ${data['postedAt']}');
+        print('Full Data: $data');
       }
     } catch (e) {
       print('Error testing animals collection: $e');

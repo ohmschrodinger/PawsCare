@@ -11,32 +11,29 @@ import 'package:intl/intl.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../main_navigation_screen.dart';
 
-
 // --- THEME CONSTANTS FOR A CLEAN UI ---
 const Color kPrimaryColor = Colors.black;
 const Color kSecondaryColor = Color(0xFF616161); // Dark grey
 const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
 const Color kCardColor = Colors.white;
 
-
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
   final int initialTab;
-  const PostAnimalScreen(
-      {Key? key, this.initialTab = 0, this.showAppBar = true})
-      : super(key: key);
-
+  const PostAnimalScreen({
+    Key? key,
+    this.initialTab = 0,
+    this.showAppBar = true,
+  }) : super(key: key);
 
   @override
   State<PostAnimalScreen> createState() => _PostAnimalScreenState();
 }
 
-
 class _PostAnimalScreenState extends State<PostAnimalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
-
 
   // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
@@ -47,7 +44,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   final _contactPhoneController = TextEditingController();
   final _medicalIssuesController = TextEditingController();
 
-
   // --- FORM STATE VARIABLES ---
   String? _species;
   String? _gender;
@@ -57,13 +53,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   bool? _isDewormed;
   // REMOVED: Behavior and temperament state variables are no longer needed.
 
-
   bool _isSubmitting = false;
-
 
   final ImagePicker _picker = ImagePicker();
   List<XFile> _images = [];
-
 
   @override
   void initState() {
@@ -74,7 +67,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       initialIndex: widget.initialTab,
     );
   }
-
 
   @override
   void dispose() {
@@ -88,7 +80,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     _medicalIssuesController.dispose();
     super.dispose();
   }
-
 
   Future<void> _pickImage(ImageSource source) async {
     if (_images.length >= 5) {
@@ -107,13 +98,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     }
   }
 
-
   void _removeImage(int index) {
     setState(() {
       _images.removeAt(index);
     });
   }
-
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -121,7 +110,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +146,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
   Widget _buildTabBar() {
     return Material(
       color: kCardColor,
@@ -175,43 +162,53 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
   Widget _buildPendingRequestsTab() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Center(child: Text('Please log in to view pending requests'));
+      return const Center(
+        child: Text('Please log in to view pending requests'),
+      );
     }
     return StreamBuilder<QuerySnapshot>(
       stream: AnimalService.getPendingAnimals(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+        if (snapshot.hasError)
+          return Center(child: Text('Error: ${snapshot.error}'));
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return const Center(
+            child: CircularProgressIndicator(color: kPrimaryColor),
+          );
         }
         return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
           builder: (context, roleSnapshot) {
             String role = (roleSnapshot.data?.get('role') ?? 'user');
-
 
             final allAnimals = snapshot.data?.docs ?? [];
             List<DocumentSnapshot> animals = (role == 'admin')
                 ? allAnimals
-                : allAnimals.where((doc) => doc['postedByEmail'] == user.email).toList();
-
+                : allAnimals
+                      .where((doc) => doc['postedByEmail'] == user.email)
+                      .toList();
 
             if (animals.isEmpty) {
               return const Center(
-                child: Text('No pending requests for now', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                child: Text(
+                  'No pending requests for now',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
               );
             }
-
 
             return ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 16),
               itemCount: animals.length,
               itemBuilder: (context, index) {
-                final animalData = animals[index].data() as Map<String, dynamic>;
+                final animalData =
+                    animals[index].data() as Map<String, dynamic>;
                 final animalId = animals[index].id;
                 return _PendingAnimalCard(
                   animalData: animalData,
@@ -226,7 +223,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -237,7 +233,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           children: [
             const Text(
               'Add a New Friend',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kPrimaryColor),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryColor,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -246,11 +246,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             ),
             const SizedBox(height: 24),
 
-
             _buildFormSection(
               title: 'Basic Information',
               children: [
-                _buildTextField(_nameController, 'Name*', 'e.g., Bruno, Kitty', validator: (v) => v!.isEmpty ? "Name is required" : null),
+                _buildTextField(
+                  _nameController,
+                  'Name*',
+                  'e.g., Bruno, Kitty',
+                  validator: (v) => v!.isEmpty ? "Name is required" : null,
+                ),
                 _buildChoiceChipQuestion(
                   question: 'Species*',
                   options: ['Dog', 'Cat', 'Other'],
@@ -258,7 +262,12 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   onSelected: (val) => setState(() => _species = val),
                 ),
                 if (_species == 'Other')
-                  _buildTextField(_breedController, 'Species Name*', 'e.g., Rabbit , Cow', validator: (v) => v!.isEmpty ? "Species is required" : null),
+                  _buildTextField(
+                    _breedController,
+                    'Species Name*',
+                    'e.g., Rabbit , Cow',
+                    validator: (v) => v!.isEmpty ? "Species is required" : null,
+                  ),
                 _buildChoiceChipQuestion(
                   question: 'Is this a specific breed or an Indie?*',
                   options: ['Indie', 'Specific Breed'],
@@ -266,8 +275,18 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   onSelected: (val) => setState(() => _breedType = val),
                 ),
                 if (_breedType == 'Specific Breed')
-                  _buildTextField(_breedController, 'Breed Name*', 'e.g., Labrador, Persian', validator: (v) => v!.isEmpty ? "Breed is required" : null),
-                _buildTextField(_ageController, 'Age*', 'e.g., 2 years, 5 months', validator: (v) => v!.isEmpty ? "Age is required" : null),
+                  _buildTextField(
+                    _breedController,
+                    'Breed Name*',
+                    'e.g., Labrador, Persian',
+                    validator: (v) => v!.isEmpty ? "Breed is required" : null,
+                  ),
+                _buildTextField(
+                  _ageController,
+                  'Age*',
+                  'e.g., 2 years, 5 months',
+                  validator: (v) => v!.isEmpty ? "Age is required" : null,
+                ),
                 _buildChoiceChipQuestion(
                   question: 'Gender*',
                   options: ['Male', 'Female'],
@@ -277,37 +296,62 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               ],
             ),
 
-
             _buildFormSection(
               title: 'Health & Wellness',
               children: [
-                _buildBinaryQuestion('Is the animal sterilized (neutered/spayed)?*', _isSterilized, (val) => setState(() => _isSterilized = val)),
-                _buildBinaryQuestion('Are vaccinations up to date?*', _isVaccinated, (val) => setState(() => _isVaccinated = val)),
-                _buildBinaryQuestion('Has the animal been dewormed recently?*', _isDewormed, (val) => setState(() => _isDewormed = val)),
-                _buildTextField(_medicalIssuesController, 'Known Medical Issues', 'e.g., Skin allergy, missing a limb. Write "None" if not applicable.'),
-              ]
-            ),
-
-
-            // REMOVED: The "Behavior & Temperament" section has been removed as requested.
-
-
-            _buildFormSection(
-              title: 'Location, Contact & Story',
-              children: [
-                _buildTextField(_locationController, 'Location of Animal*', 'e.g., Koregaon Park, Pune', validator: (v) => v!.isEmpty ? "Location is required" : null),
-                _buildTextField(_contactPhoneController, 'Your Contact Number*', 'Adopters will contact this number',
-                  isPhoneNumber: true,
-                  validator: (v) {
-                    if (v!.isEmpty) return "Phone number is required";
-                    if (v.length != 10) return "Please enter a valid 10-digit number";
-                    return null;
-                  }
+                _buildBinaryQuestion(
+                  'Is the animal sterilized (neutered/spayed)?*',
+                  _isSterilized,
+                  (val) => setState(() => _isSterilized = val),
                 ),
-                _buildTextField(_rescueStoryController, 'Rescue Story / About the Animal', 'Share their story...', maxLines: 5),
+                _buildBinaryQuestion(
+                  'Are vaccinations up to date?*',
+                  _isVaccinated,
+                  (val) => setState(() => _isVaccinated = val),
+                ),
+                _buildBinaryQuestion(
+                  'Has the animal been dewormed recently?*',
+                  _isDewormed,
+                  (val) => setState(() => _isDewormed = val),
+                ),
+                _buildTextField(
+                  _medicalIssuesController,
+                  'Known Medical Issues',
+                  'e.g., Skin allergy, missing a limb. Write "None" if not applicable.',
+                ),
               ],
             ),
 
+            // REMOVED: The "Behavior & Temperament" section has been removed as requested.
+            _buildFormSection(
+              title: 'Location, Contact & Story',
+              children: [
+                _buildTextField(
+                  _locationController,
+                  'Location of Animal*',
+                  'e.g., Koregaon Park, Pune',
+                  validator: (v) => v!.isEmpty ? "Location is required" : null,
+                ),
+                _buildTextField(
+                  _contactPhoneController,
+                  'Your Contact Number*',
+                  'Adopters will contact this number',
+                  isPhoneNumber: true,
+                  validator: (v) {
+                    if (v!.isEmpty) return "Phone number is required";
+                    if (v.length != 10)
+                      return "Please enter a valid 10-digit number";
+                    return null;
+                  },
+                ),
+                _buildTextField(
+                  _rescueStoryController,
+                  'Rescue Story / About the Animal',
+                  'Share their story...',
+                  maxLines: 5,
+                ),
+              ],
+            ),
 
             _buildFormSection(
               title: 'Photos*',
@@ -316,11 +360,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 if (_images.isEmpty && _isSubmitting)
                   const Padding(
                     padding: EdgeInsets.only(top: 8.0),
-                    child: Text('At least one photo is required.', style: TextStyle(color: Colors.red, fontSize: 12)),
+                    child: Text(
+                      'At least one photo is required.',
+                      style: TextStyle(color: Colors.red, fontSize: 12),
+                    ),
                   ),
-              ]
+              ],
             ),
-
 
             const SizedBox(height: 32),
             ElevatedButton(
@@ -329,11 +375,26 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 backgroundColor: kPrimaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: _isSubmitting
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                  : const Text('Submit for Review', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : const Text(
+                      'Submit for Review',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -341,8 +402,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
-  Widget _buildFormSection({required String title, required List<Widget> children}) {
+  Widget _buildFormSection({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Card(
       color: kCardColor,
       elevation: 2,
@@ -354,7 +417,14 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryColor,
+              ),
+            ),
             const Divider(height: 24),
             ...children,
           ],
@@ -363,19 +433,32 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
-  Widget _buildTextField(TextEditingController controller, String label, String hint, {FormFieldValidator<String>? validator, int maxLines = 1, bool isPhoneNumber = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    FormFieldValidator<String>? validator,
+    int maxLines = 1,
+    bool isPhoneNumber = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
         keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
-        inputFormatters: isPhoneNumber ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)] : [],
+        inputFormatters: isPhoneNumber
+            ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ]
+            : [],
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: isPhoneNumber ? const Padding(padding: EdgeInsets.all(12.0), child: Text('+91')) : null,
+          prefixIcon: isPhoneNumber
+              ? const Padding(padding: EdgeInsets.all(12.0), child: Text('+91'))
+              : null,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -386,7 +469,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       ),
     );
   }
-
 
   Widget _buildChoiceChipQuestion({
     required String question,
@@ -399,7 +481,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: const TextStyle(fontSize: 16, color: kSecondaryColor)),
+          Text(
+            question,
+            style: const TextStyle(fontSize: 16, color: kSecondaryColor),
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8.0,
@@ -411,9 +496,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 selected: isSelected,
                 onSelected: (_) => onSelected(option),
                 selectedColor: kPrimaryColor,
-                labelStyle: TextStyle(color: isSelected ? Colors.white : kPrimaryColor),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : kPrimaryColor,
+                ),
                 backgroundColor: Colors.grey[200],
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 showCheckmark: false,
               );
             }).toList(),
@@ -423,8 +512,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
-  Widget _buildBinaryQuestion(String question, bool? value, ValueChanged<bool> onChanged) {
+  Widget _buildBinaryQuestion(
+    String question,
+    bool? value,
+    ValueChanged<bool> onChanged,
+  ) {
     return _buildChoiceChipQuestion(
       question: question,
       options: ['Yes', 'No'],
@@ -432,7 +524,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       onSelected: (val) => onChanged(val == 'Yes'),
     );
   }
-
 
   Widget _buildImagePicker() {
     return Column(
@@ -447,13 +538,22 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.file(File(_images[index].path), width: 80, height: 80, fit: BoxFit.cover),
+                    child: Image.file(
+                      File(_images[index].path),
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     top: -4,
                     right: -4,
                     child: IconButton(
-                      icon: const CircleAvatar(backgroundColor: Colors.black54, radius: 12, child: Icon(Icons.close, color: Colors.white, size: 14)),
+                      icon: const CircleAvatar(
+                        backgroundColor: Colors.black54,
+                        radius: 12,
+                        child: Icon(Icons.close, color: Colors.white, size: 14),
+                      ),
                       onPressed: () => _removeImage(index),
                     ),
                   ),
@@ -465,14 +565,18 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         Row(
           children: [
             OutlinedButton.icon(
-              onPressed: _images.length < 5 ? () => _pickImage(ImageSource.gallery) : null,
+              onPressed: _images.length < 5
+                  ? () => _pickImage(ImageSource.gallery)
+                  : null,
               icon: const Icon(Icons.photo_library),
               label: const Text('Gallery'),
               style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
-              onPressed: _images.length < 5 ? () => _pickImage(ImageSource.camera) : null,
+              onPressed: _images.length < 5
+                  ? () => _pickImage(ImageSource.camera)
+                  : null,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Camera'),
               style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
@@ -483,7 +587,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -493,53 +596,49 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-
   Future<void> _submitForm() async {
     setState(() {});
     if (!_formKey.currentState!.validate() || _images.isEmpty) {
-      _showSnackBar('Please fill all required fields (*) and add at least one photo.', isError: true);
+      _showSnackBar(
+        'Please fill all required fields (*) and add at least one photo.',
+        isError: true,
+      );
       return;
     }
     setState(() => _isSubmitting = true);
 
-
     try {
-      final user = FirebaseAuth.instance.currentUser!;
+      // We don't need to get the user here as the service handles it
 
-
-      final animalDoc = await FirebaseFirestore.instance.collection('animals').add({
-        'name': _nameController.text.trim(),
-        'species': _species,
-        'breedType': _breedType,
-        'breed': _breedType == 'Indie' ? 'Indie' : _breedController.text.trim(),
-        'age': _ageController.text.trim(),
-        'gender': _gender,
-        'sterilization': _isSterilized,
-        'vaccination': _isVaccinated,
-        'deworming': _isDewormed,
-        'medicalIssues': _medicalIssuesController.text.trim(),
-        // REMOVED: Behavior fields are no longer part of the data model.
-        'location': _locationController.text.trim(),
-        'contactPhone': '+91${_contactPhoneController.text.trim()}',
-        'rescueStory': _rescueStoryController.text.trim(),
-        'postedBy': user.uid,
-        'postedByEmail': user.email,
-        'postedAt': FieldValue.serverTimestamp(),
-        'approvalStatus': 'pending',
-        'imageUrls': [],
-      });
+      // Use the service method to create the animal
+      final animalDoc = await AnimalService.postAnimal(
+        name: _nameController.text.trim(),
+        species: _species!,
+        breedType: _breedType!,
+        breed: _breedType == 'Indie' ? 'Indie' : _breedController.text.trim(),
+        age: _ageController.text.trim(),
+        gender: _gender!,
+        sterilization: _isSterilized!,
+        vaccination: _isVaccinated!,
+        deworming: _isDewormed!,
+        medicalIssues: _medicalIssuesController.text.trim(),
+        location: _locationController.text.trim(),
+        contactPhone: '+91${_contactPhoneController.text.trim()}',
+        rescueStory: _rescueStoryController.text.trim(),
+      );
       final animalId = animalDoc.id;
-
 
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
-        final url = await StorageService.uploadAnimalImage(File(_images[i].path), animalId, i);
+        final url = await StorageService.uploadAnimalImage(
+          File(_images[i].path),
+          animalId,
+          i,
+        );
         imageUrls.add(url);
       }
 
-
       await animalDoc.update({'imageUrls': imageUrls});
-
 
       if (mounted) {
         _showSnackBar('Animal submitted for review!', isError: false);
@@ -571,12 +670,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 }
 
-
 class _PendingAnimalCard extends StatefulWidget {
   final Map<String, dynamic> animalData;
   final String animalId;
   final bool isAdmin;
-
 
   const _PendingAnimalCard({
     required this.animalData,
@@ -584,16 +681,13 @@ class _PendingAnimalCard extends StatefulWidget {
     required this.isAdmin,
   });
 
-
   @override
   State<_PendingAnimalCard> createState() => __PendingAnimalCardState();
 }
 
-
 class __PendingAnimalCardState extends State<_PendingAnimalCard> {
   int _currentPage = 0;
   final PageController _pageController = PageController();
-
 
   @override
   void dispose() {
@@ -601,16 +695,16 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final imageUrls = (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
+    final imageUrls =
+        (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
 
-
     final postedAt = widget.animalData['postedAt'] as Timestamp?;
-    final postedDate = postedAt != null ? DateFormat('MMM d, yyyy').format(postedAt.toDate()) : 'N/A';
-
+    final postedDate = postedAt != null
+        ? DateFormat('MMM d, yyyy').format(postedAt.toDate())
+        : 'N/A';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -631,14 +725,23 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                       ? PageView.builder(
                           controller: _pageController,
                           itemCount: imageUrls.length,
-                          onPageChanged: (index) => setState(() => _currentPage = index),
+                          onPageChanged: (index) =>
+                              setState(() => _currentPage = index),
                           itemBuilder: (context, index) => Image.network(
                             imageUrls[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.error, color: kSecondaryColor),
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.error, color: kSecondaryColor),
                           ),
                         )
-                      : Container(color: Colors.grey.shade200, child: Icon(Icons.pets, size: 60, color: Colors.grey.shade400)),
+                      : Container(
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.pets,
+                            size: 60,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                 ),
                 if (imageUrls.length > 1)
                   Positioned(
@@ -655,7 +758,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           height: 8.0,
                           width: _currentPage == i ? 24.0 : 8.0,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(_currentPage == i ? 0.9 : 0.6),
+                            color: Colors.white.withOpacity(
+                              _currentPage == i ? 0.9 : 0.6,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
@@ -672,7 +777,11 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
               children: [
                 Text(
                   widget.animalData['name'] ?? 'No Name',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryColor,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -685,32 +794,38 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _showApproveDialog(context, widget.animalId),
+                          onPressed: () =>
+                              _showApproveDialog(context, widget.animalId),
                           icon: const Icon(Icons.check_circle_outline),
                           label: const Text('Approve'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[600],
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _showRejectDialog(context, widget.animalId),
+                          onPressed: () =>
+                              _showRejectDialog(context, widget.animalId),
                           icon: const Icon(Icons.highlight_off),
                           label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red[600],
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ]
+                ],
               ],
             ),
           ),
@@ -719,7 +834,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 
-
   void _showApproveDialog(BuildContext context, String animalId) {
     showDialog(
       context: context,
@@ -727,7 +841,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         title: const Text('Approve Animal'),
         content: const Text('This will make the animal visible for adoption.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               await AnimalService.approveAnimal(animalId: animalId);
@@ -741,7 +858,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 
-
   void _showRejectDialog(BuildContext context, String animalId) {
     final messageController = TextEditingController();
     showDialog(
@@ -750,16 +866,23 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         title: const Text('Reject Animal'),
         content: TextField(
           controller: messageController,
-          decoration: const InputDecoration(labelText: 'Reason for Rejection *', border: OutlineInputBorder()),
+          decoration: const InputDecoration(
+            labelText: 'Reason for Rejection *',
+            border: OutlineInputBorder(),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               if (messageController.text.trim().isEmpty) return;
               await AnimalService.rejectAnimal(
-                  animalId: animalId,
-                  adminMessage: messageController.text.trim());
+                animalId: animalId,
+                adminMessage: messageController.text.trim(),
+              );
               Navigator.pop(context);
             },
             child: const Text('Reject'),
