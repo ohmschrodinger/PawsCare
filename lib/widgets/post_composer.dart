@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
+
 class PostComposer extends StatefulWidget {
   const PostComposer({Key? key}) : super(key: key);
 
@@ -151,8 +152,6 @@ Widget build(BuildContext context) {
   );
 }
 
-
-
   Widget _buildCollapsedView() {
     return Row(
       children: [
@@ -169,10 +168,14 @@ Widget build(BuildContext context) {
     );
   }
 
+  // --- UI FIX ---
+  // Revamped the expanded view for a cleaner layout that matches modern UI standards.
   Widget _buildExpandedView() {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Header with "Posting as" and close button
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -191,28 +194,35 @@ Widget build(BuildContext context) {
           ],
         ),
         const Divider(),
+        
+        // Text field for writing the post
         TextField(
           controller: _storyController,
           autofocus: true,
-          maxLines: null,
+          maxLines: 5, // Allow more lines for better writing experience
           minLines: 2,
-          maxLength: 300,
+          maxLength: 3000,
           keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          decoration: const InputDecoration.collapsed(
+          decoration: const InputDecoration(
             hintText: 'What’s on your mind?',
+            border: InputBorder.none, // Cleaner look without the underline
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            counterText: "", // Hide the default counter
           ),
         ),
+        
+        // Image preview section
         if (_selectedImage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8.0),
+            padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
             child: Stack(
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.file(
                     _selectedImage!,
-                    height: 80,
+                    height: 100, // Slightly larger preview
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
@@ -221,10 +231,12 @@ Widget build(BuildContext context) {
                   top: 4,
                   right: 4,
                   child: CircleAvatar(
+                    radius: 14,
                     backgroundColor: Colors.black54,
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 14),
                       onPressed: () => setState(() => _selectedImage = null),
+                      padding: EdgeInsets.zero,
                     ),
                   ),
                 ),
@@ -232,25 +244,31 @@ Widget build(BuildContext context) {
             ),
           ),
         const SizedBox(height: 14),
+        
+        // Category selection chips
         Wrap(
-          spacing: 6.0,
-          runSpacing: 3.0,
+          spacing: 8.0, // Increased spacing for better touch targets
+          runSpacing: 4.0,
           children: _categories.map((category) {
             final selected = _selectedCategory == category;
             return ChoiceChip(
               label: Text(category),
-              labelStyle: TextStyle(color: selected ? Colors.white : Colors.black87),
+              labelStyle: TextStyle(
+                color: selected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+              ),
               selected: selected,
               onSelected: (s) {
                 if (s) setState(() => _selectedCategory = category);
               },
               selectedColor: const Color(0xFF5AC8F2),
-              backgroundColor: Colors.grey[200],
+              backgroundColor: Theme.of(context).chipTheme.backgroundColor,
               showCheckmark: false,
             );
           }).toList(),
         ),
-        const Divider(height: 18),
+        const Divider(height: 24),
+        
+        // Action buttons: Image pickers and Post button
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

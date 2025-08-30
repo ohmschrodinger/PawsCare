@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
@@ -26,6 +27,12 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   final _commentController = TextEditingController();
   final _commentFocusNode = FocusNode();
   bool _isCommentSectionVisible = false;
+  
+  // --- FEATURE ADDED ---
+  // State for "Read more" functionality
+  bool _isExpanded = false;
+  static const int _maxLinesCollapsed = 4; // Max lines before "Read more" appears
+  static const int _minCharsForReadMore = 200; // Min characters to trigger truncation
 
   @override
   void initState() {
@@ -81,13 +88,59 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         final tempDir = await getTemporaryDirectory();
         final path = '${tempDir.path}/paws_post.jpg';
         await File(path).writeAsBytes(bytes);
-        await Share.shareXFiles([XFile(path)], text: text);
+        final xFile = XFile(path);
+        await Share.shareXFiles([xFile], text: text);
         return;
       } catch (_) {
-        // fall through to text only
+        // Fall through to text-only sharing
       }
     }
     await Share.share(text);
+  }
+  
+  // --- FEATURE ADDED ---
+  // Function to delete a post
+  Future<void> _deletePost() async {
+    // Confirmation dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Delete image from Firebase Storage if it exists
+      if (widget.postData['imageUrl'] != null) {
+        await FirebaseStorage.instance.refFromURL(widget.postData['imageUrl']).delete();
+      }
+
+      // Delete the post document from Firestore
+      await FirebaseFirestore.instance.collection('community_posts').doc(widget.postId).delete();
+      
+      if(mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully.'), backgroundColor: Colors.green),
+        );
+      }
+
+    } catch (e) {
+      if(mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting post: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _postComment() async {
@@ -128,6 +181,8 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = currentUser != null && likes.contains(currentUser!.uid);
     final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
+    final String storyText = widget.postData['story'] ?? '';
+    final bool isLongText = storyText.length > _minCharsForReadMore;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -140,11 +195,33 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           children: [
             _buildPostHeader(timeAgo),
             const SizedBox(height: 12),
-            if ((widget.postData['story'] ?? '').toString().isNotEmpty)
-              Text(
-                widget.postData['story'],
-                style: const TextStyle(fontSize: 15, height: 1.4),
+            
+            // --- FEATURE ADDED ---
+            // "Read more" functionality for post text
+            if (storyText.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    storyText,
+                    style: const TextStyle(fontSize: 15, height: 1.4),
+                    maxLines: _isExpanded ? null : _maxLinesCollapsed,
+                    overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  ),
+                  if (isLongText)
+                    GestureDetector(
+                      onTap: () => setState(() => _isExpanded = !_isExpanded),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          _isExpanded ? 'Read less' : 'Read more...',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
               ),
+              
             if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty)
               _buildPostImage(widget.postData['imageUrl']),
             const SizedBox(height: 8),
@@ -158,6 +235,8 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
   Widget _buildPostHeader(String timeAgo) {
     final String author = (widget.postData['author'] ?? 'Anonymous').toString();
+    final bool isAuthor = currentUser?.uid == widget.postData['userId'];
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -192,7 +271,32 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             ],
           ),
         ),
-        const Icon(Icons.more_horiz, color: Colors.grey),
+        
+        // --- FEATURE ADDED ---
+        // Popup menu for post options (like delete)
+        if (isAuthor)
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _deletePost();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
+            icon: const Icon(Icons.more_horiz, color: Colors.grey),
+          )
+        else
+          const SizedBox(width: 48), // Keep alignment consistent
       ],
     );
   }
@@ -238,7 +342,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           onTap: () => setState(() {
             _isCommentSectionVisible = !_isCommentSectionVisible;
             if (_isCommentSectionVisible) {
-              // slight delay for smooth scroll into view
               Future.delayed(const Duration(milliseconds: 50), () {
                 if (!mounted) return;
                 Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 200));
@@ -345,7 +448,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[200],
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
                     ),
                   ),
