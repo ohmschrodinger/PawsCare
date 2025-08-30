@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserCreated = exports.sendEmail = void 0;
+exports.onAdoptionApplicationApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const nodemailer = __importStar(require("nodemailer"));
@@ -297,6 +297,152 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
     }
     catch (error) {
         console.error('Error sending welcome email:', error);
+    }
+});
+// Firestore trigger for when animal post is approved
+exports.onAnimalPostApproved = functions.firestore
+    .document('animals/{animalId}')
+    .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    // Check if approvalStatus changed from pending to approved
+    if (beforeData.approvalStatus === 'pending' && afterData.approvalStatus === 'approved') {
+        try {
+            const gmailEmail = functions.config().gmail?.email;
+            const gmailPassword = functions.config().gmail?.password;
+            if (!gmailEmail || !gmailPassword) {
+                console.log('Gmail not configured, skipping approval email');
+                return;
+            }
+            // Get user data to send email
+            const userDoc = await admin.firestore()
+                .collection('users')
+                .doc(afterData.postedBy)
+                .get();
+            if (!userDoc.exists) {
+                console.log('User document not found for approval email');
+                return;
+            }
+            const userData = userDoc.data();
+            const userEmail = userData?.email || afterData.userEmail;
+            if (!userEmail) {
+                console.log('User email not found for approval email');
+                return;
+            }
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: gmailEmail,
+                    pass: gmailPassword
+                }
+            });
+            const mailOptions = {
+                from: gmailEmail,
+                to: userEmail,
+                subject: '🎉 Your Animal Post Has Been Approved! - PawsCare',
+                html: emailTemplates.animal_approved.template({
+                    userName: userData?.fullName || 'User',
+                    animalName: afterData.name || 'Animal',
+                    animalSpecies: afterData.species || 'Pet',
+                    adminMessage: afterData.adminMessage || null
+                })
+            };
+            await transporter.sendMail(mailOptions);
+            console.log('Animal approval email sent to:', userEmail);
+            // Log to Firestore
+            await admin.firestore().collection('email_logs').add({
+                type: 'animal_approved',
+                recipientEmail: userEmail,
+                data: {
+                    animalId: context.params.animalId,
+                    animalName: afterData.name,
+                    animalSpecies: afterData.species,
+                    adminMessage: afterData.adminMessage
+                },
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+            });
+        }
+        catch (error) {
+            console.error('Error sending animal approval email:', error);
+        }
+    }
+});
+// Firestore trigger for when adoption application is approved
+exports.onAdoptionApplicationApproved = functions.firestore
+    .document('applications/{applicationId}')
+    .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    // Check if status changed from pending to approved
+    if (beforeData.status === 'pending' && afterData.status === 'approved') {
+        try {
+            const gmailEmail = functions.config().gmail?.email;
+            const gmailPassword = functions.config().gmail?.password;
+            if (!gmailEmail || !gmailPassword) {
+                console.log('Gmail not configured, skipping adoption approval email');
+                return;
+            }
+            // Get user data to send email
+            const userDoc = await admin.firestore()
+                .collection('users')
+                .doc(afterData.userId)
+                .get();
+            if (!userDoc.exists) {
+                console.log('User document not found for adoption approval email');
+                return;
+            }
+            const userData = userDoc.data();
+            const userEmail = userData?.email || afterData.userEmail;
+            if (!userEmail) {
+                console.log('User email not found for adoption approval email');
+                return;
+            }
+            // Get animal data for the email
+            const animalDoc = await admin.firestore()
+                .collection('animals')
+                .doc(afterData.animalId)
+                .get();
+            const animalData = animalDoc.exists ? animalDoc.data() : {};
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: gmailEmail,
+                    pass: gmailPassword
+                }
+            });
+            const mailOptions = {
+                from: gmailEmail,
+                to: userEmail,
+                subject: '🎉 Adoption Application Approved! - PawsCare',
+                html: emailTemplates.adoption_approved.template({
+                    userName: userData?.fullName || 'User',
+                    animalName: animalData?.name || 'Animal',
+                    animalSpecies: animalData?.species || 'Pet',
+                    applicationId: context.params.applicationId,
+                    adminMessage: afterData.adminMessage || null
+                })
+            };
+            await transporter.sendMail(mailOptions);
+            console.log('Adoption approval email sent to:', userEmail);
+            // Log to Firestore
+            await admin.firestore().collection('email_logs').add({
+                type: 'adoption_approved',
+                recipientEmail: userEmail,
+                data: {
+                    applicationId: context.params.applicationId,
+                    animalId: afterData.animalId,
+                    animalName: animalData?.name,
+                    animalSpecies: animalData?.species,
+                    adminMessage: afterData.adminMessage
+                },
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+            });
+        }
+        catch (error) {
+            console.error('Error sending adoption approval email:', error);
+        }
     }
 });
 //# sourceMappingURL=index.js.map
