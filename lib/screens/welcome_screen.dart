@@ -315,7 +315,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
           onTap: () {
-            Navigator.of(context).pushReplacementNamed('/signup');
+            Navigator.of(context).pushNamed('/signup');
           },
           child: Center(
             child: Text(
@@ -345,7 +345,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
           onTap: () {
-            Navigator.of(context).pushReplacementNamed('/login');
+            Navigator.of(context).pushNamed('/login');
           },
           child: Center(
             child: Text(
