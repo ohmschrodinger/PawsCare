@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pawscare/screens/home_wrapper.dart';
-import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
@@ -20,13 +19,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   // Re-ordered for a more logical flow and removed MyPostedAnimalsScreen.
   // The "My Posts" feature is now accessible from the user's profile screen.
   final List<Widget> _screens = [
-
     const HomeWrapper(),
-    const MyApplicationsScreen(),
     const PostAnimalScreen(),
     const CommunityFeedScreen(),
     const ProfileScreen(),
-
   ];
 
   void _onItemTapped(int index) {
@@ -44,10 +40,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           // Home
@@ -56,13 +49,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-                      // Applications
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history_outlined),
-            activeIcon: Icon(Icons.history),
-            label: 'Applications',
-          ),
-                      // Post Animal
+          // Post Animal
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             activeIcon: Icon(Icons.add_circle),

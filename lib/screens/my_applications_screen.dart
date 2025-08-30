@@ -10,8 +10,13 @@ import '../../main_navigation_screen.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   final bool showAppBar;
+  final int initialTab;
 
-  const MyApplicationsScreen({super.key, this.showAppBar = true});
+  const MyApplicationsScreen({
+    super.key,
+    this.showAppBar = true,
+    this.initialTab = 0,
+  });
 
   @override
   State<MyApplicationsScreen> createState() => _MyApplicationsScreenState();
@@ -64,6 +69,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     // Use DefaultTabController for tab management
     return DefaultTabController(
       length: _isAdmin ? 2 : 1, // Dynamic length based on role
+      initialIndex: _isAdmin ? widget.initialTab : 0,
       child: Scaffold(
         appBar: widget.showAppBar
             ? buildPawsCareAppBar(
@@ -122,21 +128,20 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   AppBar _buildAppBar() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor =
-        isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
+    final appBarColor = isDarkMode
+        ? theme.scaffoldBackgroundColor
+        : Colors.grey.shade50;
     final appBarTextColor = theme.textTheme.titleLarge?.color;
 
     return AppBar(
-      systemOverlayStyle:
-          isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      systemOverlayStyle: isDarkMode
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
       backgroundColor: appBarColor,
       elevation: 0,
       title: Text(
         'PawsCare',
-        style: TextStyle(
-          color: appBarTextColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
       ),
       centerTitle: false,
       actions: [
@@ -224,12 +229,12 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
             if (petId == null) {
               return Card(
-                margin:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: ListTile(
                   title: Text(appData['petName'] ?? 'Unknown Pet'),
                   subtitle: const Text(
-                      'Error: Application is not linked to a pet correctly.'),
+                    'Error: Application is not linked to a pet correctly.',
+                  ),
                 ),
               );
             }
@@ -250,7 +255,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 if (!animalSnapshot.hasData || !animalSnapshot.data!.exists) {
                   return Card(
                     margin: const EdgeInsets.symmetric(
-                        vertical: 8, horizontal: 16),
+                      vertical: 8,
+                      horizontal: 16,
+                    ),
                     child: ListTile(
                       title: Text(appData['petName'] ?? 'Unknown Pet'),
                       subtitle: const Text('Could not load pet details.'),
@@ -345,7 +352,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-                'This will mark the pet as "Adopted" and approve the application.'),
+              'This will mark the pet as "Adopted" and approve the application.',
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
@@ -443,7 +451,8 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               if (messageController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text('Please provide a reason for rejection.')),
+                    content: Text('Please provide a reason for rejection.'),
+                  ),
                 );
                 return;
               }
@@ -453,18 +462,19 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                     .collection('applications')
                     .doc(applicationId)
                     .update({
-                  'status': 'Rejected',
-                  'adminMessage': messageController.text.trim(),
-                  'reviewedAt': FieldValue.serverTimestamp(),
-                });
+                      'status': 'Rejected',
+                      'adminMessage': messageController.text.trim(),
+                      'reviewedAt': FieldValue.serverTimestamp(),
+                    });
                 if (mounted) {
                   Navigator.pop(context);
                 }
               } catch (e) {
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Error: $e')));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               }
             },
@@ -537,10 +547,12 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PetDetailScreen(petData: {
-              'id': widget.applicationData['petId'],
-              ...widget.animalData
-            }),
+            builder: (context) => PetDetailScreen(
+              petData: {
+                'id': widget.applicationData['petId'],
+                ...widget.animalData,
+              },
+            ),
           ),
         );
       },
@@ -561,8 +573,9 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Stack(
                 children: [
                   SizedBox(
@@ -580,17 +593,23 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Container(
-                                  color: Colors.grey.shade200,
-                                  child: Icon(Icons.pets,
-                                      size: 60, color: Colors.grey.shade400),
-                                ),
+                                      color: Colors.grey.shade200,
+                                      child: Icon(
+                                        Icons.pets,
+                                        size: 60,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
                               );
                             },
                           )
                         : Container(
                             color: Colors.grey.shade200,
-                            child: Icon(Icons.pets,
-                                size: 60, color: Colors.grey.shade400),
+                            child: Icon(
+                              Icons.pets,
+                              size: 60,
+                              color: Colors.grey.shade400,
+                            ),
                           ),
                   ),
                   if (imageUrls.length > 1)
@@ -604,13 +623,13 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                           imageUrls.length,
                           (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 3.0),
+                            margin: const EdgeInsets.symmetric(horizontal: 3.0),
                             height: 8.0,
                             width: _currentPage == index ? 24.0 : 8.0,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(
-                                  _currentPage == index ? 0.9 : 0.6),
+                                _currentPage == index ? 0.9 : 0.6,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
@@ -631,7 +650,9 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                         child: Text(
                           petName,
                           style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -646,7 +667,7 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                               : Colors.pink,
                           size: 24,
                         ),
-                      ]
+                      ],
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -654,21 +675,24 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                     widget.showAdminActions
                         ? 'Applicant: $applicantName'
                         : 'Applied on: $appliedDate',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
                   ),
                   const Divider(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Application Status:',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w600)),
+                      const Text(
+                        'Application Status:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: appStatusColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
@@ -688,11 +712,11 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                   Row(
                     children: [
                       TextButton(
-                        onPressed: () =>
-                            _MyApplicationsScreenState()._showApplicationDetails(
-                          context,
-                          widget.applicationData,
-                        ),
+                        onPressed: () => _MyApplicationsScreenState()
+                            ._showApplicationDetails(
+                              context,
+                              widget.applicationData,
+                            ),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -709,8 +733,11 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                       if (widget.showAdminActions &&
                           appStatus == 'Under Review') ...[
                         ElevatedButton(
-                          onPressed: () => _MyApplicationsScreenState()
-                              ._showApproveDialog(context, widget.applicationId),
+                          onPressed: () =>
+                              _MyApplicationsScreenState()._showApproveDialog(
+                                context,
+                                widget.applicationId,
+                              ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -729,7 +756,7 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                         ),
                       ],
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

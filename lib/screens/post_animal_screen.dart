@@ -11,11 +11,13 @@ import 'package:intl/intl.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../main_navigation_screen.dart';
 
+
 // --- THEME CONSTANTS FOR A CLEAN UI ---
 const Color kPrimaryColor = Colors.black;
 const Color kSecondaryColor = Color(0xFF616161); // Dark grey
 const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
 const Color kCardColor = Colors.white;
+
 
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
@@ -24,14 +26,17 @@ class PostAnimalScreen extends StatefulWidget {
       {Key? key, this.initialTab = 0, this.showAppBar = true})
       : super(key: key);
 
+
   @override
   State<PostAnimalScreen> createState() => _PostAnimalScreenState();
 }
+
 
 class _PostAnimalScreenState extends State<PostAnimalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+
 
   // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
@@ -42,6 +47,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   final _contactPhoneController = TextEditingController();
   final _medicalIssuesController = TextEditingController();
 
+
   // --- FORM STATE VARIABLES ---
   String? _species;
   String? _gender;
@@ -49,15 +55,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   bool? _isSterilized;
   bool? _isVaccinated;
   bool? _isDewormed;
-  String? _kidCompatibility;
-  String? _dogCompatibility;
-  String? _catCompatibility;
-  String? _activityLevel;
+  // REMOVED: Behavior and temperament state variables are no longer needed.
+
 
   bool _isSubmitting = false;
 
+
   final ImagePicker _picker = ImagePicker();
   List<XFile> _images = [];
+
 
   @override
   void initState() {
@@ -68,6 +74,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       initialIndex: widget.initialTab,
     );
   }
+
 
   @override
   void dispose() {
@@ -81,6 +88,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     _medicalIssuesController.dispose();
     super.dispose();
   }
+
 
   Future<void> _pickImage(ImageSource source) async {
     if (_images.length >= 5) {
@@ -99,11 +107,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     }
   }
 
+
   void _removeImage(int index) {
     setState(() {
       _images.removeAt(index);
     });
   }
+
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -111,6 +121,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -121,13 +132,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         onLogout: _logout,
         onMenuSelected: (value) {
           if (value == 'profile') {
-            // Switch to the profile tab in MainNavigationScreen
             if (mainNavKey.currentState != null) {
-              mainNavKey.currentState!.selectTab(4); // Profile tab index
+              mainNavKey.currentState!.selectTab(4);
             } else {
               Navigator.of(context).pushNamed('/main');
-              // After navigation, the splash or login logic should land on main and then set the tab
-              // This is a fallback for when the key is not yet available
             }
           } else if (value == 'all_applications') {
             Navigator.of(context).pushNamed('/all-applications');
@@ -150,7 +158,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  // Simple AppBar builder to resolve missing method error
 
   Widget _buildTabBar() {
     return Material(
@@ -167,10 +174,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       ),
     );
   }
-  
-  // This tab now uses the updated _PendingAnimalCard with the new theme
+
+
   Widget _buildPendingRequestsTab() {
-    // Logic remains the same, but the UI will be updated via _PendingAnimalCard
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return const Center(child: Text('Please log in to view pending requests'));
@@ -186,18 +192,21 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
           builder: (context, roleSnapshot) {
             String role = (roleSnapshot.data?.get('role') ?? 'user');
-            
+
+
             final allAnimals = snapshot.data?.docs ?? [];
             List<DocumentSnapshot> animals = (role == 'admin')
-              ? allAnimals
-              : allAnimals.where((doc) => doc['postedByEmail'] == user.email).toList();
+                ? allAnimals
+                : allAnimals.where((doc) => doc['postedByEmail'] == user.email).toList();
+
 
             if (animals.isEmpty) {
               return const Center(
                 child: Text('No pending requests for now', style: TextStyle(fontSize: 18, color: Colors.grey)),
               );
             }
-            
+
+
             return ListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 16),
               itemCount: animals.length,
@@ -217,7 +226,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  // --- NEW AND IMPROVED ADD ANIMAL FORM ---
+
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -236,8 +245,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               style: TextStyle(fontSize: 14, color: kSecondaryColor),
             ),
             const SizedBox(height: 24),
-            
-            // --- SECTION 1: BASIC INFO ---
+
+
             _buildFormSection(
               title: 'Basic Information',
               children: [
@@ -267,60 +276,28 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ],
             ),
-            
-            // --- SECTION 2: HEALTH & WELLNESS ---
+
+
             _buildFormSection(
               title: 'Health & Wellness',
               children: [
-                 _buildBinaryQuestion('Is the animal sterilized (neutered/spayed)?*', _isSterilized, (val) => setState(() => _isSterilized = val)),
-                 _buildBinaryQuestion('Are vaccinations up to date?*', _isVaccinated, (val) => setState(() => _isVaccinated = val)),
-                 _buildBinaryQuestion('Has the animal been dewormed recently?*', _isDewormed, (val) => setState(() => _isDewormed = val)),
-                 _buildTextField(_medicalIssuesController, 'Known Medical Issues', 'e.g., Skin allergy, missing a limb. Write "None" if not applicable.'),
+                _buildBinaryQuestion('Is the animal sterilized (neutered/spayed)?*', _isSterilized, (val) => setState(() => _isSterilized = val)),
+                _buildBinaryQuestion('Are vaccinations up to date?*', _isVaccinated, (val) => setState(() => _isVaccinated = val)),
+                _buildBinaryQuestion('Has the animal been dewormed recently?*', _isDewormed, (val) => setState(() => _isDewormed = val)),
+                _buildTextField(_medicalIssuesController, 'Known Medical Issues', 'e.g., Skin allergy, missing a limb. Write "None" if not applicable.'),
               ]
             ),
 
-            // --- SECTION 3: BEHAVIOR ---
-            _buildFormSection(
-              title: 'Behavior & Temperament',
-              children: [
-                _buildChoiceChipQuestion(
-                  question: 'Compatibility with Children',
-                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
-                  selectedValue: _kidCompatibility,
-                  onSelected: (val) => setState(() => _kidCompatibility = val),
-                ),
-                _buildChoiceChipQuestion(
-                  question: 'Compatibility with other Dogs',
-                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
-                  selectedValue: _dogCompatibility,
-                  onSelected: (val) => setState(() => _dogCompatibility = val),
-                ),
-                 _buildChoiceChipQuestion(
-                  question: 'Compatibility with Cats',
-                  options: ['Good', 'Cautious', 'Not Recommended', 'Unknown'],
-                  selectedValue: _catCompatibility,
-                  onSelected: (val) => setState(() => _catCompatibility = val),
-                ),
-                 _buildChoiceChipQuestion(
-                  question: 'Activity Level',
-                  options: ['Low', 'Moderate', 'High'],
-                  selectedValue: _activityLevel,
-                  onSelected: (val) => setState(() => _activityLevel = val),
-                ),
-              ]
-            ),
-            
-            // --- SECTION 4: LOCATION & STORY ---
+
+            // REMOVED: The "Behavior & Temperament" section has been removed as requested.
+
+
             _buildFormSection(
               title: 'Location, Contact & Story',
               children: [
-                // For a real app, you would integrate the Google Places API here.
-                // 1. Add `Maps_flutter` and `google_places_flutter` to pubspec.yaml
-                // 2. Enable Places API in your Google Cloud Console.
-                // 3. On tap, open a search screen that uses the API to find and return an address.
                 _buildTextField(_locationController, 'Location of Animal*', 'e.g., Koregaon Park, Pune', validator: (v) => v!.isEmpty ? "Location is required" : null),
-                _buildTextField(_contactPhoneController, 'Your Contact Number*', 'Adopters will contact this number', 
-                  isPhoneNumber: true, 
+                _buildTextField(_contactPhoneController, 'Your Contact Number*', 'Adopters will contact this number',
+                  isPhoneNumber: true,
                   validator: (v) {
                     if (v!.isEmpty) return "Phone number is required";
                     if (v.length != 10) return "Please enter a valid 10-digit number";
@@ -330,19 +307,20 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 _buildTextField(_rescueStoryController, 'Rescue Story / About the Animal', 'Share their story...', maxLines: 5),
               ],
             ),
-            
-            // --- SECTION 5: PHOTOS ---
+
+
             _buildFormSection(
               title: 'Photos*',
               children: [
                 _buildImagePicker(),
-                if (_images.isEmpty && _isSubmitting) // Show error only on submit attempt
+                if (_images.isEmpty && _isSubmitting)
                   const Padding(
                     padding: EdgeInsets.only(top: 8.0),
                     child: Text('At least one photo is required.', style: TextStyle(color: Colors.red, fontSize: 12)),
                   ),
               ]
             ),
+
 
             const SizedBox(height: 32),
             ElevatedButton(
@@ -363,8 +341,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  // --- FORM HELPER WIDGETS ---
-  
+
   Widget _buildFormSection({required String title, required List<Widget> children}) {
     return Card(
       color: kCardColor,
@@ -385,6 +362,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, String hint, {FormFieldValidator<String>? validator, int maxLines = 1, bool isPhoneNumber = false}) {
     return Padding(
@@ -408,6 +386,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       ),
     );
   }
+
 
   Widget _buildChoiceChipQuestion({
     required String question,
@@ -444,14 +423,16 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
+
   Widget _buildBinaryQuestion(String question, bool? value, ValueChanged<bool> onChanged) {
-      return _buildChoiceChipQuestion(
-        question: question,
-        options: ['Yes', 'No'],
-        selectedValue: value == null ? null : (value ? 'Yes' : 'No'),
-        onSelected: (val) => onChanged(val == 'Yes'),
-      );
+    return _buildChoiceChipQuestion(
+      question: question,
+      options: ['Yes', 'No'],
+      selectedValue: value == null ? null : (value ? 'Yes' : 'No'),
+      onSelected: (val) => onChanged(val == 'Yes'),
+    );
   }
+
 
   Widget _buildImagePicker() {
     return Column(
@@ -494,37 +475,38 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               onPressed: _images.length < 5 ? () => _pickImage(ImageSource.camera) : null,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Camera'),
-               style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
             ),
           ],
         ),
       ],
     );
   }
-  
+
+
   void _showSnackBar(String message, {bool isError = false}) {
-     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? Colors.redAccent : Colors.green,
-        ),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+      ),
+    );
   }
 
-  // --- FORM SUBMISSION LOGIC ---
+
   Future<void> _submitForm() async {
-    // Force validation check to show error messages
-    setState(() {}); 
+    setState(() {});
     if (!_formKey.currentState!.validate() || _images.isEmpty) {
       _showSnackBar('Please fill all required fields (*) and add at least one photo.', isError: true);
       return;
     }
     setState(() => _isSubmitting = true);
 
+
     try {
       final user = FirebaseAuth.instance.currentUser!;
-      
-      // Step 1: Create the document first to get an ID
+
+
       final animalDoc = await FirebaseFirestore.instance.collection('animals').add({
         'name': _nameController.text.trim(),
         'species': _species,
@@ -536,30 +518,28 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         'vaccination': _isVaccinated,
         'deworming': _isDewormed,
         'medicalIssues': _medicalIssuesController.text.trim(),
-        'kidCompatibility': _kidCompatibility,
-        'dogCompatibility': _dogCompatibility,
-        'catCompatibility': _catCompatibility,
-        'activityLevel': _activityLevel,
+        // REMOVED: Behavior fields are no longer part of the data model.
         'location': _locationController.text.trim(),
         'contactPhone': '+91${_contactPhoneController.text.trim()}',
         'rescueStory': _rescueStoryController.text.trim(),
         'postedBy': user.uid,
         'postedByEmail': user.email,
         'postedAt': FieldValue.serverTimestamp(),
-        'approvalStatus': 'pending', // 'approved', 'rejected'
-        'imageUrls': [], // Will be updated after upload
+        'approvalStatus': 'pending',
+        'imageUrls': [],
       });
       final animalId = animalDoc.id;
 
-      // Step 2: Upload images using the document ID
+
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
         final url = await StorageService.uploadAnimalImage(File(_images[i].path), animalId, i);
         imageUrls.add(url);
       }
 
-      // Step 3: Update the document with the image URLs
+
       await animalDoc.update({'imageUrls': imageUrls});
+
 
       if (mounted) {
         _showSnackBar('Animal submitted for review!', isError: false);
@@ -579,11 +559,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _isSterilized = null;
           _isVaccinated = null;
           _isDewormed = null;
-          _kidCompatibility = null;
-          _dogCompatibility = null;
-          _catCompatibility = null;
-          _activityLevel = null;
-          _tabController.animateTo(0); // Switch to pending tab
+          // REMOVED: Resetting behavior state variables is no longer needed.
+          _tabController.animateTo(0);
         });
       }
     } catch (e) {
@@ -594,11 +571,12 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 }
 
-// --- UPDATED PENDING ANIMAL CARD ---
+
 class _PendingAnimalCard extends StatefulWidget {
   final Map<String, dynamic> animalData;
   final String animalId;
   final bool isAdmin;
+
 
   const _PendingAnimalCard({
     required this.animalData,
@@ -606,13 +584,16 @@ class _PendingAnimalCard extends StatefulWidget {
     required this.isAdmin,
   });
 
+
   @override
   State<_PendingAnimalCard> createState() => __PendingAnimalCardState();
 }
 
+
 class __PendingAnimalCardState extends State<_PendingAnimalCard> {
   int _currentPage = 0;
   final PageController _pageController = PageController();
+
 
   @override
   void dispose() {
@@ -620,14 +601,17 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
     final imageUrls = (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
 
+
     final postedAt = widget.animalData['postedAt'] as Timestamp?;
     final postedDate = postedAt != null ? DateFormat('MMM d, yyyy').format(postedAt.toDate()) : 'N/A';
-    
+
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -718,7 +702,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           icon: const Icon(Icons.highlight_off),
                           label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
-                             backgroundColor: Colors.red[600],
+                            backgroundColor: Colors.red[600],
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
@@ -735,7 +719,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 
-  // Dialogs remain largely the same, just styled slightly better.
+
   void _showApproveDialog(BuildContext context, String animalId) {
     showDialog(
       context: context,
@@ -756,6 +740,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
       ),
     );
   }
+
 
   void _showRejectDialog(BuildContext context, String animalId) {
     final messageController = TextEditingController();

@@ -1,5 +1,6 @@
 // lib/screens/home_screen.dart
 
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,68 +10,31 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 
+
 // NOTE: PostAnimalScreen import removed as FAB was removed, but you can add it back if needed.
 // import 'package:pawscare/screens/post_animal_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
 
+
   const HomeScreen({Key? key, this.showAppBar = true}) : super(key: key);
+
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isAdmin = false;
 
-  late PageController _pageController;
-  int _currentPage = 0;
-
-  final List<Map<String, dynamic>> _infoPages = [
-    {
-      'title': 'A Winning Team',
-      'text':
-          'Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!',
-    },
-    {
-      'title': 'Our History',
-      'text':
-          "Seeing a nonprofit to support our community's animals, we formed our organization to provide sensible solutions. We've grown considerably since then, all thanks to the helping hands of this amazing community!",
-    },
-    {
-      'title': 'Animals Are Our Mission',
-      'text':
-          'We focus on making the maximum positive effect. Our members and volunteers provide the momentum we need. Using community driven models, we take actions that make a long-lasting difference.',
-    },
-    {
-      'title': 'Mission',
-      'text':
-          'Our Mission is to “Make a Difference in the life of street animal”',
-    },
-    {
-      'title': 'Vision',
-      'text':
-          'Our Vision is to provide world’s most successful onsite treatment service for street animals free of cost. Introducing new technology projects that will help street animals and to educate society for a good cause.',
-    },
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   Stream<QuerySnapshot> _getAnimalsStream() {
     return FirebaseFirestore.instance.collection('animals').snapshots();
   }
+
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -79,15 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor = isDarkMode
-        ? theme.scaffoldBackgroundColor
-        : Colors.grey.shade50;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
     return Scaffold(
       appBar: widget.showAppBar
           ? buildPawsCareAppBar(
@@ -112,7 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildWelcomeSection(),
+            // OPTIMIZATION: Replaced the method call with a standalone widget
+            // to prevent the whole screen from rebuilding on page swipe.
+            const WelcomeSection(),
             const SizedBox(height: 24),
             _buildStatsSection(),
             const SizedBox(height: 24),
@@ -136,89 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWelcomeSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          height: 250,
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _infoPages.length,
-                  onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    return _buildInfoPage(
-                      title: _infoPages[index]['title'],
-                      text: _infoPages[index]['text'],
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildPageIndicator(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoPage({required String title, required String text}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            text,
-            textAlign: TextAlign.start,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey.shade700,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPageIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_infoPages.length, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-          height: 8.0,
-          width: _currentPage == index ? 24.0 : 8.0,
-          decoration: BoxDecoration(
-            color: _currentPage == index
-                ? Theme.of(context).primaryColor
-                : Colors.grey.shade400,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
-      }),
-    );
-  }
 
   Widget _buildStatsSection() {
     return Padding(
@@ -253,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // MODIFIED: The ListView.builder no longer has the problematic PageController.
+
   Widget _buildAnimalSection({
     required String title,
     required String subtitle,
@@ -325,8 +202,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
+
               final animals = snapshot.data?.docs ?? [];
               List filteredAnimals;
+
 
               if (statusFilter == 'Available') {
                 filteredAnimals = animals.where((doc) {
@@ -341,14 +220,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 }).toList();
               }
 
+
               if (filteredAnimals.isEmpty) {
                 return Center(child: Text(emptyMessage));
               }
 
+
               final previewAnimals = filteredAnimals.take(10).toList();
 
-              // FIX: Removed the PageController from the ListView. The card width is
-              // now controlled in the HorizontalPetCard widget itself.
+
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(
@@ -364,8 +244,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       animalData['imageUrls'] as List<dynamic>? ?? [];
                   final imageUrl =
                       (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                      (animalData['image'] ??
-                          'https://via.placeholder.com/150');
+                          (animalData['image'] ??
+                              'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
@@ -392,19 +272,167 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// MODIFIED: Card width is now explicitly set to a fraction of the screen width.
+
+// NEW WIDGET: This new StatefulWidget encapsulates the PageView and its state.
+// Now, only this widget rebuilds on swipe, not the entire HomeScreen.
+class WelcomeSection extends StatefulWidget {
+  const WelcomeSection({Key? key}) : super(key: key);
+
+
+  @override
+  _WelcomeSectionState createState() => _WelcomeSectionState();
+}
+
+
+class _WelcomeSectionState extends State<WelcomeSection> {
+  late PageController _pageController;
+  int _currentPage = 0;
+
+
+  final List<Map<String, dynamic>> _infoPages = [
+    {
+      'title': 'A Winning Team',
+      'text':
+          'Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!',
+    },
+    {
+      'title': 'Our History',
+      'text':
+          "Seeing a nonprofit to support our community's animals, we formed our organization to provide sensible solutions. We've grown considerably since then, all thanks to the helping hands of this amazing community!",
+    },
+    {
+      'title': 'Animals Are Our Mission',
+      'text':
+          'We focus on making the maximum positive effect. Our members and volunteers provide the momentum we need. Using community driven models, we take actions that make a long-lasting difference.',
+    },
+    {
+      'title': 'Mission',
+      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
+    },
+    {
+      'title': 'Vision',
+      'text':
+          'Our Vision is to provide world’s most successful onsite treatment service for street animals free of cost. Introducing new technology projects that will help street animals and to educate society for a good cause.',
+    },
+  ];
+
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          height: 250,
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _infoPages.length,
+                  onPageChanged: (int page) {
+                    setState(() {
+                      _currentPage = page;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return _buildInfoPage(
+                      title: _infoPages[index]['title'],
+                      text: _infoPages[index]['text'],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildPageIndicator(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildInfoPage({required String title, required String text}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            text,
+            textAlign: TextAlign.start,
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey.shade700,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildPageIndicator() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_infoPages.length, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+          height: 8.0,
+          width: _currentPage == index ? 24.0 : 8.0,
+          decoration: BoxDecoration(
+            color: _currentPage == index
+                ? Theme.of(context).primaryColor
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
 
+
   const HorizontalPetCard({Key? key, required this.pet, required this.onTap})
-    : super(key: key);
+      : super(key: key);
+
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Set a fixed width as a percentage of the screen width. This is a
-    // more reliable way to achieve the "1.x card" look without layout errors.
     final cardWidth = MediaQuery.of(context).size.width * 0.75;
+
 
     return SizedBox(
       width: cardWidth,
