@@ -48,6 +48,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   String? _species;
   String? _gender;
   String? _breedType; // "Indie" or "Specific Breed"
+  String? _motherStatus; // Added for mother status
   bool? _isSterilized;
   bool? _isVaccinated;
   bool? _isDewormed;
@@ -188,11 +189,31 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             String role = (roleSnapshot.data?.get('role') ?? 'user');
 
             final allAnimals = snapshot.data?.docs ?? [];
+
+            // Debug: Print all pending animals
+            print('DEBUG: Found ${allAnimals.length} total pending animals');
+            for (var doc in allAnimals) {
+              final data = doc.data() as Map<String, dynamic>;
+              print(
+                'DEBUG: Animal: ${data['name']} - Posted by: ${data['postedByEmail']}',
+              );
+            }
+            print('DEBUG: Current user email: ${user.email}');
+
             List<DocumentSnapshot> animals = (role == 'admin')
                 ? allAnimals
-                : allAnimals
-                      .where((doc) => doc['postedByEmail'] == user.email)
-                      .toList();
+                : allAnimals.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final matches = data['postedByEmail'] == user.email;
+                    print(
+                      'DEBUG: Checking ${data['name']} - Posted by ${data['postedByEmail']} - Matches current user? $matches',
+                    );
+                    return matches;
+                  }).toList();
+
+            print(
+              'DEBUG: After filtering, found ${animals.length} animals for current user',
+            );
 
             if (animals.isEmpty) {
               return const Center(
@@ -292,6 +313,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   options: ['Male', 'Female'],
                   selectedValue: _gender,
                   onSelected: (val) => setState(() => _gender = val),
+                ),
+                // Added Mother Status field
+                _buildChoiceChipQuestion(
+                  question: 'Mother Status',
+                  options: ['Known', 'Unknown'],
+                  selectedValue: _motherStatus,
+                  onSelected: (val) => setState(() => _motherStatus = val),
                 ),
               ],
             ),
@@ -605,6 +633,23 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       );
       return;
     }
+
+    // Debug: Print current user info
+    final user = FirebaseAuth.instance.currentUser;
+    print('DEBUG: Submitting form for user: ${user?.email}');
+
+    // Debug: Check user role
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      print('DEBUG: User document exists: ${userDoc.exists}');
+      if (userDoc.exists) {
+        print('DEBUG: User data: ${userDoc.data()}');
+      }
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -618,9 +663,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         breed: _breedType == 'Indie' ? 'Indie' : _breedController.text.trim(),
         age: _ageController.text.trim(),
         gender: _gender!,
-        sterilization: _isSterilized!,
-        vaccination: _isVaccinated!,
-        deworming: _isDewormed!,
+        sterilization: _isSterilized! ? 'Yes' : 'No',
+        vaccination: _isVaccinated! ? 'Yes' : 'No',
+        deworming: _isDewormed! ? 'Yes' : 'No',
+        motherStatus: _motherStatus ?? 'Unknown',
         medicalIssues: _medicalIssuesController.text.trim(),
         location: _locationController.text.trim(),
         contactPhone: '+91${_contactPhoneController.text.trim()}',
@@ -655,6 +701,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _species = null;
           _gender = null;
           _breedType = null;
+          _motherStatus = null;
           _isSterilized = null;
           _isVaccinated = null;
           _isDewormed = null;
@@ -788,39 +835,53 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
                   style: const TextStyle(fontSize: 14, color: kSecondaryColor),
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showDetailsDialog(context),
+                        icon: const Icon(Icons.info_outline),
+                        label: const Text('View Details'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: kPrimaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 if (widget.isAdmin) ...[
-                  const Divider(height: 24),
+                  const SizedBox(height: 8),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
+                      SizedBox(
+                        width: 100,
+                        child: ElevatedButton(
                           onPressed: () =>
                               _showApproveDialog(context, widget.animalId),
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: const Text('Approve'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[600],
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 36),
                           ),
+                          child: const Text('Approve'),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 100,
+                        child: ElevatedButton(
                           onPressed: () =>
                               _showRejectDialog(context, widget.animalId),
-                          icon: const Icon(Icons.highlight_off),
-                          label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red[600],
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 36),
                           ),
+                          child: const Text('Reject'),
                         ),
                       ),
                     ],
@@ -835,11 +896,28 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
   }
 
   void _showApproveDialog(BuildContext context, String animalId) {
+    final messageController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Approve Animal'),
-        content: const Text('This will make the animal visible for adoption.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('This will make the animal visible for adoption.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                labelText: 'Optional Message',
+                hintText: 'Add any notes or comments (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -847,12 +925,111 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              await AnimalService.approveAnimal(animalId: animalId);
-              Navigator.pop(context);
+              try {
+                await AnimalService.approveAnimal(
+                  animalId: animalId,
+                  adminMessage: messageController.text.trim(),
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Animal post approved successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error approving animal: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Approve'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetailsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(widget.animalData['name'] ?? 'Animal Details'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDetailItem('Species', widget.animalData['species']),
+              _buildDetailItem('Breed', widget.animalData['breed']),
+              _buildDetailItem('Age', widget.animalData['age']),
+              _buildDetailItem('Gender', widget.animalData['gender']),
+              _buildDetailItem(
+                'Mother Status',
+                widget.animalData['motherStatus'],
+              ),
+              _buildDetailItem(
+                'Sterilization',
+                widget.animalData['sterilization'],
+              ),
+              _buildDetailItem('Vaccination', widget.animalData['vaccination']),
+              _buildDetailItem('Deworming', widget.animalData['deworming']),
+              _buildDetailItem('Location', widget.animalData['location']),
+              _buildDetailItem('Contact', widget.animalData['contactPhone']),
+              if (widget.animalData['medicalIssues']?.isNotEmpty ?? false)
+                _buildDetailItem(
+                  'Medical Issues',
+                  widget.animalData['medicalIssues'],
+                ),
+              if (widget.animalData['rescueStory']?.isNotEmpty ?? false) ...[
+                const Divider(height: 24),
+                const Text(
+                  'Rescue Story',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(widget.animalData['rescueStory'] ?? ''),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: kSecondaryColor,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -864,12 +1041,25 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reject Animal'),
-        content: TextField(
-          controller: messageController,
-          decoration: const InputDecoration(
-            labelText: 'Reason for Rejection *',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Please provide a reason for rejection. This will be visible to the person who posted the animal.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                labelText: 'Reason for Rejection *',
+                hintText: 'Explain why this post is being rejected',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -878,12 +1068,41 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (messageController.text.trim().isEmpty) return;
-              await AnimalService.rejectAnimal(
-                animalId: animalId,
-                adminMessage: messageController.text.trim(),
-              );
-              Navigator.pop(context);
+              if (messageController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please provide a reason for rejection'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await AnimalService.rejectAnimal(
+                  animalId: animalId,
+                  adminMessage: messageController.text.trim(),
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Animal post rejected'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error rejecting animal: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Reject'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

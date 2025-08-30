@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/paws_care_app_bar.dart';
+import 'package:pawscare/widgets/animal_card.dart';
+import '../main_navigation_screen.dart';
 
 class AnimalAdoptionScreen extends StatelessWidget {
   const AnimalAdoptionScreen({Key? key}) : super(key: key);
@@ -16,10 +18,12 @@ class AnimalAdoptionScreen extends StatelessWidget {
         context: context,
         onMenuSelected: (value) {
           if (value == 'profile') {
-            Navigator.of(context).pushNamed('/profile');
+            mainNavKey.currentState?.selectTab(4); // Navigate to profile tab
           } else if (value == 'all_applications') {
+            mainNavKey.currentState?.selectTab(0); // Go to home tab
             Navigator.of(context).pushNamed('/all-applications');
           } else if (value == 'my_applications') {
+            mainNavKey.currentState?.selectTab(0); // Go to home tab
             Navigator.of(context).pushNamed('/my-applications');
           }
         },
@@ -46,54 +50,27 @@ class AnimalAdoptionScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(8.0),
+            padding: EdgeInsets
+                .zero, // Remove padding as AnimalCard has its own margins
             itemCount: animals.length,
             itemBuilder: (context, index) {
               final animalDoc = animals[index];
-              final animalData = animalDoc.data() as Map<String, dynamic>;
-              final imageUrls = animalData['imageUrls'] as List<dynamic>? ?? [];
-              final imageUrl =
-                  (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                  (animalData['image'] ?? 'https://via.placeholder.com/150');
-
-              final pet = {
+              final animalData = {
                 'id': animalDoc.id,
-                ...animalData,
-                'image': imageUrl,
+                ...(animalDoc.data() as Map<String, dynamic>),
               };
 
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                clipBehavior: Clip.antiAlias,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 3,
-                child: ListTile(
-                  leading: Image.network(
-                    pet['image'],
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.pets, size: 50),
-                  ),
-                  title: Text(
-                    pet['name'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    '${pet['species'] ?? 'N/A'} • ${pet['breed'] ?? 'N/A'}',
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PetDetailScreen(petData: pet),
-                      ),
-                    );
-                  },
-                ),
+              return AnimalCard(
+                animal: animalData,
+                isLiked: false, // TODO: Implement like status from user data
+                isSaved: false, // TODO: Implement save status from user data
+                likeCount: (animalData['likeCount'] as int?) ?? 0,
+                onLike: () {
+                  // TODO: Implement like functionality
+                },
+                onSave: () {
+                  // TODO: Implement save functionality
+                },
               );
             },
           );

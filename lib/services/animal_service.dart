@@ -14,9 +14,10 @@ class AnimalService {
     required String gender,
     required String breedType,
     required String breed,
-    required bool sterilization,
-    required bool vaccination,
-    required bool deworming,
+    required String sterilization,
+    required String vaccination,
+    required String deworming,
+    required String motherStatus,
     String? medicalIssues,
     required String location,
     required String contactPhone,
@@ -29,13 +30,22 @@ class AnimalService {
       }
 
       // Check user role
+      print('DEBUG: Fetching user role for uid: ${user.uid}');
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userRole = userDoc.data()?['role'] ?? 'user';
 
-      // Determine approval status based on role
-      final approvalStatus = userRole == 'admin' ? 'approved' : 'pending';
-      final isActive =
-          userRole == 'admin'; // Only admin posts are active immediately
+      // Check if user document exists
+      if (!userDoc.exists) {
+        print('DEBUG: User document does not exist!');
+        throw Exception('User document not found');
+      }
+
+      final userData = userDoc.data();
+      print('DEBUG: User data: ${userData.toString()}');
+
+      // All posts start as pending and inactive, regardless of user role
+      const approvalStatus = 'pending';
+      const isActive = false;
+      print('DEBUG: Setting approval status to: pending');
 
       final animalData = {
         'name': name,
@@ -43,11 +53,12 @@ class AnimalService {
         'breedType': breedType,
         'breed': breed,
         'age': age,
-        'status': AnimalStatus.available,
+        'status': 'Available for Adoption', // Changed to match the document
         'gender': gender,
         'sterilization': sterilization,
         'vaccination': vaccination,
         'deworming': deworming,
+        'motherStatus': motherStatus,
         'medicalIssues': medicalIssues ?? '',
         'location': location,
         'contactPhone': contactPhone,
@@ -57,16 +68,20 @@ class AnimalService {
         'postedAt': FieldValue.serverTimestamp(),
         'isActive': isActive,
         'approvalStatus': approvalStatus,
-        'approvedAt': userRole == 'admin' ? FieldValue.serverTimestamp() : null,
-        'approvedBy': userRole == 'admin' ? user.uid : null,
+        'approvedAt': null, // Will be set when approved
+        'approvedBy': null, // Will be set when approved
         'adminMessage': '',
         'imageUrls': [], // Will be updated after images are uploaded
       };
 
-      // Add the animal document and return its reference
-      return await _firestore.collection('animals').add(animalData);
+      print(
+        'DEBUG: About to create animal with data: ${animalData.toString()}',
+      );
 
-      // This code has been replaced by the return statement below
+      // Add the animal document and return its reference
+      final docRef = await _firestore.collection('animals').add(animalData);
+      print('DEBUG: Created animal document with ID: ${docRef.id}');
+      return docRef;
     } catch (e) {
       print('Error posting animal: $e');
       throw Exception('Failed to post animal: $e');
@@ -250,6 +265,19 @@ class AnimalService {
   static Stream<QuerySnapshot> getPendingAnimals() {
     try {
       print('DEBUG: Starting getPendingAnimals query');
+
+      // First, let's check what documents exist
+      _firestore.collection('animals').get().then((snapshot) {
+        print(
+          'DEBUG: Total documents in animals collection: ${snapshot.docs.length}',
+        );
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          print(
+            'DEBUG: Document ${doc.id} - approvalStatus: ${data['approvalStatus']}, postedByEmail: ${data['postedByEmail']}',
+          );
+        }
+      });
 
       // Simple query first - if this works, your index should be created
       return _firestore

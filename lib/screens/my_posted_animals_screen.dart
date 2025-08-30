@@ -35,11 +35,21 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final favoritesSnapshot = await FirebaseFirestore.instance.collection('favorites').where('userId', isEqualTo: user.uid).get();
-    final likedIds = favoritesSnapshot.docs.map((doc) => doc.data()['animalId'] as String).toSet();
+    final favoritesSnapshot = await FirebaseFirestore.instance
+        .collection('favorites')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+    final likedIds = favoritesSnapshot.docs
+        .map((doc) => doc.data()['animalId'] as String)
+        .toSet();
 
-    final savedSnapshot = await FirebaseFirestore.instance.collection('saved_animals').where('userId', isEqualTo: user.uid).get();
-    final savedIds = savedSnapshot.docs.map((doc) => doc.data()['animalId'] as String).toSet();
+    final savedSnapshot = await FirebaseFirestore.instance
+        .collection('saved_animals')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+    final savedIds = savedSnapshot.docs
+        .map((doc) => doc.data()['animalId'] as String)
+        .toSet();
 
     if (mounted) {
       setState(() {
@@ -58,7 +68,10 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
     }
     return FirebaseFirestore.instance
         .collection('animals')
-        .where('postedByUserId', isEqualTo: user.uid) // This is the crucial filter!
+        .where(
+          'postedBy',
+          isEqualTo: user.uid,
+        ) // Fixed: Changed from postedByUserId to postedBy
         .snapshots();
   }
 
@@ -66,18 +79,28 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
   void _likeAnimal(BuildContext context, String animalId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final animalRef = FirebaseFirestore.instance.collection('animals').doc(animalId);
+    final animalRef = FirebaseFirestore.instance
+        .collection('animals')
+        .doc(animalId);
     if (_likedAnimals.contains(animalId)) {
       _likedAnimals.remove(animalId);
       animalRef.update({'likeCount': FieldValue.increment(-1)});
-      final favoritesSnapshot = await FirebaseFirestore.instance.collection('favorites').where('userId', isEqualTo: user.uid).where('animalId', isEqualTo: animalId).get();
+      final favoritesSnapshot = await FirebaseFirestore.instance
+          .collection('favorites')
+          .where('userId', isEqualTo: user.uid)
+          .where('animalId', isEqualTo: animalId)
+          .get();
       for (var doc in favoritesSnapshot.docs) {
         await doc.reference.delete();
       }
     } else {
       _likedAnimals.add(animalId);
       animalRef.update({'likeCount': FieldValue.increment(1)});
-      await FirebaseFirestore.instance.collection('favorites').add({'userId': user.uid, 'animalId': animalId, 'likedAt': FieldValue.serverTimestamp()});
+      await FirebaseFirestore.instance.collection('favorites').add({
+        'userId': user.uid,
+        'animalId': animalId,
+        'likedAt': FieldValue.serverTimestamp(),
+      });
     }
   }
 
@@ -86,15 +109,33 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
     if (user == null) return;
     if (_savedAnimals.contains(animalId)) {
       _savedAnimals.remove(animalId);
-      final savedSnapshot = await FirebaseFirestore.instance.collection('saved_animals').where('userId', isEqualTo: user.uid).where('animalId', isEqualTo: animalId).get();
+      final savedSnapshot = await FirebaseFirestore.instance
+          .collection('saved_animals')
+          .where('userId', isEqualTo: user.uid)
+          .where('animalId', isEqualTo: animalId)
+          .get();
       for (var doc in savedSnapshot.docs) {
         await doc.reference.delete();
       }
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from saved items.'), duration: Duration(seconds: 1)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Removed from saved items.'),
+          duration: Duration(seconds: 1),
+        ),
+      );
     } else {
       _savedAnimals.add(animalId);
-      await FirebaseFirestore.instance.collection('saved_animals').add({'userId': user.uid, 'animalId': animalId, 'savedAt': FieldValue.serverTimestamp()});
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved for later!'), duration: Duration(seconds: 1)));
+      await FirebaseFirestore.instance.collection('saved_animals').add({
+        'userId': user.uid,
+        'animalId': animalId,
+        'savedAt': FieldValue.serverTimestamp(),
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saved for later!'),
+          duration: Duration(seconds: 1),
+        ),
+      );
     }
   }
 
@@ -118,7 +159,7 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
           }
 
           final animals = snapshot.data?.docs ?? [];
-          
+
           // Key Change: The filtering logic is now inside the builder scope
           // This ensures the `filteredAnimals` variable is always available.
           List<DocumentSnapshot> filteredAnimals = animals.where((doc) {
@@ -169,7 +210,9 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => PetDetailScreen(petData: animal)),
+                    MaterialPageRoute(
+                      builder: (context) => PetDetailScreen(petData: animal),
+                    ),
                   );
                 },
                 onLike: () => _likeAnimal(context, animalId),

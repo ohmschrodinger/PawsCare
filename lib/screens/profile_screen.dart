@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'settings_screen.dart'; // Add this import
+import 'settings_screen.dart';
+import '../services/user_favorites_service.dart';
 
 // --- Assuming these services and screens exist in your project ---
 import '../services/user_service.dart';
@@ -38,9 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Account')),
-        body: const Center(
-          child: Text('Please log in to view your account.'),
-        ),
+        body: const Center(child: Text('Please log in to view your account.')),
       );
     }
 
@@ -133,44 +132,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final appBarTextColor = theme.textTheme.titleLarge?.color;
 
     return AppBar(
-      backgroundColor: isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50,
+      backgroundColor: isDarkMode
+          ? theme.scaffoldBackgroundColor
+          : Colors.grey.shade50,
       elevation: 0,
       title: Text(
         'PawsCare',
-        style: TextStyle(
-          color: appBarTextColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
       ),
       centerTitle: false,
       actions: [
-          // ... inside _buildAppBar method
-          IconButton(
-            icon: Icon(Icons.settings_outlined, color: appBarTextColor),
-            onPressed: () {
-              // Navigate to the new SettingsScreen
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert, color: appBarTextColor),
-          onSelected: (value) {
-            if (value == 'logout') _logout();
+        // ... inside _buildAppBar method
+        IconButton(
+          icon: Icon(Icons.settings_outlined, color: appBarTextColor),
+          onPressed: () {
+            // Navigate to the new SettingsScreen
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
           },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'logout',
-              child: Row(
-                children: [
-                  Icon(Icons.logout, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Logout'),
-                ],
-              ),
-            ),
-          ],
         ),
       ],
     );
@@ -184,24 +164,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .snapshots();
   }
 
-  // Placeholder: Shows all approved animals. Update logic when feature is built.
+  // Get user's liked animals with details
   Stream<QuerySnapshot> _getLikedAnimalsStream(String uid) {
-    // TODO: Replace with actual logic for liked animals
-    return FirebaseFirestore.instance
-        .collection('animals')
-        .where('approvalStatus', isEqualTo: 'approved')
-        .limit(10) // Limit for placeholder
-        .snapshots();
+    return UserFavoritesService.getLikedAnimalDetails();
   }
 
-  // Placeholder: Shows all approved animals. Update logic when feature is built.
+  // Get user's saved animals with details
   Stream<QuerySnapshot> _getSavedAnimalsStream(String uid) {
-    // TODO: Replace with actual logic for saved animals
-    return FirebaseFirestore.instance
-        .collection('animals')
-        .where('approvalStatus', isEqualTo: 'approved')
-        .limit(10) // Limit for placeholder
-        .snapshots();
+    return UserFavoritesService.getSavedAnimalDetails();
   }
 
   // --- Methods for profile actions (unchanged logic) ---
@@ -216,22 +186,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _isUploading = true);
 
       final file = File(picked.path);
-      final storageRef =
-          FirebaseStorage.instance.ref().child('user_avatars/$uid.jpg');
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'user_avatars/$uid.jpg',
+      );
       await storageRef.putFile(file);
       final url = await storageRef.getDownloadURL();
 
       await UserService.updateUserProfile(uid: uid, data: {'photoUrl': url});
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile photo updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -506,12 +477,20 @@ class _AnimalGridCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey[200],
-                        child: const Icon(Icons.pets, color: Colors.grey, size: 40),
+                        child: const Icon(
+                          Icons.pets,
+                          color: Colors.grey,
+                          size: 40,
+                        ),
                       ),
                     )
                   : Container(
                       color: Colors.grey[200],
-                      child: const Icon(Icons.pets, color: Colors.grey, size: 40),
+                      child: const Icon(
+                        Icons.pets,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
                     ),
             ),
             Padding(
@@ -521,7 +500,10 @@ class _AnimalGridCard extends StatelessWidget {
                 children: [
                   Text(
                     pet['name'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -541,4 +523,3 @@ class _AnimalGridCard extends StatelessWidget {
     );
   }
 }
-

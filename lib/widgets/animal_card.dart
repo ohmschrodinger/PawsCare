@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import '../services/user_favorites_service.dart';
 
 import '../screens/gallery_screen.dart';
 import '../screens/pet_detail_screen.dart';
@@ -38,8 +39,7 @@ class AnimalCard extends StatefulWidget {
   State<AnimalCard> createState() => _AnimalCardState();
 }
 
-class _AnimalCardState extends State<AnimalCard>
-    with TickerProviderStateMixin {
+class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   int _currentPage = 0;
   late final PageController _pageController;
   late final AnimationController _likeAnimationController;
@@ -59,6 +59,9 @@ class _AnimalCardState extends State<AnimalCard>
     _isSaved = widget.isSaved;
     _likeCount = widget.likeCount;
 
+    // Initialize like and save status from Firestore
+    _initializeFavoriteStatus();
+
     _likeAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -72,7 +75,10 @@ class _AnimalCardState extends State<AnimalCard>
       duration: const Duration(milliseconds: 800),
     );
     _heartAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _heartAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _heartAnimationController,
+        curve: Curves.easeInOut,
+      ),
     );
 
     _heartAnimationController.addStatusListener((status) {
@@ -87,7 +93,23 @@ class _AnimalCardState extends State<AnimalCard>
     super.didUpdateWidget(oldWidget);
     if (widget.isLiked != _isLiked) setState(() => _isLiked = widget.isLiked);
     if (widget.isSaved != _isSaved) setState(() => _isSaved = widget.isSaved);
-    if (widget.likeCount != _likeCount) setState(() => _likeCount = widget.likeCount);
+    if (widget.likeCount != _likeCount)
+      setState(() => _likeCount = widget.likeCount);
+  }
+
+  Future<void> _initializeFavoriteStatus() async {
+    try {
+      final isLiked = await UserFavoritesService.isLiked(widget.animal['id']);
+      final isSaved = await UserFavoritesService.isSaved(widget.animal['id']);
+      if (mounted) {
+        setState(() {
+          _isLiked = isLiked;
+          _isSaved = isSaved;
+        });
+      }
+    } catch (e) {
+      print('Error initializing favorite status: $e');
+    }
   }
 
   @override
@@ -104,22 +126,39 @@ class _AnimalCardState extends State<AnimalCard>
     if (!_isLiked) _toggleLike();
   }
 
-  void _toggleLike() {
-    setState(() {
-      if (_isLiked) {
-        _isLiked = false;
-        _likeCount--;
-      } else {
-        _isLiked = true;
-        _likeCount++;
-        _likeAnimationController.forward().then((_) => _likeAnimationController.reverse());
+  void _toggleLike() async {
+    try {
+      final newLikeStatus = await UserFavoritesService.toggleLike(
+        widget.animal['id'],
+      );
+      if (mounted) {
+        setState(() {
+          _isLiked = newLikeStatus;
+          _likeCount += newLikeStatus ? 1 : -1;
+          if (newLikeStatus) {
+            _likeAnimationController.forward().then(
+              (_) => _likeAnimationController.reverse(),
+            );
+          }
+        });
       }
-    });
+    } catch (e) {
+      print('Error toggling like: $e');
+    }
     widget.onLike?.call();
   }
 
-  void _toggleSave() {
-    setState(() => _isSaved = !_isSaved);
+  void _toggleSave() async {
+    try {
+      final newSaveStatus = await UserFavoritesService.toggleSave(
+        widget.animal['id'],
+      );
+      if (mounted) {
+        setState(() => _isSaved = newSaveStatus);
+      }
+    } catch (e) {
+      print('Error toggling save: $e');
+    }
     widget.onSave?.call();
   }
 
@@ -127,10 +166,8 @@ class _AnimalCardState extends State<AnimalCard>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GalleryScreen(
-          imageUrls: imageUrls,
-          initialIndex: _currentPage,
-        ),
+        builder: (context) =>
+            GalleryScreen(imageUrls: imageUrls, initialIndex: _currentPage),
       ),
     );
   }
@@ -146,7 +183,8 @@ class _AnimalCardState extends State<AnimalCard>
 
   // --- Helper Methods ---
   Color _getStatusColor() {
-    final status = widget.animal['status']?.toString().toLowerCase() ?? 'available';
+    final status =
+        widget.animal['status']?.toString().toLowerCase() ?? 'available';
     switch (status) {
       case 'available':
         return Colors.green;
@@ -174,7 +212,9 @@ class _AnimalCardState extends State<AnimalCard>
     try {
       if (postedAt is DateTime) {
         postedDate = postedAt;
-      } else if (postedAt != null && postedAt is dynamic && postedAt.toDate != null) {
+      } else if (postedAt != null &&
+          postedAt is dynamic &&
+          postedAt.toDate != null) {
         // Firestore Timestamp
         postedDate = postedAt.toDate();
       }
@@ -202,7 +242,11 @@ class _AnimalCardState extends State<AnimalCard>
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -211,7 +255,8 @@ class _AnimalCardState extends State<AnimalCard>
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls = (widget.animal['imageUrls'] as List?)?.cast<String>() ?? [];
+    final imageUrls =
+        (widget.animal['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
 
     return GestureDetector(
@@ -235,11 +280,13 @@ class _AnimalCardState extends State<AnimalCard>
             // --- Image Section ---
             GestureDetector(
               onDoubleTap: _handleDoubleTap,
-              onTap: hasImages 
-                  ? () => _openGallery(context, imageUrls) 
+              onTap: hasImages
+                  ? () => _openGallery(context, imageUrls)
                   : () => _navigateToPetDetail(context),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
@@ -261,21 +308,30 @@ class _AnimalCardState extends State<AnimalCard>
                                   placeholder: (context, url) => Container(
                                     color: Colors.grey.shade200,
                                     child: const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     ),
                                   ),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: Colors.grey.shade200,
-                                    child: Icon(Icons.pets,
-                                        size: 60, color: Colors.grey.shade400),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: Colors.grey.shade200,
+                                        child: Icon(
+                                          Icons.pets,
+                                          size: 60,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      ),
                                 );
                               },
                             )
                           : Container(
                               color: Colors.grey.shade200,
-                              child: Icon(Icons.pets,
-                                  size: 60, color: Colors.grey.shade400),
+                              child: Icon(
+                                Icons.pets,
+                                size: 60,
+                                color: Colors.grey.shade400,
+                              ),
                             ),
                     ),
 
@@ -285,13 +341,14 @@ class _AnimalCardState extends State<AnimalCard>
                         opacity: _heartAnimation,
                         child: ScaleTransition(
                           scale: _heartAnimation.drive(
-                              Tween(begin: 0.5, end: 1.2)),
+                            Tween(begin: 0.5, end: 1.2),
+                          ),
                           child: const Icon(
                             Icons.favorite,
                             color: Colors.white,
                             size: 80,
                             shadows: [
-                              Shadow(color: Colors.black38, blurRadius: 10)
+                              Shadow(color: Colors.black38, blurRadius: 10),
                             ],
                           ),
                         ),
@@ -306,13 +363,15 @@ class _AnimalCardState extends State<AnimalCard>
                             imageUrls.length,
                             (index) => AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 3.0),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 3.0,
+                              ),
                               height: 8.0,
                               width: _currentPage == index ? 24.0 : 8.0,
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(
-                                    _currentPage == index ? 0.9 : 0.6),
+                                  _currentPage == index ? 0.9 : 0.6,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
@@ -341,16 +400,23 @@ class _AnimalCardState extends State<AnimalCard>
                           children: [
                             Flexible(
                               child: Text(
-                                widget.animal['name'] as String? ?? 'Unknown Pet',
+                                widget.animal['name'] as String? ??
+                                    'Unknown Pet',
                                 style: const TextStyle(
-                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Icon(
-                              _getGenderIcon(widget.animal['gender'] as String?),
-                              color: _getGenderColor(widget.animal['gender'] as String?),
+                              _getGenderIcon(
+                                widget.animal['gender'] as String?,
+                              ),
+                              color: _getGenderColor(
+                                widget.animal['gender'] as String?,
+                              ),
                               size: 24,
                             ),
                           ],
@@ -383,7 +449,9 @@ class _AnimalCardState extends State<AnimalCard>
                               Text(
                                 '$_likeCount',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
                             ],
                           ),
@@ -392,9 +460,7 @@ class _AnimalCardState extends State<AnimalCard>
                           IconButton(
                             onPressed: _toggleSave,
                             icon: Icon(
-                              _isSaved
-                                  ? Icons.bookmark
-                                  : Icons.bookmark_border,
+                              _isSaved ? Icons.bookmark : Icons.bookmark_border,
                               color: _isSaved
                                   ? Colors.blueAccent
                                   : Colors.grey.shade700,
@@ -416,14 +482,19 @@ class _AnimalCardState extends State<AnimalCard>
                   // Location and Time
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 16, color: Colors.grey.shade500),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Colors.grey.shade500,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           "${widget.animal['location'] ?? 'Pune, Maharashtra'} • Posted ${_getTimeAgo()}",
                           style: TextStyle(
-                              fontSize: 14, color: Colors.grey.shade500),
+                            fontSize: 14,
+                            color: Colors.grey.shade500,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -438,9 +509,17 @@ class _AnimalCardState extends State<AnimalCard>
                       runSpacing: 4,
                       children: [
                         if (widget.animal['vaccination'] != null)
-                          _buildInfoChip(Icons.vaccines, 'Vaccinated', Colors.green),
+                          _buildInfoChip(
+                            Icons.vaccines,
+                            'Vaccinated',
+                            Colors.green,
+                          ),
                         if (widget.animal['sterilization'] != null)
-                          _buildInfoChip(Icons.healing, 'Sterilized', Colors.blue),
+                          _buildInfoChip(
+                            Icons.healing,
+                            'Sterilized',
+                            Colors.blue,
+                          ),
                       ],
                     ),
                   ],
