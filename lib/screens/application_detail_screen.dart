@@ -1,0 +1,437 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/animal_service.dart';
+
+class ApplicationDetailScreen extends StatefulWidget {
+  final Map<String, dynamic> applicationData;
+  final String applicationId;
+  final bool isAdmin;
+
+  const ApplicationDetailScreen({
+    Key? key,
+    required this.applicationData,
+    required this.applicationId,
+    this.isAdmin = false,
+  }) : super(key: key);
+
+  @override
+  State<ApplicationDetailScreen> createState() => _ApplicationDetailScreenState();
+}
+
+class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
+  bool _isLoading = false;
+  final _reasonController = TextEditingController();
+
+  void _showReasonDialog({required bool isApprove}) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isApprove ? 'Approve Application' : 'Reject Application'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _reasonController,
+              decoration: InputDecoration(
+                labelText: isApprove
+                    ? 'Approval Message (Optional)'
+                    : 'Rejection Reason',
+                hintText: isApprove
+                    ? 'Add a message for the applicant...'
+                    : 'Please provide a reason for rejection...',
+                border: const OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _reasonController.clear();
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (!isApprove && _reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please provide a reason for rejection')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              if (isApprove) {
+                _handleApprove();
+              } else {
+                _handleReject();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isApprove ? Colors.green : Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(isApprove ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleApprove() async {
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('adoptionApplications')
+          .doc(widget.applicationId)
+          .update({
+        'status': 'approved',
+        'adminMessage': _reasonController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (widget.applicationData['animalId'] != null) {
+        await AnimalService.updateAnimalStatus(
+          animalId: widget.applicationData['animalId'],
+          status: 'Pending',
+        );
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Application approved successfully')),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleReject() async {
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('adoptionApplications')
+          .doc(widget.applicationId)
+          .update({
+        'status': 'rejected',
+        'adminMessage': _reasonController.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Application rejected')));
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'Date not available';
+    DateTime? date;
+    if (timestamp is DateTime) {
+      date = timestamp;
+    } else if (timestamp is Timestamp) {
+      date = timestamp.toDate();
+    }
+
+    if (date == null) return 'Date not available';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.applicationData;
+    final status = data['status']?.toString().toLowerCase() ?? 'under review';
+    Color statusColor;
+    String statusText;
+
+    switch (status) {
+      case 'approved':
+        statusColor = Colors.green;
+        statusText = 'Approved';
+        break;
+      case 'rejected':
+        statusColor = Colors.red;
+        statusText = 'Rejected';
+        break;
+      default:
+        statusColor = Colors.orange;
+        statusText = 'Under Review';
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Application Details'),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Status Badge
+                _buildStatusBadge(statusText, statusColor, data['adminMessage']),
+                const SizedBox(height: 24),
+
+                // Pet Info and Applicant Info are now in a single card for cohesion
+                _buildSectionCard('Applicant & Pet Information', Icons.person_pin_circle_outlined, [
+                  _buildSectionHeader('Applicant Information'),
+                  _buildInfoRowWithIcon('Full Name', data['applicantName'], Icons.person_outline),
+                  _buildInfoRowWithIcon('Email', data['applicantEmail'], Icons.email_outlined),
+                  _buildInfoRowWithIcon('Phone', data['applicantPhone'], Icons.phone_outlined),
+                  _buildInfoRowWithIcon('Address', data['applicantAddress'], Icons.location_on_outlined),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Pet Information'),
+                  _buildInfoRowWithIcon('Pet Name', data['petName'], Icons.pets_outlined),
+                  _buildInfoRowWithIcon('Type Looking For', data['petTypeLookingFor'], Icons.search_outlined),
+                  _buildInfoRowWithIcon('Why Adopt', data['whyAdoptPet'], Icons.volunteer_activism_outlined),
+                ]),
+                const SizedBox(height: 24),
+                
+                // Household Information
+                _buildSectionCard('Household & Pet History', Icons.family_restroom_outlined, [
+                  _buildSectionHeader('Household Information'),
+                  _buildInfoRowWithIcon('Home Ownership', data['homeOwnership'], Icons.house_outlined),
+                  _buildInfoRowWithIcon('Household Members', (data['householdMembers'] ?? '').toString(), Icons.groups_outlined),
+                  _buildInfoRowWithIcon('Allergies', (data['hasAllergies'] ?? '').toString(), Icons.sick_outlined),
+                  _buildInfoRowWithIcon('Members Agree', (data['allMembersAgree'] ?? '').toString(), Icons.task_alt_outlined),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Pet History'),
+                  _buildInfoRowWithIcon('Has Current Pets', (data['hasCurrentPets'] ?? '').toString(), Icons.pets),
+                  if (data['hasCurrentPets'] == true)
+                    _buildInfoRowWithIcon('Details', data['currentPetsDetails'], Icons.arrow_right_alt),
+                  _buildInfoRowWithIcon('Has Past Pets', (data['hasPastPets'] ?? '').toString(), Icons.history_edu_outlined),
+                  if (data['hasPastPets'] == true)
+                    _buildInfoRowWithIcon('Details', data['pastPetsDetails'], Icons.arrow_right_alt),
+                  _buildInfoRowWithIcon('Surrendered Pet?', (data['hasSurrenderedPets'] ?? '').toString(), Icons.night_shelter),
+                  if (data['hasSurrenderedPets'] == true)
+                    _buildInfoRowWithIcon('Circumstance', data['surrenderedPetsCircumstance'], Icons.arrow_right_alt),
+                ]),
+                const SizedBox(height: 24),
+
+                // Care, Vet & Commitment
+                _buildSectionCard('Care, Vet & Commitment', Icons.favorite_outline, [
+                  _buildSectionHeader('Care & Responsibility'),
+                  _buildInfoRowWithIcon('Hours Left Alone', data['hoursLeftAlone'], Icons.timer_off_outlined),
+                  _buildInfoRowWithIcon('Kept When Alone', data['whereKeptWhenAlone'], Icons.home_outlined),
+                  _buildInfoRowWithIcon('Financially Prepared', (data['financiallyPrepared'] ?? '').toString(), Icons.attach_money_outlined),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Veterinary Care'),
+                  _buildInfoRowWithIcon('Has Veterinarian', (data['hasVeterinarian'] ?? '').toString(), Icons.local_hospital_outlined),
+                  if (data['hasVeterinarian'] == true)
+                    _buildInfoRowWithIcon('Vet Contact', data['vetContactInfo'], Icons.contact_phone_outlined),
+                  _buildInfoRowWithIcon('Will Provide Vet Care', (data['willingToProvideVetCare'] ?? '').toString(), Icons.medical_services_outlined),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Commitment'),
+                  _buildInfoRowWithIcon('Prepared for Lifetime', (data['preparedForLifetimeCommitment'] ?? '').toString(), Icons.family_restroom_outlined),
+                  _buildInfoRowWithIcon('Plan if cannot keep', data['ifCannotKeepCare'], Icons.crisis_alert_outlined),
+                ]),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black26,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      ),
+      bottomNavigationBar: widget.isAdmin && status == 'under review'
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.close),
+                        label: const Text('Reject'),
+                        onPressed: _isLoading ? null : () => _showReasonDialog(isApprove: false),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.check),
+                        label: const Text('Approve'),
+                        onPressed: _isLoading ? null : () => _showReasonDialog(isApprove: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildStatusBadge(String statusText, Color color, String? adminMessage) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'STATUS: $statusText',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          if (adminMessage?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 8),
+            Text(
+              adminMessage!,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(String title, IconData icon, List<Widget> children) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.blue.shade400, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade400,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24, thickness: 1),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRowWithIcon(String label, dynamic value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatValue(value),
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatValue(dynamic value) {
+    if (value == null || value == '') {
+      return 'N/A';
+    }
+    if (value is bool) {
+      return value ? 'Yes' : 'No';
+    }
+    return value.toString();
+  }
+}

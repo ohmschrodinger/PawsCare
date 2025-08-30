@@ -1,20 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../constants/animal_status.dart';
 
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Post a new animal for adoption
-  static Future<void> postAnimal({
+  static Future<DocumentReference> postAnimal({
     required String name,
     required String species,
     required String age,
     required String gender,
+    required String breedType,
+    required String breed,
     required String sterilization,
     required String vaccination,
-    required String rescueStory,
+    required String deworming,
     required String motherStatus,
+    String? medicalIssues,
+    required String location,
+    required String contactPhone,
+    String? rescueStory,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -23,40 +30,58 @@ class AnimalService {
       }
 
       // Check user role
+      print('DEBUG: Fetching user role for uid: ${user.uid}');
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      final userRole = userDoc.data()?['role'] ?? 'user';
 
-      // Determine approval status based on role
-      final approvalStatus = userRole == 'admin' ? 'approved' : 'pending';
-      final isActive =
-          userRole == 'admin'; // Only admin posts are active immediately
+      // Check if user document exists
+      if (!userDoc.exists) {
+        print('DEBUG: User document does not exist!');
+        throw Exception('User document not found');
+      }
+
+      final userData = userDoc.data();
+      print('DEBUG: User data: ${userData.toString()}');
+
+      // All posts start as pending and inactive, regardless of user role
+      const approvalStatus = 'pending';
+      const isActive = false;
+      print('DEBUG: Setting approval status to: pending');
 
       final animalData = {
         'name': name,
         'species': species,
+        'breedType': breedType,
+        'breed': breed,
         'age': age,
-        'status': 'Available for Adoption',
-        'image':
-            'https://via.placeholder.com/150/FF5733/FFFFFF?text=$species', // Placeholder image
+        'status': 'Available for Adoption', // Changed to match the document
         'gender': gender,
         'sterilization': sterilization,
         'vaccination': vaccination,
-        'rescueStory': rescueStory,
+        'deworming': deworming,
         'motherStatus': motherStatus,
+        'medicalIssues': medicalIssues ?? '',
+        'location': location,
+        'contactPhone': contactPhone,
+        'rescueStory': rescueStory ?? '',
         'postedBy': user.uid,
         'postedByEmail': user.email,
         'postedAt': FieldValue.serverTimestamp(),
         'isActive': isActive,
         'approvalStatus': approvalStatus,
-        'approvedAt': userRole == 'admin' ? FieldValue.serverTimestamp() : null,
-        'approvedBy': userRole == 'admin' ? user.uid : null,
+        'approvedAt': null, // Will be set when approved
+        'approvedBy': null, // Will be set when approved
         'adminMessage': '',
+        'imageUrls': [], // Will be updated after images are uploaded
       };
 
+      print(
+        'DEBUG: About to create animal with data: ${animalData.toString()}',
+      );
+
+      // Add the animal document and return its reference
       final docRef = await _firestore.collection('animals').add(animalData);
-      print('Animal posted successfully: $name with ID: ${docRef.id}');
-      print('Animal data: $animalData');
-      print('Approval status: $approvalStatus');
+      print('DEBUG: Created animal document with ID: ${docRef.id}');
+      return docRef;
     } catch (e) {
       print('Error posting animal: $e');
       throw Exception('Failed to post animal: $e');
@@ -79,6 +104,40 @@ class AnimalService {
           .where('approvalStatus', isEqualTo: 'approved')
           .snapshots();
     }
+  }
+
+  /// Get available animals for adoption
+  static Stream<QuerySnapshot> getAvailableAnimals() {
+    print('DEBUG: Fetching available animals...');
+    return _firestore
+        .collection('animals')
+        .where('approvalStatus', isEqualTo: 'approved')
+        .where(
+          'status',
+          isEqualTo: AnimalStatus.available,
+        ) // Use the constant that matches DB
+        .where('isActive', isEqualTo: true)
+        .orderBy('postedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          print('DEBUG: Found ${snapshot.docs.length} available animals');
+          return snapshot;
+        });
+  }
+
+  /// Get adopted animals
+  static Stream<QuerySnapshot> getAdoptedAnimals() {
+    print('DEBUG: Fetching adopted animals...');
+    return _firestore
+        .collection('animals')
+        .where('approvalStatus', isEqualTo: 'approved')
+        .where('status', isEqualTo: 'Adopted')
+        .orderBy('postedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          print('DEBUG: Found ${snapshot.docs.length} adopted animals');
+          return snapshot;
+        });
   }
 
   /// Fallback method for active animals without ordering
@@ -120,10 +179,26 @@ class AnimalService {
   }
 
   /// Update animal status (e.g., mark as adopted)
+  /// Valid status values are:
+  /// - "Available" (for animals available for adoption)
+  /// - "Adopted" (for animals that have been adopted)
+  /// - "Pending" (for animals with pending adoption applications)
   static Future<void> updateAnimalStatus({
     required String animalId,
     required String status,
   }) async {
+    // Validate status
+    final validStatuses = [
+      AnimalStatus.available,
+      AnimalStatus.adopted,
+      AnimalStatus.pending,
+    ];
+    if (!validStatuses.contains(status)) {
+      throw Exception(
+        'Invalid status. Must be one of: ${validStatuses.join(", ")}',
+      );
+    }
+
     try {
       await _firestore.collection('animals').doc(animalId).update({
         'status': status,
@@ -166,8 +241,20 @@ class AnimalService {
       final snapshot = await _firestore.collection('animals').get();
       print('Total animals in collection: ${snapshot.docs.length}');
 
+      if (snapshot.docs.isEmpty) {
+        print('No animals found in the collection!');
+        return;
+      }
+
       for (var doc in snapshot.docs) {
-        print('Animal ID: ${doc.id}, Data: ${doc.data()}');
+        final data = doc.data();
+        print('\nAnimal ID: ${doc.id}');
+        print('Status: ${data['status']}');
+        print('Approval Status: ${data['approvalStatus']}');
+        print('Name: ${data['name']}');
+        print('Posted By: ${data['postedByEmail']}');
+        print('Posted At: ${data['postedAt']}');
+        print('Full Data: $data');
       }
     } catch (e) {
       print('Error testing animals collection: $e');
@@ -178,6 +265,19 @@ class AnimalService {
   static Stream<QuerySnapshot> getPendingAnimals() {
     try {
       print('DEBUG: Starting getPendingAnimals query');
+
+      // First, let's check what documents exist
+      _firestore.collection('animals').get().then((snapshot) {
+        print(
+          'DEBUG: Total documents in animals collection: ${snapshot.docs.length}',
+        );
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          print(
+            'DEBUG: Document ${doc.id} - approvalStatus: ${data['approvalStatus']}, postedByEmail: ${data['postedByEmail']}',
+          );
+        }
+      });
 
       // Simple query first - if this works, your index should be created
       return _firestore

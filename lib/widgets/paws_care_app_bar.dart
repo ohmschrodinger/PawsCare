@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/user_role.dart';
+import '../main_navigation_screen.dart';
 
 class AppBarMenuItem {
   final String value;
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
-  AppBarMenuItem({required this.value, required this.label, required this.icon, this.onTap});
+  AppBarMenuItem({
+    required this.value,
+    required this.label,
+    required this.icon,
+    this.onTap,
+  });
 }
 
 PreferredSizeWidget buildPawsCareAppBar({
@@ -28,11 +34,24 @@ PreferredSizeWidget buildPawsCareAppBar({
         : SystemUiOverlayStyle.dark,
     backgroundColor: appBarColor,
     elevation: 0,
-    title: Text(
-      'PawsCare',
-      style: TextStyle(
-        color: appBarTextColor,
-        fontWeight: FontWeight.bold,
+    title: GestureDetector(
+      onTap: () {
+        // Navigate to home (index 0) using the mainNavKey
+        mainNavKey.currentState?.selectTab(0);
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.pets, color: appBarTextColor, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            'PawsCare',
+            style: TextStyle(
+              color: appBarTextColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     ),
     centerTitle: false,
@@ -41,9 +60,7 @@ PreferredSizeWidget buildPawsCareAppBar({
         icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Chat feature coming soon!'),
-            ),
+            const SnackBar(content: Text('Chat feature coming soon!')),
           );
         },
       ),
@@ -51,9 +68,7 @@ PreferredSizeWidget buildPawsCareAppBar({
         icon: Icon(Icons.notifications_none, color: appBarTextColor),
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Notifications coming soon!'),
-            ),
+            const SnackBar(content: Text('Notifications coming soon!')),
           );
         },
       ),
@@ -72,20 +87,32 @@ PreferredSizeWidget buildPawsCareAppBar({
               PopupMenuItem(
                 value: 'profile',
                 child: Row(
-                  children: const [Icon(Icons.person), SizedBox(width: 8), Text('Profile')],
+                  children: const [
+                    Icon(Icons.person),
+                    SizedBox(width: 8),
+                    Text('Profile'),
+                  ],
                 ),
               ),
               if (isAdmin)
                 PopupMenuItem(
                   value: 'all_applications',
                   child: Row(
-                    children: const [Icon(Icons.list_alt), SizedBox(width: 8), Text('All Applications')],
+                    children: const [
+                      Icon(Icons.list_alt),
+                      SizedBox(width: 8),
+                      Text('All Applications'),
+                    ],
                   ),
                 ),
               PopupMenuItem(
                 value: 'my_applications',
                 child: Row(
-                  children: const [Icon(Icons.assignment), SizedBox(width: 8), Text('My Applications')],
+                  children: const [
+                    Icon(Icons.assignment),
+                    SizedBox(width: 8),
+                    Text('My Applications'),
+                  ],
                 ),
               ),
             ],

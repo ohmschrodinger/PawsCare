@@ -1,16 +1,12 @@
 // lib/screens/home_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pawscare/screens/full_animal_list_screen.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
+import 'package:pawscare/services/animal_service.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
-
-// NOTE: PostAnimalScreen import removed as FAB was removed, but you can add it back if needed.
-// import 'package:pawscare/screens/post_animal_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -22,9 +18,216 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isAdmin = false;
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: widget.showAppBar
+          ? buildPawsCareAppBar(
+              context: context,
+              onLogout: _logout,
+              onMenuSelected: (value) {
+                if (value == 'profile') {
+                  mainNavKey.currentState?.selectTab(4);
+                } else if (value == 'all_applications') {
+                  Navigator.of(context).pushNamed('/all-applications');
+                } else if (value == 'my_applications') {
+                  Navigator.of(context).pushNamed('/my-applications');
+                }
+              },
+            )
+          : null,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const WelcomeSection(),
+            const SizedBox(height: 24),
+            _buildStatsSection(),
+            const SizedBox(height: 24),
+            _buildAnimalSection(
+              title: "Adopt these Animals",
+              subtitle: "Look at these poor pets and adopt them",
+              statusFilter: 'Available',
+              emptyMessage: "No animals available right now",
+            ),
+            const SizedBox(height: 16),
+            _buildAnimalSection(
+              title: "Previously Adopted",
+              subtitle: "Happy pets who found their forever homes",
+              statusFilter: 'Adopted',
+              emptyMessage: "No animals adopted yet",
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ExpansionTile(
+          leading: Icon(Icons.bar_chart, color: Theme.of(context).primaryColor),
+          title: const Text(
+            'Pet Adoption Stats',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          children: const [
+            ListTile(
+              title: Text('Pets Adopted this Month'),
+              trailing: Text(
+                '14',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              title: Text('Active Rescues'),
+              trailing: Text(
+                '32',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimalSection({
+    required String title,
+    required String subtitle,
+    required String statusFilter,
+    required String emptyMessage,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (statusFilter == 'Available')
+                TextButton(
+                  onPressed: () {
+                    mainNavKey.currentState?.selectTab(1);
+                  },
+                  child: Row(
+                    children: const [
+                      Text("See More"),
+                      SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 18),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 250,
+          child: StreamBuilder<QuerySnapshot>(
+            stream: statusFilter == 'Available'
+                ? AnimalService.getAvailableAnimals()
+                : AnimalService.getAdoptedAnimals(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return const Center(child: Text('Error'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final animals = snapshot.data?.docs ?? [];
+
+              if (animals.isEmpty) {
+                return Center(child: Text(emptyMessage));
+              }
+
+              final previewAnimals = animals.take(10).toList();
+
+              return ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                itemCount: previewAnimals.length,
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final animalData =
+                      previewAnimals[index].data() as Map<String, dynamic>;
+                  final imageUrls =
+                      animalData['imageUrls'] as List<dynamic>? ?? [];
+                  final imageUrl =
+                      (imageUrls.isNotEmpty ? imageUrls.first : null) ??
+                      (animalData['image'] ??
+                          'https://via.placeholder.com/150');
+                  final pet = {
+                    'id': previewAnimals[index].id,
+                    ...animalData,
+                    'image': imageUrl,
+                  };
+                  return HorizontalPetCard(
+                    pet: pet,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PetDetailScreen(petData: pet),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class WelcomeSection extends StatefulWidget {
+  const WelcomeSection({Key? key}) : super(key: key);
+
+  @override
+  _WelcomeSectionState createState() => _WelcomeSectionState();
+}
+
+class _WelcomeSectionState extends State<WelcomeSection> {
   late PageController _pageController;
   int _currentPage = 0;
 
@@ -68,75 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Stream<QuerySnapshot> _getAnimalsStream() {
-    return FirebaseFirestore.instance.collection('animals').snapshots();
-  }
-
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor = isDarkMode
-        ? theme.scaffoldBackgroundColor
-        : Colors.grey.shade50;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
-    return Scaffold(
-      appBar: widget.showAppBar
-          ? buildPawsCareAppBar(
-              context: context,
-              onLogout: _logout,
-              onMenuSelected: (value) {
-                if (value == 'profile') {
-                  if (mainNavKey.currentState != null) {
-                    mainNavKey.currentState!.selectTab(4);
-                  } else {
-                    Navigator.of(context).pushNamed('/main');
-                  }
-                } else if (value == 'all_applications') {
-                  Navigator.of(context).pushNamed('/all-applications');
-                } else if (value == 'my_applications') {
-                  Navigator.of(context).pushNamed('/my-applications');
-                }
-              },
-            )
-          : null,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeSection(),
-            const SizedBox(height: 24),
-            _buildStatsSection(),
-            const SizedBox(height: 24),
-            _buildAnimalSection(
-              title: "Adopt these Animals",
-              subtitle: "Look at these poor pets and adopt them",
-              statusFilter: 'Available',
-              emptyMessage: "No animals available right now",
-            ),
-            const SizedBox(height: 16),
-            _buildAnimalSection(
-              title: "Previously Adopted",
-              subtitle: "Happy pets who found their forever homes",
-              statusFilter: 'Adopted',
-              emptyMessage: "No animals adopted yet",
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Card(
@@ -219,180 +355,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }),
     );
   }
-
-  Widget _buildStatsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: ExpansionTile(
-          leading: Icon(Icons.bar_chart, color: Theme.of(context).primaryColor),
-          title: const Text(
-            'Pet Adoption Stats',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          children: const [
-            ListTile(
-              title: Text('Pets Adopted this Month'),
-              trailing: Text(
-                '14',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            ListTile(
-              title: Text('Active Rescues'),
-              trailing: Text(
-                '32',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // MODIFIED: The ListView.builder no longer has the problematic PageController.
-  Widget _buildAnimalSection({
-    required String title,
-    required String subtitle,
-    required String statusFilter,
-    required String emptyMessage,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: false).push(
-                    MaterialPageRoute(
-                      builder: (context) => FullAnimalListScreen(
-                        title: title,
-                        animalStatus: statusFilter,
-                      ),
-                      fullscreenDialog: false,
-                    ),
-                  );
-                },
-                child: Row(
-                  children: const [
-                    Text("See More"),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 18),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 250,
-          child: StreamBuilder<QuerySnapshot>(
-            stream: _getAnimalsStream(),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) return const Center(child: Text('Error'));
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final animals = snapshot.data?.docs ?? [];
-              List filteredAnimals;
-
-              if (statusFilter == 'Available') {
-                filteredAnimals = animals.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['approvalStatus'] == 'approved' &&
-                      data['status'] != 'Adopted';
-                }).toList();
-              } else {
-                filteredAnimals = animals.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['status'] == 'Adopted';
-                }).toList();
-              }
-
-              if (filteredAnimals.isEmpty) {
-                return Center(child: Text(emptyMessage));
-              }
-
-              final previewAnimals = filteredAnimals.take(10).toList();
-
-              // FIX: Removed the PageController from the ListView. The card width is
-              // now controlled in the HorizontalPetCard widget itself.
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: previewAnimals.length,
-                physics: const BouncingScrollPhysics(),
-                itemBuilder: (context, index) {
-                  final animalData =
-                      previewAnimals[index].data() as Map<String, dynamic>;
-                  final imageUrls =
-                      animalData['imageUrls'] as List<dynamic>? ?? [];
-                  final imageUrl =
-                      (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                      (animalData['image'] ??
-                          'https://via.placeholder.com/150');
-                  final pet = {
-                    'id': previewAnimals[index].id,
-                    ...animalData,
-                    'image': imageUrl,
-                  };
-                  return HorizontalPetCard(
-                    pet: pet,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PetDetailScreen(petData: pet),
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-// MODIFIED: Card width is now explicitly set to a fraction of the screen width.
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
@@ -402,8 +366,6 @@ class HorizontalPetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Set a fixed width as a percentage of the screen width. This is a
-    // more reliable way to achieve the "1.x card" look without layout errors.
     final cardWidth = MediaQuery.of(context).size.width * 0.75;
 
     return SizedBox(

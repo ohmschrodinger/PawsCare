@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/home_screen.dart';
 import 'package:pawscare/widgets/paws_care_app_bar.dart';
-import '../../main_navigation_screen.dart';
+import 'package:pawscare/screens/my_applications_screen.dart';
+import 'package:pawscare/screens/all_applications_screen.dart';
+import '../main_navigation_screen.dart';
 
 class HomeWrapper extends StatefulWidget {
   const HomeWrapper({super.key});
@@ -42,14 +44,29 @@ class _HomeWrapperState extends State<HomeWrapper> {
           onMenuSelected: (value) {
             if (value == 'profile') {
               if (mainNavKey.currentState != null) {
-                mainNavKey.currentState!.selectTab(4);
+                mainNavKey.currentState!.selectTab(4); // Profile tab index
               } else {
                 Navigator.of(context).pushNamed('/main');
               }
-            } else if (value == 'all_applications') {
-              Navigator.of(context).pushNamed('/all-applications');
-            } else if (value == 'my_applications') {
-              Navigator.of(context).pushNamed('/my-applications');
+            } else if (value == 'all_applications' ||
+                value == 'my_applications') {
+              if (_navigatorKey.currentState?.canPop() ?? false) {
+                _navigatorKey.currentState?.pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => value == 'all_applications'
+                        ? const AllApplicationsScreen(showAppBar: false)
+                        : const MyApplicationsScreen(showAppBar: false),
+                  ),
+                );
+              } else {
+                _navigatorKey.currentState?.push(
+                  MaterialPageRoute(
+                    builder: (context) => value == 'all_applications'
+                        ? const AllApplicationsScreen(showAppBar: false)
+                        : const MyApplicationsScreen(showAppBar: false),
+                  ),
+                );
+              }
             }
           },
         ),
@@ -62,6 +79,14 @@ class _HomeWrapperState extends State<HomeWrapper> {
               case '/':
                 builder = (BuildContext context) =>
                     const HomeScreen(showAppBar: false);
+                break;
+              case '/my-applications':
+                builder = (BuildContext context) =>
+                    const MyApplicationsScreen(showAppBar: false);
+                break;
+              case '/all-applications':
+                builder = (BuildContext context) =>
+                    const AllApplicationsScreen(showAppBar: false);
                 break;
               default:
                 throw Exception('Invalid route: ${settings.name}');

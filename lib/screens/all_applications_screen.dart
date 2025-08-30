@@ -1,4 +1,4 @@
-// screens/my_applications_screen.dart
+// screens/all_applications_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,17 +9,45 @@ import 'package:pawscare/screens/application_detail_screen.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 
-class MyApplicationsScreen extends StatefulWidget {
+class AllApplicationsScreen extends StatefulWidget {
   final bool showAppBar;
 
-  const MyApplicationsScreen({super.key, this.showAppBar = true});
+  const AllApplicationsScreen({super.key, this.showAppBar = true});
 
   @override
-  State<MyApplicationsScreen> createState() => _MyApplicationsScreenState();
+  State<AllApplicationsScreen> createState() => _AllApplicationsScreenState();
 }
 
-class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
+class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
+  bool _isAdmin = false;
+  bool _isLoading = true;
   String? _statusFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      if (mounted) {
+        setState(() {
+          _isAdmin = userDoc.data()?['role'] == 'admin';
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
@@ -30,13 +58,18 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    if (_isLoading) {
+      return Scaffold(
+        appBar: widget.showAppBar ? _buildAppBar() : null,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    if (currentUser == null) {
+    if (!_isAdmin) {
       return Scaffold(
         appBar: widget.showAppBar ? _buildAppBar() : null,
         body: const Center(
-          child: Text('Please log in to view your applications.'),
+          child: Text('You do not have permission to view this page.'),
         ),
       );
     }
@@ -54,9 +87,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                     Navigator.of(context).pushNamed('/main');
                   }
                 } else if (value == 'all_applications') {
-                  Navigator.of(context).pushNamed('/all-applications');
-                } else if (value == 'my_applications') {
                   // Already on this screen
+                } else if (value == 'my_applications') {
+                  Navigator.of(context).pushNamed('/my-applications');
                 }
               },
             )
@@ -70,7 +103,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'My Applications',
+                  'All Applications',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 DropdownButton<String>(
@@ -100,12 +133,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               ],
             ),
           ),
-          Expanded(
-            child: _buildApplicationsList(
-              userId: currentUser.uid,
-              isAdminView: false,
-            ),
-          ),
+          Expanded(child: _buildApplicationsList(isAdminView: true)),
         ],
       ),
     );
@@ -126,27 +154,11 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       backgroundColor: appBarColor,
       elevation: 0,
       title: Text(
-        'PawsCare',
+        'PawsCare - Admin',
         style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
       ),
       centerTitle: false,
       actions: [
-        IconButton(
-          icon: Icon(Icons.chat_bubble_outline, color: appBarTextColor),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Chat feature coming soon!')),
-            );
-          },
-        ),
-        IconButton(
-          icon: Icon(Icons.notifications_none, color: appBarTextColor),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Notifications coming soon!')),
-            );
-          },
-        ),
         PopupMenuButton<String>(
           icon: Icon(Icons.account_circle, color: appBarTextColor),
           onSelected: (value) {
@@ -169,14 +181,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     );
   }
 
-  Widget _buildApplicationsList({String? userId, required bool isAdminView}) {
+  Widget _buildApplicationsList({required bool isAdminView}) {
     Query query = FirebaseFirestore.instance
         .collection('applications')
         .orderBy('appliedAt', descending: true);
-
-    if (!isAdminView && userId != null) {
-      query = query.where('userId', isEqualTo: userId);
-    }
 
     if (_statusFilter != null) {
       query = query.where('status', isEqualTo: _statusFilter);
@@ -194,7 +202,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
             child: Text(
-              'You have no adoption applications yet.',
+              'No applications found.',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           );
@@ -254,7 +262,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   applicationData: appData,
                   animalData: animalData,
                   applicationId: applicationDoc.id,
-                  showAdminActions: false, // Always false for this screen
+                  showAdminActions: true, // Always true for this screen
                 );
               },
             );
@@ -302,8 +310,153 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
         builder: (context) => ApplicationDetailScreen(
           applicationData: appData,
           applicationId: widget.applicationId,
-          isAdmin: false,
+          isAdmin: widget.showAdminActions,
         ),
+      ),
+    );
+  }
+
+  void _showApproveDialog(BuildContext context, String applicationId) {
+    final messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Approve Application'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'This will mark the pet as "Adopted" and approve the application.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                labelText: 'Optional Message',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final appRef = FirebaseFirestore.instance
+                    .collection('applications')
+                    .doc(applicationId);
+                final appSnap = await appRef.get();
+                final appData = appSnap.data();
+                await appRef.update({
+                  'status': 'Accepted',
+                  'adminMessage': messageController.text.trim(),
+                  'reviewedAt': FieldValue.serverTimestamp(),
+                });
+
+                if (appData != null && appData['petId'] != null) {
+                  await FirebaseFirestore.instance
+                      .collection('animals')
+                      .doc(appData['petId'])
+                      .update({'status': 'Adopted'});
+                }
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Application approved!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Approve'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRejectDialog(BuildContext context, String applicationId) {
+    final messageController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Application'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('This will reject the adoption application.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                labelText: 'Reason for Rejection *',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (messageController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please provide a reason for rejection.'),
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await FirebaseFirestore.instance
+                    .collection('applications')
+                    .doc(applicationId)
+                    .update({
+                      'status': 'Rejected',
+                      'adminMessage': messageController.text.trim(),
+                      'reviewedAt': FieldValue.serverTimestamp(),
+                    });
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reject'),
+          ),
+        ],
       ),
     );
   }
@@ -317,11 +470,7 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
     final appStatus = widget.applicationData['status'] ?? 'Under Review';
     final petName = widget.animalData['name'] ?? 'Unknown Pet';
     final gender = widget.animalData['gender'] as String?;
-
-    final appliedAt = widget.applicationData['appliedAt'] as Timestamp?;
-    final appliedDate = appliedAt != null
-        ? DateFormat('MMM d, yyyy').format(appliedAt.toDate())
-        : 'N/A';
+    final applicantName = widget.applicationData['applicantName'];
 
     Color appStatusColor;
     switch (appStatus) {
@@ -465,7 +614,7 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Applied on: $appliedDate',
+                    'Applicant: $applicantName',
                     style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
                   ),
                   const Divider(height: 24),
@@ -519,6 +668,29 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                           ),
                         ),
                       ),
+                      const Spacer(),
+                      if (widget.showAdminActions &&
+                          appStatus == 'Under Review') ...[
+                        ElevatedButton(
+                          onPressed: () =>
+                              _showApproveDialog(context, widget.applicationId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Approve'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () =>
+                              _showRejectDialog(context, widget.applicationId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Reject'),
+                        ),
+                      ],
                     ],
                   ),
                 ],

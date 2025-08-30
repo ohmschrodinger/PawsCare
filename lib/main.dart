@@ -49,7 +49,8 @@ class PawsCareApp extends StatelessWidget {
       // Define a centralized theme for a consistent, modern UI
       theme: ThemeData(
         primaryColor: primaryColor,
-        scaffoldBackgroundColor: Colors.grey[50], // Light background for all screens
+        scaffoldBackgroundColor:
+            Colors.grey[50], // Light background for all screens
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
           backgroundColor: primaryColor,
@@ -71,7 +72,10 @@ class PawsCareApp extends StatelessWidget {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 16,
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -81,7 +85,10 @@ class PawsCareApp extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            textStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
