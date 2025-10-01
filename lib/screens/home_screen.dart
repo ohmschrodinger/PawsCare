@@ -88,47 +88,52 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 4,
         color: kCardColor, // Dark card background
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: ExpansionTile(
-          iconColor: kPrimaryAccentColor,
-          collapsedIconColor: kSecondaryTextColor,
-          leading: const Icon(Icons.bar_chart, color: kPrimaryAccentColor),
-          title: const Text(
-            'Pet Adoption Stats',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: kPrimaryTextColor,
+        // --- 👇 CHANGE IS HERE ---
+        child: Theme(
+          // This removes the default top/bottom dividers
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            iconColor: kPrimaryAccentColor,
+            collapsedIconColor: kSecondaryTextColor,
+            leading: const Icon(Icons.bar_chart, color: kPrimaryAccentColor),
+            title: const Text(
+              'Pet Adoption Stats',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: kPrimaryTextColor,
+              ),
             ),
+            children: const [
+              ListTile(
+                title: Text(
+                  'Pets Adopted this Month',
+                  style: TextStyle(color: kSecondaryTextColor),
+                ),
+                trailing: Text(
+                  '14',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryAccentColor,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              ListTile(
+                title: Text(
+                  'Active Rescues',
+                  style: TextStyle(color: kSecondaryTextColor),
+                ),
+                trailing: Text(
+                  '32',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryAccentColor,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
           ),
-          children: const [
-            ListTile(
-              title: Text(
-                'Pets Adopted this Month',
-                style: TextStyle(color: kSecondaryTextColor),
-              ),
-              trailing: Text(
-                '14',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: kPrimaryAccentColor,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            ListTile(
-              title: Text(
-                'Active Rescues',
-                style: TextStyle(color: kSecondaryTextColor),
-              ),
-              trailing: Text(
-                '32',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: kPrimaryAccentColor,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -276,8 +281,11 @@ class WelcomeSection extends StatefulWidget {
 }
 
 class _WelcomeSectionState extends State<WelcomeSection> {
-  late PageController _pageController;
-  int _currentPage = 0;
+  final PageController _pageController;
+  double _currentPageValue = 0.0;
+
+  _WelcomeSectionState()
+      : _pageController = PageController(viewportFraction: 0.85);
 
   final List<Map<String, dynamic>> _infoPages = [
     {
@@ -310,7 +318,11 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController.addListener(() {
+      setState(() {
+        _currentPageValue = _pageController.page!;
+      });
+    });
   }
 
   @override
@@ -336,18 +348,24 @@ class _WelcomeSectionState extends State<WelcomeSection> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _infoPages.length,
-                // Note: The onPageChanged callback is no longer needed
-                // because the SmoothPageIndicator handles this automatically.
                 itemBuilder: (context, index) {
-                  return _buildInfoPage(
-                    title: _infoPages[index]['title'],
-                    text: _infoPages[index]['text'],
+                  double scale;
+                  double delta = index - _currentPageValue;
+                  delta = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
+                  scale = delta;
+
+                  return Transform.scale(
+                    scale: scale,
+                    child: _buildInfoPage(
+                      title: _infoPages[index]['title'],
+                      text: _infoPages[index]['text'],
+                    ),
                   );
                 },
               ),
             ),
             const SizedBox(height: 10),
-            _buildPageIndicator(), // This now calls the updated widget
+            _buildPageIndicator(),
           ],
         ),
       ),
@@ -356,7 +374,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
 
   Widget _buildInfoPage({required String title, required String text}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 1.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,12 +402,11 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
-  // --- 👇 THIS IS THE UPDATED WIDGET ---
   Widget _buildPageIndicator() {
     return SmoothPageIndicator(
       controller: _pageController,
       count: _infoPages.length,
-      effect: WormEffect( // This provides the smooth "worm-like" animation
+      effect: WormEffect(
         dotHeight: 8.0,
         dotWidth: 8.0,
         activeDotColor: kPrimaryAccentColor,
@@ -398,9 +415,6 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 }
-
-
-
 
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
