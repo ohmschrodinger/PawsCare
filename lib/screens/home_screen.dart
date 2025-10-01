@@ -374,7 +374,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
 
   Widget _buildInfoPage({required String title, required String text}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1.0),
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,

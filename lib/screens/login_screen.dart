@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'signup_screen.dart'; // Navigate to the new SignUpScreen
+import 'signup_screen.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_error_messages.dart';
+
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,8 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-  // New state variable to hold the error message
   String? _errorMessage;
 
   @override
@@ -28,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // --- All validation and authentication logic remains unchanged ---
   String? _validateEmail(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your email';
@@ -50,13 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    // Clear previous errors and set loading state
     setState(() {
       _isLoading = true;
-      _errorMessage = null; 
+      _errorMessage = null;
     });
-
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
@@ -81,16 +85,13 @@ class _LoginScreenState extends State<LoginScreen> {
           print('Warning: Failed to ensure user document exists: $e');
         }
         if (!mounted) return;
-        // Use pushReplacementNamed to prevent going back to login screen
         Navigator.pushReplacementNamed(context, '/main');
       }
     } on FirebaseAuthException catch (e) {
-      // Set the error message instead of showing a dialog
       setState(() {
         _errorMessage = AuthErrorMessages.fromFirebaseAuthException(e);
       });
     } catch (e) {
-      // Set a general error message
       setState(() {
         _errorMessage = AuthErrorMessages.general(e);
       });
@@ -107,7 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final userCredential = await AuthService.signInWithGoogle();
       if (userCredential != null && mounted) {
-        // Use pushReplacementNamed to prevent going back to login screen
         Navigator.pushReplacementNamed(context, '/main');
       }
     } catch (e) {
@@ -121,44 +121,46 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Handle back button behavior
   Future<bool> _onWillPop() async {
-    // If user tries to go back, show a dialog asking if they want to exit
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Exit App?'),
-        content: const Text('Are you sure you want to exit the app?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: kCardColor,
+            title: const Text('Exit App?',
+                style: TextStyle(color: kPrimaryTextColor)),
+            content: const Text('Are you sure you want to exit the app?',
+                style: TextStyle(color: kSecondaryTextColor)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel',
+                    style: TextStyle(color: kPrimaryTextColor)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Exit',
+                    style: TextStyle(color: kPrimaryAccentColor)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Exit'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
-
-  // The _showErrorDialog method is no longer needed here.
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF5AC8F2);
-
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
+        backgroundColor: kBackgroundColor,
         appBar: AppBar(
-          title: const Text('Sign in'),
+          title:
+              const Text('Sign in', style: TextStyle(color: kPrimaryTextColor)),
           automaticallyImplyLeading: true,
+          iconTheme: const IconThemeData(color: kPrimaryTextColor),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
-        backgroundColor: Colors.grey[50],
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -169,8 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo and Title
-                    const Icon(Icons.pets, color: primaryColor, size: 60),
+                    const Icon(Icons.pets,
+                        color: kPrimaryAccentColor, size: 60),
                     const SizedBox(height: 16),
                     const Text(
                       'PawsCare',
@@ -178,116 +180,119 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: primaryColor,
+                        color: kPrimaryAccentColor,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Welcome back!',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.grey[700]),
+                      style:
+                          TextStyle(fontSize: 18, color: kSecondaryTextColor),
                     ),
                     const SizedBox(height: 48),
-
-                    // Email Field
                     TextFormField(
                       controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email Address',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                      ),
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration: _buildInputDecoration(
+                          'Email Address', Icons.email_outlined),
                       validator: _validateEmail,
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
-
-                    // Password Field
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                      ),
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration:
+                          _buildInputDecoration('Password', Icons.lock_outline),
                       validator: _validatePassword,
                     ),
-                    
-                    // Display Error Message (if it exists)
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Text(
                         _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w500),
                         textAlign: TextAlign.center,
                       ),
                     ],
-
-                    // Forgot Password
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, '/password-reset');
                         },
-                        child: const Text('Forgot Password?'),
+                        child: const Text('Forgot Password?',
+                            style: TextStyle(color: kPrimaryAccentColor)),
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // Login Button
                     _isLoading
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: kPrimaryAccentColor))
                         : ElevatedButton(
                             onPressed: _login,
-                            child: const Text('Login'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryAccentColor,
+                              foregroundColor: Colors.black,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Login',
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold)),
                           ),
                     const SizedBox(height: 24),
-
-                    // "Or Login with" Divider
                     Row(
                       children: [
-                        Expanded(child: Divider(color: Colors.grey[300])),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text('Or Login with', style: TextStyle(color: Colors.grey[600])),
+                        Expanded(child: Divider(color: Colors.grey.shade800)),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text('Or Login with',
+                              style: TextStyle(color: kSecondaryTextColor)),
                         ),
-                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Expanded(child: Divider(color: Colors.grey.shade800)),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
-                    // Google Sign-In Button
                     OutlinedButton.icon(
                       icon: Image.asset(
-                        'assets/images/google_logo.png',
+                        'assets/images/google_logo.png', // Ensure this asset exists
                         height: 18,
                         width: 18,
                       ),
                       label: const Text('Continue with Google'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: Color(0xFF5AC8F2)),
+                        side: BorderSide(color: Colors.grey.shade800),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        foregroundColor: Colors.black87,
-                        backgroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        foregroundColor: kPrimaryTextColor,
+                        backgroundColor: kCardColor,
+                        textStyle: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       onPressed: _isLoading ? null : _loginWithGoogle,
                     ),
                     const SizedBox(height: 32),
-
-                    // Sign Up Navigation
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Don't have an account?"),
+                        const Text("Don't have an account?",
+                            style: TextStyle(color: kSecondaryTextColor)),
                         TextButton(
                           onPressed: () {
                             Navigator.pushReplacementNamed(context, '/signup');
                           },
-                          child: const Text('Register Now'),
+                          child: const Text('Register Now',
+                              style: TextStyle(color: kPrimaryAccentColor)),
                         ),
                       ],
                     ),
@@ -297,6 +302,34 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: kSecondaryTextColor),
+      prefixIcon: Icon(icon, color: kSecondaryTextColor),
+      // --- CHANGES HERE ---
+      filled: true, // This tells the field to be filled
+      fillColor: kCardColor, // This sets the dark fill color
+      // --------------------
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade800),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
       ),
     );
   }

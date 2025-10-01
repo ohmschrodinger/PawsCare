@@ -93,7 +93,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const TabBar(
                   labelColor: kPrimaryAccentColor,
                   unselectedLabelColor: kSecondaryTextColor,
+                  // --- 👇 THIS IS THE CHANGE ---
+                  // Yellow indicator line is now visible
                   indicatorColor: kPrimaryAccentColor,
+                  // Grey divider line remains hidden
+                  dividerColor: Colors.transparent,
+                  // -----------------------------
                   tabs: [
                     Tab(text: 'My Posts'),
                     Tab(text: 'Liked'),
@@ -204,7 +209,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(text: initialAddress);
 
-    // Reusable input decoration for dark theme text fields
     final darkInputDecoration = (String label) => InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: kSecondaryTextColor),
@@ -219,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kCardColor, // Dark background
+      backgroundColor: kCardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -271,7 +275,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () async {
-                  // Logic remains the same
                   try {
                     await UserService.updateUserProfile(
                       uid: uid,
@@ -307,7 +310,7 @@ class _ProfileHeader extends StatelessWidget {
   final String? photoUrl;
   final bool isUploading;
   final VoidCallback onChangePhoto;
-  final VoidCallback onEditProfile; // Added for edit button
+  final VoidCallback onEditProfile;
 
   const _ProfileHeader({
     Key? key,
@@ -493,7 +496,7 @@ class _AnimalGridCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
-        color: kCardColor, // Dark background for the card
+        color: kCardColor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
