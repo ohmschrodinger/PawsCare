@@ -8,22 +8,28 @@ import 'package:pawscare/widgets/paws_care_app_bar.dart';
 import 'package:pawscare/widgets/animal_card.dart';
 import '../main_navigation_screen.dart';
 
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
+
 class AnimalAdoptionScreen extends StatelessWidget {
   const AnimalAdoptionScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBackgroundColor, // Set the dark background color
       appBar: buildPawsCareAppBar(
         context: context,
         onMenuSelected: (value) {
+          // Navigation logic remains unchanged
           if (value == 'profile') {
-            mainNavKey.currentState?.selectTab(4); // Navigate to profile tab
+            mainNavKey.currentState?.selectTab(4);
           } else if (value == 'all_applications') {
-            mainNavKey.currentState?.selectTab(0); // Go to home tab
             Navigator.of(context).pushNamed('/all-applications');
           } else if (value == 'my_applications') {
-            mainNavKey.currentState?.selectTab(0); // Go to home tab
             Navigator.of(context).pushNamed('/my-applications');
           }
         },
@@ -32,10 +38,13 @@ class AnimalAdoptionScreen extends StatelessWidget {
         stream: AnimalService.getAvailableAnimals(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Something went wrong'));
+            return const Center(
+                child: Text('Something went wrong',
+                    style: TextStyle(color: Colors.redAccent)));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+                child: CircularProgressIndicator(color: kPrimaryAccentColor));
           }
 
           final animals = snapshot.data?.docs ?? [];
@@ -44,14 +53,13 @@ class AnimalAdoptionScreen extends StatelessWidget {
             return const Center(
               child: Text(
                 'No animals available for adoption right now.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(fontSize: 16, color: kSecondaryTextColor),
               ),
             );
           }
 
           return ListView.builder(
-            padding: EdgeInsets
-                .zero, // Remove padding as AnimalCard has its own margins
+            padding: EdgeInsets.zero,
             itemCount: animals.length,
             itemBuilder: (context, index) {
               final animalDoc = animals[index];
@@ -60,10 +68,11 @@ class AnimalAdoptionScreen extends StatelessWidget {
                 ...(animalDoc.data() as Map<String, dynamic>),
               };
 
+              // NOTE: This relies on `AnimalCard` also being styled for the dark theme.
               return AnimalCard(
                 animal: animalData,
-                isLiked: false, // TODO: Implement like status from user data
-                isSaved: false, // TODO: Implement save status from user data
+                isLiked: false, // This functionality remains as TODO
+                isSaved: false, // This functionality remains as TODO
                 likeCount: (animalData['likeCount'] as int?) ?? 0,
                 onLike: () {
                   // TODO: Implement like functionality

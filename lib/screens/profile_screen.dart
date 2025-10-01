@@ -6,11 +6,17 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'settings_screen.dart';
 import '../services/user_favorites_service.dart';
-
-// --- Assuming these services and screens exist in your project ---
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
-import 'pet_detail_screen.dart'; // Needed for navigation
+import 'pet_detail_screen.dart';
+
+// --- Re-using the color palette for consistency ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -------------------------------------------------
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -23,30 +29,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
 
-  Future<void> _logout() async {
-    await AuthService.signOut();
-    if (mounted) {
-      // Navigate to login screen after logout
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = AuthService.getCurrentUser();
 
-    // Handle user not logged in
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Account')),
-        body: const Center(child: Text('Please log in to view your account.')),
+        backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Account', style: TextStyle(color: kPrimaryTextColor)),
+          backgroundColor: kBackgroundColor,
+        ),
+        body: const Center(
+            child: Text('Please log in to view your account.',
+                style: TextStyle(color: kSecondaryTextColor))),
       );
     }
 
-    // Main UI for logged-in user
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: kBackgroundColor,
         appBar: _buildAppBar(context, user),
         body: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
@@ -55,7 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                  child: CircularProgressIndicator(color: kPrimaryAccentColor));
             }
             if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
@@ -86,11 +90,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                TabBar(
-                  labelColor: Theme.of(context).primaryColor,
-                  unselectedLabelColor: Colors.grey.shade600,
-                  indicatorColor: Theme.of(context).primaryColor,
-                  tabs: const [
+                const TabBar(
+                  labelColor: kPrimaryAccentColor,
+                  unselectedLabelColor: kSecondaryTextColor,
+                  indicatorColor: kPrimaryAccentColor,
+                  tabs: [
                     Tab(text: 'My Posts'),
                     Tab(text: 'Liked'),
                     Tab(text: 'Saved'),
@@ -99,17 +103,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      // My Posts Tab
                       _AnimalGridView(
                         stream: _getMyPostsStream(user.uid),
                         emptyMessage: "You haven't posted any animals yet.",
                       ),
-                      // Liked Tab (Placeholder)
                       _AnimalGridView(
                         stream: _getLikedAnimalsStream(user.uid),
                         emptyMessage: "You haven't liked any animals yet.",
                       ),
-                      // Saved Tab (Placeholder)
                       _AnimalGridView(
                         stream: _getSavedAnimalsStream(user.uid),
                         emptyMessage: "You haven't saved any animals yet.",
@@ -125,28 +126,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Build a consistent AppBar
   AppBar _buildAppBar(BuildContext context, User user) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
     return AppBar(
-      backgroundColor: isDarkMode
-          ? theme.scaffoldBackgroundColor
-          : Colors.grey.shade50,
+      backgroundColor: kBackgroundColor,
       elevation: 0,
-      title: Text(
-        'PawsCare',
-        style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
+      title: const Text(
+        'Account',
+        style:
+            TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
       ),
       centerTitle: false,
       actions: [
-        // ... inside _buildAppBar method
         IconButton(
-          icon: Icon(Icons.settings_outlined, color: appBarTextColor),
+          icon: const Icon(Icons.settings_outlined, color: kPrimaryTextColor),
           onPressed: () {
-            // Navigate to the new SettingsScreen
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const SettingsScreen()),
             );
@@ -156,7 +149,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- Data Streams for Tabs ---
   Stream<QuerySnapshot> _getMyPostsStream(String uid) {
     return FirebaseFirestore.instance
         .collection('animals')
@@ -164,18 +156,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .snapshots();
   }
 
-  // Get user's liked animals with details
   Stream<QuerySnapshot> _getLikedAnimalsStream(String uid) {
     return UserFavoritesService.getLikedAnimalDetails();
   }
 
-  // Get user's saved animals with details
   Stream<QuerySnapshot> _getSavedAnimalsStream(String uid) {
     return UserFavoritesService.getSavedAnimalDetails();
   }
 
-  // --- Methods for profile actions (unchanged logic) ---
   Future<void> _pickAndUploadAvatar(String uid) async {
+    // Logic remains the same
     try {
       final picked = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -184,25 +174,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (picked == null) return;
       setState(() => _isUploading = true);
-
       final file = File(picked.path);
-      final storageRef = FirebaseStorage.instance.ref().child(
-        'user_avatars/$uid.jpg',
-      );
+      final storageRef =
+          FirebaseStorage.instance.ref().child('user_avatars/$uid.jpg');
       await storageRef.putFile(file);
       final url = await storageRef.getDownloadURL();
-
       await UserService.updateUserProfile(uid: uid, data: {'photoUrl': url});
-
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile photo updated')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo updated')));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Upload failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -220,19 +204,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(text: initialAddress);
 
+    // Reusable input decoration for dark theme text fields
+    final darkInputDecoration = (String label) => InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: kPrimaryAccentColor),
+          ),
+        );
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: kCardColor, // Dark background
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            left: 20,
+            right: 20,
+            top: 20,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -240,29 +237,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Text(
                 'Edit Profile',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryTextColor),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: fullNameController,
+                style: const TextStyle(color: kPrimaryTextColor),
+                decoration: darkInputDecoration('Full Name'),
               ),
               const SizedBox(height: 12),
               TextField(
-                controller: fullNameController,
-                decoration: const InputDecoration(labelText: 'Full Name'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
                 controller: phoneController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
+                style: const TextStyle(color: kPrimaryTextColor),
+                decoration: darkInputDecoration('Phone Number'),
                 keyboardType: TextInputType.phone,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               TextField(
                 controller: addressController,
-                decoration: const InputDecoration(labelText: 'Address'),
+                style: const TextStyle(color: kPrimaryTextColor),
+                decoration: darkInputDecoration('Address'),
                 keyboardType: TextInputType.streetAddress,
                 maxLines: 2,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryAccentColor,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
                 onPressed: () async {
+                  // Logic remains the same
                   try {
                     await UserService.updateUserProfile(
                       uid: uid,
@@ -276,12 +285,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (!mounted) return;
                     Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profile updated')),
-                    );
+                        const SnackBar(content: Text('Profile updated')));
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update: $e')),
-                    );
+                        SnackBar(content: Text('Failed to update: $e')));
                   }
                 },
                 child: const Text('Save Changes'),
@@ -294,15 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// --- New and Refactored Widgets ---
-
 class _ProfileHeader extends StatelessWidget {
   final String displayName;
   final String email;
   final String? photoUrl;
   final bool isUploading;
   final VoidCallback onChangePhoto;
-  final VoidCallback onEditProfile;
+  final VoidCallback onEditProfile; // Added for edit button
 
   const _ProfileHeader({
     Key? key,
@@ -316,68 +321,82 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.bottomRight,
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-              backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
-                  ? NetworkImage(photoUrl!)
-                  : null,
-              child: (photoUrl == null || photoUrl!.isEmpty)
-                  ? Text(
-                      _computeInitials(displayName),
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    )
-                  : null,
-            ),
-            Positioned(
-              right: -4,
-              bottom: -4,
-              child: IconButton(
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  shape: const CircleBorder(),
-                  elevation: 2,
-                ),
-                onPressed: isUploading ? null : onChangePhoto,
-                icon: isUploading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        children: [
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
+                backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
+                    ? NetworkImage(photoUrl!)
+                    : null,
+                child: (photoUrl == null || photoUrl!.isEmpty)
+                    ? Text(
+                        _computeInitials(displayName),
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: kPrimaryAccentColor,
+                        ),
                       )
-                    : Icon(
-                        Icons.camera_alt,
-                        size: 20,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                    : null,
               ),
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: kCardColor,
+                    shape: const CircleBorder(
+                        side: BorderSide(color: kBackgroundColor, width: 2)),
+                    elevation: 2,
+                  ),
+                  onPressed: isUploading ? null : onChangePhoto,
+                  icon: isUploading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: kPrimaryAccentColor),
+                        )
+                      : const Icon(Icons.camera_alt,
+                          size: 20, color: kPrimaryAccentColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            displayName,
+            style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryTextColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            email,
+            style: const TextStyle(fontSize: 16, color: kSecondaryTextColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: onEditProfile,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: kPrimaryTextColor,
+              side: const BorderSide(color: kSecondaryTextColor),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          displayName,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          email,
-          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+            child: const Text('Edit Profile'),
+          )
+        ],
+      ),
     );
   }
 
@@ -404,18 +423,25 @@ class _AnimalGridView extends StatelessWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor));
         }
         if (snapshot.hasError) {
-          return const Center(child: Text('Could not load animals.'));
+          return const Center(
+              child: Text('Could not load animals.',
+                  style: TextStyle(color: Colors.redAccent)));
         }
         final animals = snapshot.data?.docs ?? [];
         if (animals.isEmpty) {
           return Center(
-            child: Text(
-              emptyMessage,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-              textAlign: TextAlign.center,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                emptyMessage,
+                style:
+                    const TextStyle(color: kSecondaryTextColor, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
             ),
           );
         }
@@ -467,6 +493,7 @@ class _AnimalGridCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
+        color: kCardColor, // Dark background for the card
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -476,21 +503,15 @@ class _AnimalGridCard extends StatelessWidget {
                       pet['image'],
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.pets,
-                          color: Colors.grey,
-                          size: 40,
-                        ),
+                        color: Colors.grey.shade900,
+                        child: const Icon(Icons.pets,
+                            color: kSecondaryTextColor, size: 40),
                       ),
                     )
                   : Container(
-                      color: Colors.grey[200],
-                      child: const Icon(
-                        Icons.pets,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
+                      color: Colors.grey.shade900,
+                      child: const Icon(Icons.pets,
+                          color: kSecondaryTextColor, size: 40),
                     ),
             ),
             Padding(
@@ -503,6 +524,7 @@ class _AnimalGridCard extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      color: kPrimaryTextColor,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -510,7 +532,8 @@ class _AnimalGridCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    style: const TextStyle(
+                        fontSize: 12, color: kSecondaryTextColor),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

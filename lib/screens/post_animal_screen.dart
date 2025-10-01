@@ -1,4 +1,3 @@
-// screens/post_animal_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,11 +10,13 @@ import 'package:intl/intl.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../main_navigation_screen.dart';
 
-// --- THEME CONSTANTS FOR A CLEAN UI ---
-const Color kPrimaryColor = Colors.black;
-const Color kSecondaryColor = Color(0xFF616161); // Dark grey
-const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
-const Color kCardColor = Colors.white;
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
 
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
@@ -47,12 +48,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   // --- FORM STATE VARIABLES ---
   String? _species;
   String? _gender;
-  String? _breedType; // "Indie" or "Specific Breed"
-  String? _motherStatus; // Added for mother status
+  String? _breedType;
+  String? _motherStatus;
   bool? _isSterilized;
   bool? _isVaccinated;
   bool? _isDewormed;
-  // REMOVED: Behavior and temperament state variables are no longer needed.
 
   bool _isSubmitting = false;
 
@@ -121,11 +121,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         onLogout: _logout,
         onMenuSelected: (value) {
           if (value == 'profile') {
-            if (mainNavKey.currentState != null) {
-              mainNavKey.currentState!.selectTab(4);
-            } else {
-              Navigator.of(context).pushNamed('/main');
-            }
+            mainNavKey.currentState?.selectTab(4);
           } else if (value == 'all_applications') {
             Navigator.of(context).pushNamed('/all-applications');
           } else if (value == 'my_applications') {
@@ -149,12 +145,12 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildTabBar() {
     return Material(
-      color: kCardColor,
+      color: kBackgroundColor,
       child: TabBar(
         controller: _tabController,
-        indicatorColor: kPrimaryColor,
-        labelColor: kPrimaryColor,
-        unselectedLabelColor: kSecondaryColor,
+        indicatorColor: kPrimaryAccentColor,
+        labelColor: kPrimaryAccentColor,
+        unselectedLabelColor: kSecondaryTextColor,
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
           Tab(icon: Icon(Icons.add_circle_outline), text: 'Add New Animal'),
@@ -167,17 +163,21 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return const Center(
-        child: Text('Please log in to view pending requests'),
+        child: Text('Please log in to view pending requests',
+            style: TextStyle(color: kSecondaryTextColor)),
       );
     }
     return StreamBuilder<QuerySnapshot>(
       stream: AnimalService.getPendingAnimals(),
       builder: (context, snapshot) {
-        if (snapshot.hasError)
-          return Center(child: Text('Error: ${snapshot.error}'));
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.redAccent)));
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: kPrimaryColor),
+            child: CircularProgressIndicator(color: kPrimaryAccentColor),
           );
         }
         return FutureBuilder<DocumentSnapshot>(
@@ -187,39 +187,20 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               .get(),
           builder: (context, roleSnapshot) {
             String role = (roleSnapshot.data?.get('role') ?? 'user');
-
             final allAnimals = snapshot.data?.docs ?? [];
-
-            // Debug: Print all pending animals
-            print('DEBUG: Found ${allAnimals.length} total pending animals');
-            for (var doc in allAnimals) {
-              final data = doc.data() as Map<String, dynamic>;
-              print(
-                'DEBUG: Animal: ${data['name']} - Posted by: ${data['postedByEmail']}',
-              );
-            }
-            print('DEBUG: Current user email: ${user.email}');
 
             List<DocumentSnapshot> animals = (role == 'admin')
                 ? allAnimals
                 : allAnimals.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    final matches = data['postedByEmail'] == user.email;
-                    print(
-                      'DEBUG: Checking ${data['name']} - Posted by ${data['postedByEmail']} - Matches current user? $matches',
-                    );
-                    return matches;
+                    return data['postedByEmail'] == user.email;
                   }).toList();
-
-            print(
-              'DEBUG: After filtering, found ${animals.length} animals for current user',
-            );
 
             if (animals.isEmpty) {
               return const Center(
                 child: Text(
                   'No pending requests for now',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                  style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
                 ),
               );
             }
@@ -257,16 +238,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: kPrimaryColor,
+                color: kPrimaryTextColor,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Your submission will be reviewed by an admin before going live.',
-              style: TextStyle(fontSize: 14, color: kSecondaryColor),
+              style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
             ),
             const SizedBox(height: 24),
-
             _buildFormSection(
               title: 'Basic Information',
               children: [
@@ -286,7 +266,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   _buildTextField(
                     _breedController,
                     'Species Name*',
-                    'e.g., Rabbit , Cow',
+                    'e.g., Rabbit, Cow',
                     validator: (v) => v!.isEmpty ? "Species is required" : null,
                   ),
                 _buildChoiceChipQuestion(
@@ -314,7 +294,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   selectedValue: _gender,
                   onSelected: (val) => setState(() => _gender = val),
                 ),
-                // Added Mother Status field
                 _buildChoiceChipQuestion(
                   question: 'Mother Status',
                   options: ['Known', 'Unknown'],
@@ -323,7 +302,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ],
             ),
-
             _buildFormSection(
               title: 'Health & Wellness',
               children: [
@@ -345,12 +323,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 _buildTextField(
                   _medicalIssuesController,
                   'Known Medical Issues',
-                  'e.g., Skin allergy, missing a limb. Write "None" if not applicable.',
+                  'e.g., Skin allergy. Write "None" if not applicable.',
                 ),
               ],
             ),
-
-            // REMOVED: The "Behavior & Temperament" section has been removed as requested.
             _buildFormSection(
               title: 'Location, Contact & Story',
               children: [
@@ -380,7 +356,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ],
             ),
-
             _buildFormSection(
               title: 'Photos*',
               children: [
@@ -390,18 +365,17 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                     padding: EdgeInsets.only(top: 8.0),
                     child: Text(
                       'At least one photo is required.',
-                      style: TextStyle(color: Colors.red, fontSize: 12),
+                      style: TextStyle(color: Colors.redAccent, fontSize: 12),
                     ),
                   ),
               ],
             ),
-
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isSubmitting ? null : _submitForm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                foregroundColor: Colors.white,
+                backgroundColor: kPrimaryAccentColor,
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -412,7 +386,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
-                        color: Colors.white,
+                        color: Colors.black,
                         strokeWidth: 3,
                       ),
                     )
@@ -436,8 +410,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }) {
     return Card(
       color: kCardColor,
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 12.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -450,10 +423,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: kPrimaryColor,
+                color: kPrimaryTextColor,
               ),
             ),
-            const Divider(height: 24),
+            const Divider(height: 24, color: kBackgroundColor),
             ...children,
           ],
         ),
@@ -474,6 +447,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        style: const TextStyle(color: kPrimaryTextColor),
         keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
         inputFormatters: isPhoneNumber
             ? [
@@ -484,13 +458,26 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
           prefixIcon: isPhoneNumber
-              ? const Padding(padding: EdgeInsets.all(12.0), child: Text('+91'))
+              ? const Padding(
+                  padding: EdgeInsets.all(15.0),
+                  child: Text('+91',
+                      style: TextStyle(
+                          color: kPrimaryTextColor, fontSize: 16)))
               : null,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
           ),
         ),
         validator: validator,
@@ -511,9 +498,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         children: [
           Text(
             question,
-            style: const TextStyle(fontSize: 16, color: kSecondaryColor),
+            style: const TextStyle(fontSize: 16, color: kSecondaryTextColor),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8.0,
             runSpacing: 8.0,
@@ -523,13 +510,18 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 label: Text(option),
                 selected: isSelected,
                 onSelected: (_) => onSelected(option),
-                selectedColor: kPrimaryColor,
+                selectedColor: kPrimaryAccentColor,
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : kPrimaryColor,
+                  color: isSelected ? Colors.black : kPrimaryTextColor,
+                  fontWeight: FontWeight.w600,
                 ),
-                backgroundColor: Colors.grey[200],
+                backgroundColor: Colors.grey.shade800,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                      color: isSelected
+                          ? kPrimaryAccentColor
+                          : Colors.grey.shade800),
                 ),
                 showCheckmark: false,
               );
@@ -598,7 +590,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   : null,
               icon: const Icon(Icons.photo_library),
               label: const Text('Gallery'),
-              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: kPrimaryTextColor,
+                  side: const BorderSide(color: kSecondaryTextColor)),
             ),
             const SizedBox(width: 12),
             OutlinedButton.icon(
@@ -607,7 +601,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   : null,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Camera'),
-              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+              style: OutlinedButton.styleFrom(
+                  foregroundColor: kPrimaryTextColor,
+                  side: const BorderSide(color: kSecondaryTextColor)),
             ),
           ],
         ),
@@ -619,12 +615,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        backgroundColor: isError ? Colors.redAccent : Colors.green.shade800,
       ),
     );
   }
 
   Future<void> _submitForm() async {
+    // Logic unchanged
     setState(() {});
     if (!_formKey.currentState!.validate() || _images.isEmpty) {
       _showSnackBar(
@@ -633,29 +630,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       );
       return;
     }
-
-    // Debug: Print current user info
-    final user = FirebaseAuth.instance.currentUser;
-    print('DEBUG: Submitting form for user: ${user?.email}');
-
-    // Debug: Check user role
-    if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      print('DEBUG: User document exists: ${userDoc.exists}');
-      if (userDoc.exists) {
-        print('DEBUG: User data: ${userDoc.data()}');
-      }
-    }
-
     setState(() => _isSubmitting = true);
-
     try {
-      // We don't need to get the user here as the service handles it
-
-      // Use the service method to create the animal
       final animalDoc = await AnimalService.postAnimal(
         name: _nameController.text.trim(),
         species: _species!,
@@ -673,7 +649,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         rescueStory: _rescueStoryController.text.trim(),
       );
       final animalId = animalDoc.id;
-
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
         final url = await StorageService.uploadAnimalImage(
@@ -683,9 +658,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         );
         imageUrls.add(url);
       }
-
       await animalDoc.update({'imageUrls': imageUrls});
-
       if (mounted) {
         _showSnackBar('Animal submitted for review!', isError: false);
         _formKey.currentState!.reset();
@@ -705,7 +678,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _isSterilized = null;
           _isVaccinated = null;
           _isDewormed = null;
-          // REMOVED: Resetting behavior state variables is no longer needed.
           _tabController.animateTo(0);
         });
       }
@@ -747,17 +719,16 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     final imageUrls =
         (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
-
     final postedAt = widget.animalData['postedAt'] as Timestamp?;
     final postedDate = postedAt != null
         ? DateFormat('MMM d, yyyy').format(postedAt.toDate())
         : 'N/A';
 
     return Card(
+      color: kCardColor,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
+      elevation: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -777,16 +748,17 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           itemBuilder: (context, index) => Image.network(
                             imageUrls[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.error, color: kSecondaryColor),
+                            errorBuilder: (_, __, ___) => const Icon(
+                                Icons.error_outline,
+                                color: kSecondaryTextColor),
                           ),
                         )
                       : Container(
-                          color: Colors.grey.shade200,
-                          child: Icon(
+                          color: Colors.grey.shade900,
+                          child: const Icon(
                             Icons.pets,
                             size: 60,
-                            color: Colors.grey.shade400,
+                            color: kSecondaryTextColor,
                           ),
                         ),
                 ),
@@ -805,9 +777,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           height: 8.0,
                           width: _currentPage == i ? 24.0 : 8.0,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(
-                              _currentPage == i ? 0.9 : 0.6,
-                            ),
+                            color: _currentPage == i
+                                ? kPrimaryAccentColor
+                                : kSecondaryTextColor.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
@@ -827,61 +799,52 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: kPrimaryColor,
+                    color: kPrimaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
-                  style: const TextStyle(fontSize: 14, color: kSecondaryColor),
+                  style:
+                      const TextStyle(fontSize: 14, color: kSecondaryTextColor),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showDetailsDialog(context),
-                        icon: const Icon(Icons.info_outline),
-                        label: const Text('View Details'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: kPrimaryColor,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _showDetailsDialog(context),
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('View Details'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kPrimaryTextColor,
+                    side: const BorderSide(color: kSecondaryTextColor),
+                  ),
                 ),
                 if (widget.isAdmin) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      SizedBox(
-                        width: 100,
-                        child: ElevatedButton(
+                      Expanded(
+                        child: ElevatedButton.icon(
                           onPressed: () =>
-                              _showApproveDialog(context, widget.animalId),
+                              _showRejectDialog(context, widget.animalId),
+                          icon: const Icon(Icons.close),
+                          label: const Text('Reject'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: const Size(0, 36),
+                            backgroundColor: Colors.red.shade900,
+                            foregroundColor: kPrimaryTextColor,
                           ),
-                          child: const Text('Approve'),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      SizedBox(
-                        width: 100,
-                        child: ElevatedButton(
+                      Expanded(
+                        child: ElevatedButton.icon(
                           onPressed: () =>
-                              _showRejectDialog(context, widget.animalId),
+                              _showApproveDialog(context, widget.animalId),
+                          icon: const Icon(Icons.check),
+                          label: const Text('Approve'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: const Size(0, 36),
+                            backgroundColor: Colors.green.shade800,
+                            foregroundColor: kPrimaryTextColor,
                           ),
-                          child: const Text('Reject'),
                         ),
                       ),
                     ],
@@ -900,19 +863,29 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Approve Animal'),
+        backgroundColor: kCardColor,
+        title: const Text('Approve Animal',
+            style: TextStyle(color: kPrimaryTextColor)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This will make the animal visible for adoption.'),
+            const Text('This will make the animal visible for adoption.',
+                style: TextStyle(color: kSecondaryTextColor)),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: kPrimaryTextColor),
+              decoration: InputDecoration(
                 labelText: 'Optional Message',
                 hintText: 'Add any notes or comments (optional)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kSecondaryTextColor),
+                hintStyle:
+                    TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+                border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey.shade800)),
+                focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryAccentColor)),
               ),
               maxLines: 3,
             ),
@@ -921,10 +894,12 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child:
+                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
           ),
           ElevatedButton(
             onPressed: () async {
+              // Logic Unchanged
               try {
                 await AnimalService.approveAnimal(
                   animalId: animalId,
@@ -963,7 +938,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(widget.animalData['name'] ?? 'Animal Details'),
+        backgroundColor: kCardColor,
+        title: Text(widget.animalData['name'] ?? 'Animal Details',
+            style: const TextStyle(color: kPrimaryTextColor)),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -974,30 +951,28 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
               _buildDetailItem('Age', widget.animalData['age']),
               _buildDetailItem('Gender', widget.animalData['gender']),
               _buildDetailItem(
-                'Mother Status',
-                widget.animalData['motherStatus'],
-              ),
+                  'Mother Status', widget.animalData['motherStatus']),
               _buildDetailItem(
-                'Sterilization',
-                widget.animalData['sterilization'],
-              ),
+                  'Sterilization', widget.animalData['sterilization']),
               _buildDetailItem('Vaccination', widget.animalData['vaccination']),
               _buildDetailItem('Deworming', widget.animalData['deworming']),
               _buildDetailItem('Location', widget.animalData['location']),
               _buildDetailItem('Contact', widget.animalData['contactPhone']),
               if (widget.animalData['medicalIssues']?.isNotEmpty ?? false)
                 _buildDetailItem(
-                  'Medical Issues',
-                  widget.animalData['medicalIssues'],
-                ),
+                    'Medical Issues', widget.animalData['medicalIssues']),
               if (widget.animalData['rescueStory']?.isNotEmpty ?? false) ...[
-                const Divider(height: 24),
+                const Divider(height: 24, color: kBackgroundColor),
                 const Text(
                   'Rescue Story',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor),
                 ),
                 const SizedBox(height: 8),
-                Text(widget.animalData['rescueStory'] ?? ''),
+                Text(widget.animalData['rescueStory'] ?? '',
+                    style: const TextStyle(color: kSecondaryTextColor)),
               ],
             ],
           ),
@@ -1005,7 +980,8 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child:
+                const Text('Close', style: TextStyle(color: kPrimaryTextColor)),
           ),
         ],
       ),
@@ -1025,11 +1001,14 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
               '$label:',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: kSecondaryColor,
+                color: kSecondaryTextColor,
               ),
             ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+          Expanded(
+              child: Text(value,
+                  style:
+                      const TextStyle(fontSize: 14, color: kPrimaryTextColor))),
         ],
       ),
     );
@@ -1040,22 +1019,31 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reject Animal'),
+        backgroundColor: kCardColor,
+        title: const Text('Reject Animal',
+            style: TextStyle(color: kPrimaryTextColor)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Please provide a reason for rejection. This will be visible to the person who posted the animal.',
-              style: TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: kPrimaryTextColor),
+              decoration: InputDecoration(
                 labelText: 'Reason for Rejection *',
                 hintText: 'Explain why this post is being rejected',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kSecondaryTextColor),
+                hintStyle:
+                    TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+                border: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey.shade800)),
+                focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: kPrimaryAccentColor)),
               ),
               maxLines: 3,
             ),
@@ -1064,10 +1052,12 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child:
+                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
           ),
           ElevatedButton(
             onPressed: () async {
+              // Logic Unchanged
               if (messageController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -1077,7 +1067,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 );
                 return;
               }
-
               try {
                 await AnimalService.rejectAnimal(
                   animalId: animalId,

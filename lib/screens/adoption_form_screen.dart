@@ -4,6 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import '../services/user_service.dart';
 
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
+
 class AdoptionFormScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
   const AdoptionFormScreen({super.key, required this.petData});
@@ -15,45 +23,36 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isLoadingUserData = true;
-  // User Details - will be loaded dynamically
-  String _userFullName = '';
-  String _userEmail = '';
-  String _userPhoneNumber = '';
-  String _userAddress = '';
-  // Controllers for pre-filled applicant information
+
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneNumberController;
   final TextEditingController _addressController = TextEditingController();
-  // New Questionnaire Controllers and Variables
-  // Pet History
   final TextEditingController _currentPetsController = TextEditingController();
   final TextEditingController _pastPetsController = TextEditingController();
-  final TextEditingController _surrenderedPetsController = TextEditingController();
+  final TextEditingController _surrenderedPetsController =
+      TextEditingController();
   bool? _hasCurrentPets;
   bool? _hasPastPets;
   bool? _hasSurrenderedPets;
-  // Household Info
-  String? _homeOwnership; // Own / Rent
+  String? _homeOwnership;
   int _householdMembers = 1;
   bool? _hasAllergies;
   bool? _allMembersAgree;
-  // Pet Preferences
-  final TextEditingController _petTypeLookingForController = TextEditingController();
-  String? _preferenceForBreedAgeGender; // Yes / No for preferences
+  final TextEditingController _petTypeLookingForController =
+      TextEditingController();
+  String? _preferenceForBreedAgeGender;
   final TextEditingController _whyAdoptPetController = TextEditingController();
-  // Care and Responsibility
   final TextEditingController _hoursAloneController = TextEditingController();
-  final TextEditingController _whereKeptWhenAloneController = TextEditingController();
+  final TextEditingController _whereKeptWhenAloneController =
+      TextEditingController();
   bool? _financiallyPrepared;
-  // Vet Care
   bool? _hasVeterinarian;
   final TextEditingController _vetContactController = TextEditingController();
   bool? _willingToProvideVetCare;
-  // Commitment
   bool? _preparedForLifetimeCommitment;
-  final TextEditingController _ifCannotKeepCareController = TextEditingController();
-  // Terms and Conditions
+  final TextEditingController _ifCannotKeepCareController =
+      TextEditingController();
   bool _agreedToTerms = false;
 
   @override
@@ -66,30 +65,28 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   }
 
   Future<void> _loadUserData() async {
+    // Functionality is unchanged
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final userData = await UserService.getUserData(user.uid);
-        if (userData != null) {
+        if (userData != null && mounted) {
           setState(() {
-            _userFullName = userData['fullName'] ?? '';
-            _userEmail = userData['email'] ?? '';
-            _userPhoneNumber = userData['phoneNumber'] ?? '';
-            _userAddress = userData['address'] ?? '';
-            
-            _fullNameController.text = _userFullName;
-            _emailController.text = _userEmail;
-            _phoneNumberController.text = _userPhoneNumber;
-            _addressController.text = _userAddress;
+            _fullNameController.text = userData['fullName'] ?? '';
+            _emailController.text = userData['email'] ?? '';
+            _phoneNumberController.text = userData['phoneNumber'] ?? '';
+            _addressController.text = userData['address'] ?? '';
           });
         }
       }
     } catch (e) {
       print('Error loading user data: $e');
     } finally {
-      setState(() {
-        _isLoadingUserData = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingUserData = false;
+        });
+      }
     }
   }
 
@@ -112,17 +109,13 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   }
 
   void _submitApplication() async {
-    // UPDATED: Added null-safe check for form validation
+    // Functionality is unchanged
     if ((_formKey.currentState?.validate() ?? false) && _agreedToTerms) {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         _showSnackBar('You must be logged in to apply.');
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
       try {
@@ -148,7 +141,6 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           'applicantEmail': _emailController.text.trim(),
           'applicantPhone': _phoneNumberController.text.trim(),
           'applicantAddress': _addressController.text.trim(),
-          // New Questionnaire Data
           'hasCurrentPets': _hasCurrentPets,
           'currentPetsDetails': _currentPetsController.text.trim(),
           'hasPastPets': _hasPastPets,
@@ -184,9 +176,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         _showSnackBar('Failed to submit application: $e');
         print('Error submitting application: $e');
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) setState(() => _isLoading = false);
       }
     } else if (!_agreedToTerms) {
       _showSnackBar('Please agree to the terms and conditions.');
@@ -197,7 +187,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? Colors.redAccent : Colors.green.shade800,
       ),
     );
   }
@@ -206,18 +196,24 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   Widget build(BuildContext context) {
     if (_isLoadingUserData) {
       return Scaffold(
+        backgroundColor: kBackgroundColor,
         appBar: AppBar(
-          title: const Text('Adoption Application'),
+          title: const Text('Adoption Application', style: TextStyle(color: kPrimaryTextColor)),
+          backgroundColor: kBackgroundColor,
+          elevation: 0,
           centerTitle: true,
         ),
         body: const Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(color: kPrimaryAccentColor),
         ),
       );
     }
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Adoption Application'),
+        title: const Text('Adoption Application', style: TextStyle(color: kPrimaryTextColor)),
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -227,10 +223,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pet Information
               _buildPetInfoSection(),
               const SizedBox(height: 24),
-              // Your Information
               _buildInfoCard(
                 title: 'Your Information',
                 icon: Icons.person_outline,
@@ -239,16 +233,16 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     controller: _fullNameController,
                     label: 'Full Name',
                     icon: Icons.person,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please enter your full name' : null,
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Please enter your full name' : null,
                   ),
                   _buildTextField(
                     controller: _emailController,
                     label: 'Email',
                     icon: Icons.email,
                     keyboardType: TextInputType.emailAddress,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                    validator: (value) =>
+                        (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
                   ),
                   _buildTextField(
                     controller: _phoneNumberController,
@@ -261,13 +255,12 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     label: 'Address',
                     icon: Icons.location_on,
                     maxLines: 3,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please enter your address' : null,
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Please enter your address' : null,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Pet History
               _buildInfoCard(
                 title: 'Pet History',
                 icon: Icons.history,
@@ -283,8 +276,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                       label: 'Current Pets Details',
                       hint: 'List species, age, and spayed/neutered status',
                       maxLines: 3,
-                      // UPDATED: Null-safe validator
-                      validator: (value) => (value == null || value.isEmpty) ? 'Please provide details for your current pets' : null,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Please provide details for your current pets'
+                          : null,
                     ),
                   _buildYesNoQuestion(
                     'Have you had pets in the past?',
@@ -297,8 +291,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                       label: 'Past Pets Details',
                       hint: 'Provide details (species, what happened to them?)',
                       maxLines: 3,
-                      // UPDATED: Null-safe validator
-                      validator: (value) => (value == null || value.isEmpty) ? 'Please provide details for your past pets' : null,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Please provide details for your past pets'
+                          : null,
                     ),
                   _buildYesNoQuestion(
                     'Have you ever surrendered a pet?',
@@ -311,13 +306,13 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                       label: 'Circumstance of Surrender',
                       hint: 'Please explain the circumstance',
                       maxLines: 3,
-                      // UPDATED: Null-safe validator
-                      validator: (value) => (value == null || value.isEmpty) ? 'Please explain the circumstance' : null,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Please explain the circumstance'
+                          : null,
                     ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Household Information
               _buildInfoCard(
                 title: 'Household Information',
                 icon: Icons.group_outlined,
@@ -328,7 +323,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     items: ['Own', 'Rent'],
                     icon: Icons.house,
                     onChanged: (value) => setState(() => _homeOwnership = value),
-                    validator: (value) => value == null ? 'Please select an option' : null,
+                    validator: (value) =>
+                        value == null ? 'Please select an option' : null,
                   ),
                   _buildNumberInput(
                     'How many people live in your household?',
@@ -348,7 +344,6 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Pet Preferences
               _buildInfoCard(
                 title: 'Pet Preferences',
                 icon: Icons.favorite_outline,
@@ -358,29 +353,32 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     label: 'What type of animal are you looking to adopt?',
                     hint: 'e.g., Dog, Cat, Bird, etc.',
                     icon: Icons.pets,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please specify type of animal' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please specify type of animal'
+                        : null,
                   ),
                   _buildDropdownQuestion(
                     label: 'Do you have a preference for breed, age, or gender?',
                     value: _preferenceForBreedAgeGender,
                     items: ['Yes', 'No'],
                     icon: Icons.tune,
-                    onChanged: (value) => setState(() => _preferenceForBreedAgeGender = value),
-                    validator: (value) => value == null ? 'Please select an option' : null,
+                    onChanged: (value) =>
+                        setState(() => _preferenceForBreedAgeGender = value),
+                    validator: (value) =>
+                        value == null ? 'Please select an option' : null,
                   ),
                   _buildTextField(
                     controller: _whyAdoptPetController,
                     label: 'Why do you want to adopt a pet?',
                     icon: Icons.volunteer_activism,
                     maxLines: 3,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please state your reason for adoption' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please state your reason for adoption'
+                        : null,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Care and Responsibility
               _buildInfoCard(
                 title: 'Care and Responsibility',
                 icon: Icons.handshake_outlined,
@@ -390,16 +388,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     label: 'How many hours will the animal be left alone?',
                     icon: Icons.timer_off_outlined,
                     keyboardType: TextInputType.number,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please provide the hours' : null,
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Please provide the hours' : null,
                   ),
                   _buildTextField(
                     controller: _whereKeptWhenAloneController,
-                    label: 'Where will the animal be kept when you are not home?',
+                    label:
+                        'Where will the animal be kept when you are not home?',
                     icon: Icons.home_outlined,
                     maxLines: 2,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please specify where the animal will be kept' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please specify where the animal will be kept'
+                        : null,
                   ),
                   _buildYesNoQuestion(
                     'Are you financially prepared for the animal’s needs?',
@@ -409,7 +409,6 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              // Vet Care
               _buildInfoCard(
                 title: 'Vet Care',
                 icon: Icons.local_hospital_outlined,
@@ -426,18 +425,19 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                       hint: 'e.g., Dr. Smith, 555-123-4567',
                       icon: Icons.contact_mail_outlined,
                       maxLines: 2,
-                      // UPDATED: Null-safe validator
-                      validator: (value) => (value == null || value.isEmpty) ? 'Please provide vet contact information' : null,
+                      validator: (value) => (value == null || value.isEmpty)
+                          ? 'Please provide vet contact information'
+                          : null,
                     ),
                   _buildYesNoQuestion(
                     'Are you willing to provide regular vet care?',
                     _willingToProvideVetCare,
-                    (value) => setState(() => _willingToProvideVetCare = value),
+                    (value) =>
+                        setState(() => _willingToProvideVetCare = value),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Commitment
               _buildInfoCard(
                 title: 'Commitment',
                 icon: Icons.volunteer_activism_outlined,
@@ -445,45 +445,48 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                   _buildYesNoQuestion(
                     'Are you prepared for a lifetime commitment?',
                     _preparedForLifetimeCommitment,
-                    (value) => setState(() => _preparedForLifetimeCommitment = value),
+                    (value) =>
+                        setState(() => _preparedForLifetimeCommitment = value),
                   ),
                   _buildTextField(
                     controller: _ifCannotKeepCareController,
-                    label: 'What will you do if you can no longer care for the animal?',
+                    label:
+                        'What will you do if you can no longer care for the animal?',
                     icon: Icons.crisis_alert_outlined,
                     maxLines: 3,
-                    // UPDATED: Null-safe validator
-                    validator: (value) => (value == null || value.isEmpty) ? 'Please explain your plan' : null,
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Please explain your plan' : null,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              // Terms and Conditions
               Row(
                 children: [
                   Checkbox(
                     value: _agreedToTerms,
                     onChanged: (bool? newValue) {
                       setState(() {
-                        // UPDATED: Null-safe assignment
                         _agreedToTerms = newValue ?? false;
                       });
                     },
+                    activeColor: kPrimaryAccentColor,
+                    checkColor: Colors.black,
                   ),
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Navigate to Terms and Conditions/Privacy Policy page
-                        _showSnackBar('Terms & Conditions page coming soon!');
+                        _showSnackBar('Terms & Conditions page coming soon!',
+                            isError: false);
                       },
                       child: const Text.rich(
                         TextSpan(
                           text: 'I agree to the ',
+                          style: TextStyle(color: kPrimaryTextColor),
                           children: [
                             TextSpan(
                               text: 'terms and conditions',
                               style: TextStyle(
-                                color: Color(0xFF5AC8F2),
+                                color: kPrimaryAccentColor,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -491,7 +494,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                             TextSpan(
                               text: 'privacy policy',
                               style: TextStyle(
-                                color: Color(0xFF5AC8F2),
+                                color: kPrimaryAccentColor,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -504,30 +507,32 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              // Submit Button
               _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          color: kPrimaryAccentColor))
                   : Center(
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.7, // 70% of screen width
-                      child: ElevatedButton(
-                        onPressed: _agreedToTerms ? _submitApplication : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5AC8F2),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                      child: SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.7,
+                        child: ElevatedButton(
+                          onPressed: _agreedToTerms ? _submitApplication : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimaryAccentColor,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            elevation: 5,
                           ),
-                          elevation: 5,
-                        ),
-                        child: const Text(
-                          'Submit Application',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          child: const Text(
+                            'Submit Application',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ),
-                  ),
               const SizedBox(height: 24),
             ],
           ),
@@ -541,24 +546,23 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF5AC8F2).withOpacity(0.1),
+        color: kPrimaryAccentColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            // UPDATED: Null-safe access to pet image
             child: Image.network(
-              widget.petData['image'] ?? '', // Use empty string to trigger errorBuilder if null
+              widget.petData['image'] ?? '',
               height: 80,
               width: 80,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 80,
                 width: 80,
-                color: Colors.grey[300],
-                child: const Icon(Icons.pets, color: Colors.grey),
+                color: Colors.grey.shade900,
+                child: const Icon(Icons.pets, color: kSecondaryTextColor),
               ),
             ),
           ),
@@ -572,20 +576,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[700]),
+                      color: kSecondaryTextColor.withOpacity(0.8)),
                 ),
-                // UPDATED: Null-safe access to pet name
                 Text(
                   widget.petData['name'] ?? 'Unknown Pet',
                   style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF5AC8F2)),
+                      color: kPrimaryAccentColor),
                 ),
                 Text(
-                  // UPDATED: Null-safe access
                   '${widget.petData['species'] ?? 'N/A'} • ${widget.petData['age'] ?? 'N/A'}',
-                  style: TextStyle(color: Colors.grey[700]),
+                  style: const TextStyle(color: kSecondaryTextColor),
                 ),
               ],
             ),
@@ -601,7 +603,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     required List<Widget> children,
   }) {
     return Card(
-      elevation: 4,
+      color: kCardColor,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -610,23 +613,22 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: const Color(0xFF5AC8F2)),
+                Icon(icon, color: kPrimaryAccentColor),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5AC8F2),
-                  ),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: kPrimaryAccentColor),
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const Divider(height: 24, color: kBackgroundColor),
             ...children.map((child) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: child,
-            )).toList(),
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: child,
+                )),
           ],
         ),
       ),
@@ -644,21 +646,24 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   }) {
     return TextFormField(
       controller: controller,
+      style: const TextStyle(color: kPrimaryTextColor),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: const TextStyle(color: kSecondaryTextColor),
         hintText: hint,
-        prefixIcon: icon != null ? Icon(icon, color: Colors.grey) : null,
+        hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+        prefixIcon: icon != null ? Icon(icon, color: kSecondaryTextColor) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF5AC8F2)),
+          borderSide: BorderSide(color: Colors.grey.shade800),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[400]!),
+          borderSide: BorderSide(color: Colors.grey.shade800),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF5AC8F2), width: 2),
+          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
         ),
       ),
       maxLines: maxLines,
@@ -667,13 +672,17 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     );
   }
 
-  Widget _buildYesNoQuestion(String question, bool? currentValue, ValueChanged<bool?> onChanged) {
+  Widget _buildYesNoQuestion(
+      String question, bool? currentValue, ValueChanged<bool?> onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           question,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: kPrimaryTextColor),
         ),
         const SizedBox(height: 8),
         Row(
@@ -682,14 +691,20 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               child: OutlinedButton(
                 onPressed: () => onChanged(true),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: currentValue == true ? const Color(0xFF5AC8F2) : Colors.transparent,
-                  side: BorderSide(color: currentValue == true ? const Color(0xFF5AC8F2) : Colors.grey),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor:
+                      currentValue == true ? kPrimaryAccentColor : Colors.transparent,
+                  side: BorderSide(
+                      color: currentValue == true
+                          ? kPrimaryAccentColor
+                          : kSecondaryTextColor),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(
                   'Yes',
                   style: TextStyle(
-                    color: currentValue == true ? Colors.white : Colors.black87,
+                    color:
+                        currentValue == true ? Colors.black : kPrimaryTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -700,14 +715,20 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               child: OutlinedButton(
                 onPressed: () => onChanged(false),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: currentValue == false ? const Color(0xFF5AC8F2) : Colors.transparent,
-                  side: BorderSide(color: currentValue == false ? const Color(0xFF5AC8F2) : Colors.grey),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor:
+                      currentValue == false ? kPrimaryAccentColor : Colors.transparent,
+                  side: BorderSide(
+                      color: currentValue == false
+                          ? kPrimaryAccentColor
+                          : kSecondaryTextColor),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(
                   'No',
                   style: TextStyle(
-                    color: currentValue == false ? Colors.white : Colors.black87,
+                    color:
+                        currentValue == false ? Colors.black : kPrimaryTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -727,62 +748,75 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     required ValueChanged<String?> onChanged,
     String? Function(String?)? validator,
   }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.grey),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey[400]!),
+    return Theme(
+      data: Theme.of(context).copyWith(canvasColor: kCardColor),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          prefixIcon: Icon(icon, color: kSecondaryTextColor),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF5AC8F2), width: 2),
-        ),
+        items: items.map<DropdownMenuItem<String>>((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item, style: const TextStyle(color: kPrimaryTextColor)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: validator,
       ),
-      items: items.map<DropdownMenuItem<String>>((String item) {
-        return DropdownMenuItem<String>(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      validator: validator,
     );
   }
 
-  Widget _buildNumberInput(String label, int currentValue, ValueChanged<int> onChanged) {
+  Widget _buildNumberInput(
+      String label, int currentValue, ValueChanged<int> onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: kPrimaryTextColor),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[400]!),
+            border: Border.all(color: Colors.grey.shade800),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF5AC8F2)),
+                icon: const Icon(Icons.remove_circle_outline,
+                    color: kPrimaryAccentColor),
                 onPressed: () {
-                  if (currentValue > 1) onChanged(currentValue - 1); // Set minimum to 1
+                  if (currentValue > 1) onChanged(currentValue - 1);
                 },
               ),
               Text(
                 currentValue.toString(),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryTextColor),
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF5AC8F2)),
+                icon: const Icon(Icons.add_circle_outline,
+                    color: kPrimaryAccentColor),
                 onPressed: () {
                   onChanged(currentValue + 1);
                 },

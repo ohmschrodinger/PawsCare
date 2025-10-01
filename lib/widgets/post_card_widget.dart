@@ -8,6 +8,14 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
+
 class PostCardWidget extends StatefulWidget {
   final Map<String, dynamic> postData;
   final String postId;
@@ -27,12 +35,10 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   final _commentController = TextEditingController();
   final _commentFocusNode = FocusNode();
   bool _isCommentSectionVisible = false;
-  
-  // --- FEATURE ADDED ---
-  // State for "Read more" functionality
+
   bool _isExpanded = false;
-  static const int _maxLinesCollapsed = 4; // Max lines before "Read more" appears
-  static const int _minCharsForReadMore = 200; // Min characters to trigger truncation
+  static const int _maxLinesCollapsed = 4;
+  static const int _minCharsForReadMore = 200;
 
   @override
   void initState() {
@@ -49,6 +55,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   void _onFocusChange() {
+    // Functionality remains the same
     if (_commentFocusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 250), () {
         if (!mounted) return;
@@ -62,8 +69,11 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Future<void> _toggleLike() async {
+    // Functionality remains the same
     if (currentUser == null) return;
-    final docRef = FirebaseFirestore.instance.collection('community_posts').doc(widget.postId);
+    final docRef = FirebaseFirestore.instance
+        .collection('community_posts')
+        .doc(widget.postId);
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = likes.contains(currentUser!.uid);
 
@@ -75,6 +85,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Future<void> _sharePost() async {
+    // Functionality remains the same
     final String author = (widget.postData['author'] ?? 'Anonymous').toString();
     final String story = (widget.postData['story'] ?? '').toString();
     final String? imageUrl = (widget.postData['imageUrl'] as String?);
@@ -97,21 +108,21 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     }
     await Share.share(text);
   }
-  
-  // --- FEATURE ADDED ---
-  // Function to delete a post
+
   Future<void> _deletePost() async {
-    // Confirmation dialog
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Post?'),
-        content: const Text('This action cannot be undone.'),
+        backgroundColor: kCardColor,
+        title: const Text('Delete Post?', style: TextStyle(color: kPrimaryTextColor)),
+        content: const Text('This action cannot be undone.', style: TextStyle(color: kSecondaryTextColor)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel', style: TextStyle(color: kPrimaryTextColor))),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
@@ -120,37 +131,44 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     if (confirmed != true) return;
 
     try {
-      // Delete image from Firebase Storage if it exists
       if (widget.postData['imageUrl'] != null) {
-        await FirebaseStorage.instance.refFromURL(widget.postData['imageUrl']).delete();
+        await FirebaseStorage.instance
+            .refFromURL(widget.postData['imageUrl'])
+            .delete();
       }
+      await FirebaseFirestore.instance
+          .collection('community_posts')
+          .doc(widget.postId)
+          .delete();
 
-      // Delete the post document from Firestore
-      await FirebaseFirestore.instance.collection('community_posts').doc(widget.postId).delete();
-      
-      if(mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post deleted successfully.'), backgroundColor: Colors.green),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: const Text('Post deleted successfully.'),
+              backgroundColor: Colors.green.shade800),
         );
       }
-
     } catch (e) {
-      if(mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting post: $e'), backgroundColor: Colors.red),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error deleting post: $e'),
+              backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
   Future<void> _postComment() async {
+    // Functionality remains the same
     if (_commentController.text.trim().isEmpty || currentUser == null) return;
-
     final commentText = _commentController.text.trim();
     _commentController.clear();
     _commentFocusNode.unfocus();
 
-    final postRef = FirebaseFirestore.instance.collection('community_posts').doc(widget.postId);
+    final postRef = FirebaseFirestore.instance
+        .collection('community_posts')
+        .doc(widget.postId);
     final commentRef = postRef.collection('comments').doc();
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -167,6 +185,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   String _getTimeAgo(DateTime dateTime) {
+    // Functionality remains the same
     final difference = DateTime.now().difference(dateTime);
     if (difference.inSeconds < 60) return '${difference.inSeconds}s';
     if (difference.inMinutes < 60) return '${difference.inMinutes}m';
@@ -176,7 +195,8 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final timestamp = (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final timestamp =
+        (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
     final timeAgo = _getTimeAgo(timestamp);
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = currentUser != null && likes.contains(currentUser!.uid);
@@ -185,8 +205,9 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     final bool isLongText = storyText.length > _minCharsForReadMore;
 
     return Card(
+      color: kCardColor,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -195,18 +216,18 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           children: [
             _buildPostHeader(timeAgo),
             const SizedBox(height: 12),
-            
-            // --- FEATURE ADDED ---
-            // "Read more" functionality for post text
             if (storyText.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     storyText,
-                    style: const TextStyle(fontSize: 15, height: 1.4),
+                    style: const TextStyle(
+                        fontSize: 15, height: 1.4, color: kPrimaryTextColor),
                     maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                    overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                    overflow: _isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
                   ),
                   if (isLongText)
                     GestureDetector(
@@ -215,13 +236,14 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
                           _isExpanded ? 'Read less' : 'Read more...',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: kPrimaryAccentColor,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                 ],
               ),
-              
             if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty)
               _buildPostImage(widget.postData['imageUrl']),
             const SizedBox(height: 8),
@@ -242,10 +264,11 @@ class _PostCardWidgetState extends State<PostCardWidget> {
       children: [
         CircleAvatar(
           radius: 22,
-          backgroundColor: const Color(0xFF5AC8F2),
+          backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
           child: Text(
             author.isNotEmpty ? author[0].toUpperCase() : 'A',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: kPrimaryAccentColor, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(width: 12),
@@ -259,41 +282,52 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                     child: Text(
                       author,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: kPrimaryTextColor),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('· $timeAgo', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  Text('· $timeAgo',
+                      style: const TextStyle(
+                          color: kSecondaryTextColor, fontSize: 14)),
                 ],
               ),
               if ((widget.postData['category'] ?? '').toString().isNotEmpty)
-                Text(widget.postData['category'], style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                Text(widget.postData['category'],
+                    style: const TextStyle(
+                        color: kSecondaryTextColor, fontSize: 12)),
             ],
           ),
         ),
-        
-        // --- FEATURE ADDED ---
-        // Popup menu for post options (like delete)
         if (isAuthor)
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'delete') {
-                _deletePost();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
+          Theme(
+            data: Theme.of(context).copyWith(
+              popupMenuTheme: const PopupMenuThemeData(
+                color: kCardColor, // Dark background for the menu
               ),
-            ],
-            icon: const Icon(Icons.more_horiz, color: Colors.grey),
+            ),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _deletePost();
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.redAccent),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                    ],
+                  ),
+                ),
+              ],
+              icon: const Icon(Icons.more_horiz, color: kSecondaryTextColor),
+            ),
           )
         else
           const SizedBox(width: 48), // Keep alignment consistent
@@ -312,12 +346,14 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             imageUrl: url,
             fit: BoxFit.cover,
             placeholder: (context, __) => Container(
-              color: Colors.grey[200],
-              child: const Center(child: CircularProgressIndicator()),
+              color: Colors.grey.shade900,
+              child: const Center(
+                  child: CircularProgressIndicator(color: kPrimaryAccentColor)),
             ),
             errorWidget: (context, __, ___) => Container(
-              color: Colors.grey[200],
-              child: const Center(child: Icon(Icons.broken_image)),
+              color: Colors.grey.shade900,
+              child: const Center(
+                  child: Icon(Icons.broken_image, color: kSecondaryTextColor)),
             ),
           ),
         ),
@@ -332,19 +368,20 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         _buildActionButton(
           icon: isLiked ? Icons.favorite : Icons.favorite_border,
           text: '$likeCount',
-          color: isLiked ? Colors.red : Colors.grey,
+          color: isLiked ? kPrimaryAccentColor : kSecondaryTextColor,
           onTap: _toggleLike,
         ),
         _buildActionButton(
           icon: Icons.chat_bubble_outline,
           text: '$commentCount',
-          color: Colors.grey,
+          color: kSecondaryTextColor,
           onTap: () => setState(() {
             _isCommentSectionVisible = !_isCommentSectionVisible;
             if (_isCommentSectionVisible) {
               Future.delayed(const Duration(milliseconds: 50), () {
                 if (!mounted) return;
-                Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 200));
+                Scrollable.ensureVisible(context,
+                    duration: const Duration(milliseconds: 200));
               });
             }
           }),
@@ -352,7 +389,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         _buildActionButton(
           icon: Icons.share_outlined,
           text: 'Share',
-          color: Colors.grey,
+          color: kSecondaryTextColor,
           onTap: _sharePost,
         ),
       ],
@@ -374,7 +411,9 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 6),
-            Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
+            Text(text,
+                style:
+                    TextStyle(color: color, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -386,7 +425,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
       padding: const EdgeInsets.only(top: 8.0),
       child: Column(
         children: [
-          const Divider(),
+          Divider(color: Colors.grey.shade800),
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: FirebaseFirestore.instance
                 .collection('community_posts')
@@ -394,23 +433,22 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                 .collection('comments')
                 .orderBy('postedAt', descending: true)
                 .limit(3)
-                .withConverter<Map<String, dynamic>>(
-                  fromFirestore: (s, _) => s.data() ?? {},
-                  toFirestore: (m, _) => m,
-                )
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                      child:
+                          CircularProgressIndicator(color: kPrimaryAccentColor)),
                 );
               }
               final comments = snapshot.data?.docs ?? [];
               if (comments.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text('No comments yet.'),
+                  child:
+                      Text('No comments yet.', style: TextStyle(color: kSecondaryTextColor)),
                 );
               }
               return ListView.builder(
@@ -422,9 +460,18 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                   final author = (commentData['author'] ?? 'A').toString();
                   final text = (commentData['text'] ?? '').toString();
                   return ListTile(
-                    leading: CircleAvatar(radius: 15, child: Text(author.isNotEmpty ? author[0] : 'A')),
-                    title: Text(author, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text(text, style: const TextStyle(fontSize: 14)),
+                    leading: CircleAvatar(
+                        radius: 15,
+                        backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
+                        child: Text(author.isNotEmpty ? author[0] : 'A', style: const TextStyle(color: kPrimaryAccentColor))),
+                    title: Text(author,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: kPrimaryTextColor)),
+                    subtitle: Text(text,
+                        style: const TextStyle(
+                            fontSize: 14, color: kSecondaryTextColor)),
                     dense: true,
                   );
                 },
@@ -439,22 +486,25 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                   child: TextField(
                     focusNode: _commentFocusNode,
                     controller: _commentController,
+                    style: const TextStyle(color: kPrimaryTextColor),
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _postComment(),
                     decoration: InputDecoration(
                       hintText: 'Add a comment...',
+                      hintStyle: const TextStyle(color: kSecondaryTextColor),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25.0),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : Colors.grey[200],
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
+                      fillColor: kBackgroundColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 0),
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFF5AC8F2)),
+                  icon: const Icon(Icons.send, color: kPrimaryAccentColor),
                   onPressed: _postComment,
                   tooltip: 'Post comment',
                 ),

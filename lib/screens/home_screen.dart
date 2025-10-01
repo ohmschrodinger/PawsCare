@@ -1,5 +1,6 @@
 // lib/screens/home_screen.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,14 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/services/animal_service.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+
+// Define the new color palette for easy access and consistency
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber; // Vibrant yellow accent
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
 class HomeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -28,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBackgroundColor, // Set the main background color
       appBar: widget.showAppBar
           ? buildPawsCareAppBar(
               context: context,
@@ -75,27 +85,47 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Card(
-        elevation: 2,
+        elevation: 4,
+        color: kCardColor, // Dark card background
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ExpansionTile(
-          leading: Icon(Icons.bar_chart, color: Theme.of(context).primaryColor),
+          iconColor: kPrimaryAccentColor,
+          collapsedIconColor: kSecondaryTextColor,
+          leading: const Icon(Icons.bar_chart, color: kPrimaryAccentColor),
           title: const Text(
             'Pet Adoption Stats',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: kPrimaryTextColor,
+            ),
           ),
           children: const [
             ListTile(
-              title: Text('Pets Adopted this Month'),
+              title: Text(
+                'Pets Adopted this Month',
+                style: TextStyle(color: kSecondaryTextColor),
+              ),
               trailing: Text(
                 '14',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryAccentColor,
+                  fontSize: 16,
+                ),
               ),
             ),
             ListTile(
-              title: Text('Active Rescues'),
+              title: Text(
+                'Active Rescues',
+                style: TextStyle(color: kSecondaryTextColor),
+              ),
               trailing: Text(
                 '32',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryAccentColor,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -128,14 +158,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: kPrimaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: kSecondaryTextColor,
                       ),
                     ),
                   ],
@@ -146,6 +177,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     mainNavKey.currentState?.selectTab(1);
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: kPrimaryAccentColor,
+                  ),
                   child: Row(
                     children: const [
                       Text("See More"),
@@ -164,15 +198,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? AnimalService.getAvailableAnimals()
                 : AnimalService.getAdoptedAnimals(),
             builder: (context, snapshot) {
-              if (snapshot.hasError) return const Center(child: Text('Error'));
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    'Error loading animals',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                );
+              }
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(color: kPrimaryAccentColor),
+                );
               }
 
               final animals = snapshot.data?.docs ?? [];
 
               if (animals.isEmpty) {
-                return Center(child: Text(emptyMessage));
+                return Center(
+                  child: Text(
+                    emptyMessage,
+                    style: const TextStyle(color: kSecondaryTextColor),
+                  ),
+                );
               }
 
               final previewAnimals = animals.take(10).toList();
@@ -192,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       animalData['imageUrls'] as List<dynamic>? ?? [];
                   final imageUrl =
                       (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                      (animalData['image'] ??
-                          'https://via.placeholder.com/150');
+                          (animalData['image'] ??
+                              'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
@@ -273,38 +321,34 @@ class _WelcomeSectionState extends State<WelcomeSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16.0),
-          height: 250,
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _infoPages.length,
-                  onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
-                  },
-                  itemBuilder: (context, index) {
-                    return _buildInfoPage(
-                      title: _infoPages[index]['title'],
-                      text: _infoPages[index]['text'],
-                    );
-                  },
-                ),
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        color: kCardColor, // Dark background for the welcome section
+        height: 250,
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _infoPages.length,
+                // Note: The onPageChanged callback is no longer needed
+                // because the SmoothPageIndicator handles this automatically.
+                itemBuilder: (context, index) {
+                  return _buildInfoPage(
+                    title: _infoPages[index]['title'],
+                    text: _infoPages[index]['text'],
+                  );
+                },
               ),
-              const SizedBox(height: 10),
-              _buildPageIndicator(),
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            _buildPageIndicator(), // This now calls the updated widget
+          ],
         ),
       ),
     );
@@ -319,15 +363,19 @@ class _WelcomeSectionState extends State<WelcomeSection> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: kPrimaryTextColor,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
             text,
             textAlign: TextAlign.start,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
-              color: Colors.grey.shade700,
+              color: kSecondaryTextColor,
               height: 1.4,
             ),
           ),
@@ -336,33 +384,30 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
+  // --- 👇 THIS IS THE UPDATED WIDGET ---
   Widget _buildPageIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(_infoPages.length, (index) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-          height: 8.0,
-          width: _currentPage == index ? 24.0 : 8.0,
-          decoration: BoxDecoration(
-            color: _currentPage == index
-                ? Theme.of(context).primaryColor
-                : Colors.grey.shade400,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
-      }),
+    return SmoothPageIndicator(
+      controller: _pageController,
+      count: _infoPages.length,
+      effect: WormEffect( // This provides the smooth "worm-like" animation
+        dotHeight: 8.0,
+        dotWidth: 8.0,
+        activeDotColor: kPrimaryAccentColor,
+        dotColor: Colors.grey.shade800,
+      ),
     );
   }
 }
+
+
+
 
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
 
   const HorizontalPetCard({Key? key, required this.pet, required this.onTap})
-    : super(key: key);
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -374,6 +419,7 @@ class HorizontalPetCard extends StatelessWidget {
         onTap: onTap,
         child: Card(
           clipBehavior: Clip.antiAlias,
+          color: kCardColor, // Dark card background
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -389,8 +435,9 @@ class HorizontalPetCard extends StatelessWidget {
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.pets, color: Colors.grey, size: 50),
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Icon(Icons.pets,
+                        color: kSecondaryTextColor, size: 50),
                   ),
                 ),
               ),
@@ -407,6 +454,7 @@ class HorizontalPetCard extends StatelessWidget {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
+                          color: kPrimaryTextColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
@@ -414,7 +462,10 @@ class HorizontalPetCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: kSecondaryTextColor,
+                        ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),

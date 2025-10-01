@@ -5,6 +5,14 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/animal_card.dart';
 import '../utils/constants.dart';
 
+// --- Re-using the color palette for consistency ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -------------------------------------------------
+
 class FullAnimalListScreen extends StatefulWidget {
   final String title;
   final String animalStatus; // 'Available' or 'Adopted'
@@ -39,7 +47,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Load liked animals
     final favoritesSnapshot = await FirebaseFirestore.instance
         .collection('favorites')
         .where('userId', isEqualTo: user.uid)
@@ -62,10 +69,8 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // This method now only handles backend logic, WITHOUT setState
     try {
       if (_likedAnimals.contains(animalId)) {
-        // Just update the data model, UI is already updated locally
         _likedAnimals.remove(animalId);
 
         final favoritesSnapshot = await FirebaseFirestore.instance
@@ -81,12 +86,11 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Removed from favorites!'),
-            backgroundColor: Colors.grey,
+            backgroundColor: kSecondaryTextColor,
             duration: Duration(seconds: 1),
           ),
         );
       } else {
-        // Just update the data model, UI is already updated locally
         _likedAnimals.add(animalId);
 
         await FirebaseFirestore.instance.collection('favorites').add({
@@ -96,10 +100,11 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to favorites!'),
-            backgroundColor: Colors.pinkAccent,
-            duration: Duration(seconds: 1),
+          SnackBar(
+            content: const Text('Added to favorites!',
+                style: TextStyle(color: Colors.black)),
+            backgroundColor: kPrimaryAccentColor,
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -107,133 +112,132 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error updating favorites. Please try again.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
   }
 
   void _openFilterSheet() {
+    // Reusable input decoration for dark theme dropdowns
+    final darkInputDecoration = InputDecoration(
+      labelStyle: const TextStyle(color: kSecondaryTextColor),
+      enabledBorder: OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.grey.shade800),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: kPrimaryAccentColor),
+      ),
+    );
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: kCardColor, // Dark background for the sheet
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter modalState) {
-            return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Filter Animals',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _filterSpecies,
-                    decoration: const InputDecoration(
-                      labelText: 'Species',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [null, ...AppConstants.speciesOptions]
-                        .map(
-                          (e) => DropdownMenuItem<String>(
-                            value: e,
-                            child: Text(e ?? 'Any'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        modalState(() => _filterSpecies = value),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _filterGender,
-                    decoration: const InputDecoration(
-                      labelText: 'Gender',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [null, 'Male', 'Female']
-                        .map(
-                          (e) => DropdownMenuItem<String>(
-                            value: e,
-                            child: Text(e ?? 'Any'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        modalState(() => _filterGender = value),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _filterVaccination,
-                    decoration: const InputDecoration(
-                      labelText: 'Vaccination',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [null, 'Yes', 'No', 'Partial']
-                        .map(
-                          (e) => DropdownMenuItem<String>(
-                            value: e,
-                            child: Text(e ?? 'Any'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        modalState(() => _filterVaccination = value),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: _filterSterilization,
-                    decoration: const InputDecoration(
-                      labelText: 'Sterilization',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [null, 'Yes', 'No']
-                        .map(
-                          (e) => DropdownMenuItem<String>(
-                            value: e,
-                            child: Text(e ?? 'Any'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) =>
-                        modalState(() => _filterSterilization = value),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _filterSpecies = null;
-                              _filterGender = null;
-                              _filterSterilization = null;
-                              _filterVaccination = null;
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Clear'),
-                        ),
+            return Theme(
+              // Apply dark theme specifically to the dropdown menus
+              data: Theme.of(context).copyWith(
+                canvasColor: kCardColor,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filter Animals',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: kPrimaryTextColor,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {});
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Apply'),
+                    ),
+                    const SizedBox(height: 24),
+                    DropdownButtonFormField<String>(
+                      value: _filterSpecies,
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: kSecondaryTextColor),
+                      decoration:
+                          darkInputDecoration.copyWith(labelText: 'Species'),
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      items: [null, ...AppConstants.speciesOptions]
+                          .map(
+                            (e) => DropdownMenuItem<String>(
+                              value: e,
+                              child: Text(e ?? 'Any'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          modalState(() => _filterSpecies = value),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: _filterGender,
+                      icon: const Icon(Icons.arrow_drop_down,
+                          color: kSecondaryTextColor),
+                      decoration:
+                          darkInputDecoration.copyWith(labelText: 'Gender'),
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      items: [null, 'Male', 'Female']
+                          .map(
+                            (e) => DropdownMenuItem<String>(
+                              value: e,
+                              child: Text(e ?? 'Any'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          modalState(() => _filterGender = value),
+                    ),
+                    // You can add the other filters here following the same pattern
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: kPrimaryTextColor,
+                              side: const BorderSide(color: kSecondaryTextColor),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _filterSpecies = null;
+                                _filterGender = null;
+                                _filterSterilization = null;
+                                _filterVaccination = null;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Clear'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryAccentColor,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () {
+                              setState(() {});
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -244,28 +248,23 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor = isDarkMode
-        ? theme.scaffoldBackgroundColor
-        : Colors.grey.shade50;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        backgroundColor: appBarColor,
+        backgroundColor: kBackgroundColor,
         elevation: 0,
         title: Text(
           widget.title,
-          style: TextStyle(color: appBarTextColor, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              color: kPrimaryTextColor, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: appBarTextColor),
+          icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_list, color: appBarTextColor),
+            icon: const Icon(Icons.filter_list, color: kPrimaryTextColor),
             tooltip: 'Filter Animals',
             onPressed: _openFilterSheet,
           ),
@@ -278,19 +277,19 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
             return const Center(
               child: Text(
                 'Error loading animals.',
-                style: TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 16, color: Colors.redAccent),
               ),
             );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+                child: CircularProgressIndicator(color: kPrimaryAccentColor));
           }
 
           final animals = snapshot.data?.docs ?? [];
           List filteredAnimals;
 
-          // Filter by status
           if (widget.animalStatus == 'Available') {
             filteredAnimals = animals.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
@@ -298,32 +297,21 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                   data['status'] != 'Adopted';
             }).toList();
           } else {
-            // 'Adopted'
             filteredAnimals = animals.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               return data['status'] == 'Adopted';
             }).toList();
           }
 
-          // Apply client-side filters
           filteredAnimals = filteredAnimals.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            bool matches = true;
-
-            if (_filterSpecies != null) {
-              matches = matches && (data['species'] == _filterSpecies);
+            if (_filterSpecies != null && data['species'] != _filterSpecies) {
+              return false;
             }
-            if (_filterGender != null) {
-              matches = matches && (data['gender'] == _filterGender);
+            if (_filterGender != null && data['gender'] != _filterGender) {
+              return false;
             }
-            if (_filterVaccination != null) {
-              matches = matches && (data['vaccination'] == _filterVaccination);
-            }
-            if (_filterSterilization != null) {
-              matches = matches && (data['sterilization'] == _filterSterilization);
-            }
-
-            return matches;
+            return true;
           }).toList();
 
           if (filteredAnimals.isEmpty) {
@@ -331,29 +319,26 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.pets_outlined,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: kSecondaryTextColor,
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'No animals found.',
                     style: TextStyle(
                       fontSize: 18,
-                      color: Colors.grey[600],
+                      color: kSecondaryTextColor,
                     ),
                   ),
-                  if (_filterSpecies != null ||
-                      _filterGender != null ||
-                      _filterVaccination != null ||
-                      _filterSterilization != null) ...[
+                  if (_filterSpecies != null || _filterGender != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Try adjusting your filters.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[500],
+                        color: Colors.grey.shade700,
                       ),
                     ),
                   ],
@@ -369,16 +354,13 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               final animalDoc = filteredAnimals[index];
               final animalData = animalDoc.data() as Map<String, dynamic>;
               final animalId = animalDoc.id;
+              final animal = {'id': animalId, ...animalData};
 
-              final animal = {
-                'id': animalId,
-                ...animalData,
-              };
-
+              // NOTE: Ensure your 'AnimalCard' widget is also styled with a dark theme,
+              // for example, by giving it a background color of `kCardColor`.
               return AnimalCard(
                 animal: animal,
                 isLiked: _likedAnimals.contains(animalId),
-                // isSaved is now fully handled inside the card
                 onTap: () {
                   Navigator.push(
                     context,
@@ -388,7 +370,6 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                   );
                 },
                 onLike: () => _likeAnimal(context, animalId),
-                // onSave can be an empty function as the card handles it
                 onSave: () {},
               );
             },

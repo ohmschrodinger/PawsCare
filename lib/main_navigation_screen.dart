@@ -7,6 +7,12 @@ import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 import 'package:pawscare/screens/animal_adoption_screen.dart';
 
+// --- Re-using the color palette for consistency ---
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -------------------------------------------------
+
 final mainNavKey = GlobalKey<_MainNavigationScreenState>();
 
 class MainNavigationScreen extends StatefulWidget {
@@ -34,9 +40,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void selectTab(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // Check if the widget is still in the tree to prevent errors
+    if (mounted) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -72,11 +81,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF5AC8F2),
-        unselectedItemColor: Colors.grey.shade600,
-        onTap: _onItemTapped,
+        // --- UI Updates ---
+        backgroundColor: kCardColor, // Dark background for the nav bar
+        selectedItemColor: kPrimaryAccentColor, // Yellow for the active item
+        unselectedItemColor: kSecondaryTextColor, // Grey for inactive items
         type: BottomNavigationBarType.fixed,
-        showUnselectedLabels: true,
+        // --- 👇 THESE ARE THE CHANGES ---
+        showSelectedLabels: false,   // Hides label for the selected item
+        showUnselectedLabels: false, // Hides labels for unselected items
+        // -----------------------------
+        elevation: 0, // Flat design to match the AppBar
+        onTap: _onItemTapped,
       ),
     );
   }

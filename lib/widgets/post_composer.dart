@@ -5,6 +5,13 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
 
 class PostComposer extends StatefulWidget {
   const PostComposer({Key? key}) : super(key: key);
@@ -23,7 +30,12 @@ class _PostComposerState extends State<PostComposer> {
   bool _isExpanded = false;
 
   String _selectedCategory = 'General';
-  final List<String> _categories = ['Success Story', 'Concern', 'Question', 'General'];
+  final List<String> _categories = [
+    'Success Story',
+    'Concern',
+    'Question',
+    'General'
+  ];
   String _userName = 'Anonymous';
 
   @override
@@ -59,6 +71,7 @@ class _PostComposerState extends State<PostComposer> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    // Functionality remains the same
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
@@ -71,16 +84,21 @@ class _PostComposerState extends State<PostComposer> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
+        SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.redAccent),
       );
     }
   }
 
   Future<void> _postStory() async {
+    // Functionality remains the same
     final text = _storyController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write something to post.')),
+        const SnackBar(
+            content: Text('Please write something to post.'),
+            backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -109,73 +127,81 @@ class _PostComposerState extends State<PostComposer> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Post shared successfully!'),
-          backgroundColor: Colors.green,
+        SnackBar(
+          content: const Text('Post shared successfully!'),
+          backgroundColor: Colors.green.shade800,
         ),
       );
       _clearAndCollapse();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error posting: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error posting: $e'),
+            backgroundColor: Colors.redAccent),
       );
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
   }
 
-@override
-Widget build(BuildContext context) {
-  final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-  return AnimatedPadding(
-    duration: const Duration(milliseconds: 200),
-    curve: Curves.easeOut,
-    padding: EdgeInsets.only(bottom: bottomInset),
-    child: Card(
-      margin: const EdgeInsets.all(8.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: InkWell(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          onTap: () {
-            if (!_isExpanded) setState(() => _isExpanded = true);
-          },
-          child: _isExpanded ? _buildExpandedView() : _buildCollapsedView(),
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Card(
+        color: kCardColor,
+        margin: const EdgeInsets.all(0),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: InkWell(
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            onTap: () {
+              if (!_isExpanded) setState(() => _isExpanded = true);
+            },
+            child: _isExpanded ? _buildExpandedView() : _buildCollapsedView(),
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCollapsedView() {
     return Row(
       children: [
-        CircleAvatar(child: Text(_userName.isNotEmpty ? _userName[0].toUpperCase() : 'A')),
+        CircleAvatar(
+          backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
+          child: Text(
+            _userName.isNotEmpty ? _userName[0].toUpperCase() : 'A',
+            style: const TextStyle(
+                color: kPrimaryAccentColor, fontWeight: FontWeight.bold),
+          ),
+        ),
         const SizedBox(width: 16),
         const Expanded(
           child: Text(
             'Share your story...',
-            style: TextStyle(color: Colors.grey),
+            style: TextStyle(color: kSecondaryTextColor),
           ),
         ),
-        const Icon(Icons.add_photo_alternate_outlined, color: Colors.grey),
+        const Icon(Icons.add_photo_alternate_outlined,
+            color: kSecondaryTextColor),
       ],
     );
   }
 
-  // --- UI FIX ---
-  // Revamped the expanded view for a cleaner layout that matches modern UI standards.
   Widget _buildExpandedView() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with "Posting as" and close button
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -183,36 +209,37 @@ Widget build(BuildContext context) {
               child: Text(
                 "Posting as $_userName",
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: kSecondaryTextColor),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close),
+              icon: const Icon(Icons.close, color: kSecondaryTextColor),
               onPressed: _clearAndCollapse,
               tooltip: 'Close',
             ),
           ],
         ),
-        const Divider(),
-        
-        // Text field for writing the post
+        const Divider(color: kBackgroundColor),
         TextField(
           controller: _storyController,
           autofocus: true,
-          maxLines: 5, // Allow more lines for better writing experience
+          maxLines: 5,
           minLines: 2,
           maxLength: 3000,
+          style: const TextStyle(color: kPrimaryTextColor),
           keyboardType: TextInputType.multiline,
           decoration: const InputDecoration(
             hintText: 'What’s on your mind?',
-            border: InputBorder.none, // Cleaner look without the underline
+            hintStyle: TextStyle(color: kSecondaryTextColor),
+            border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
-            counterText: "", // Hide the default counter
+            counterText: "",
           ),
         ),
-        
-        // Image preview section
         if (_selectedImage != null)
           Padding(
             padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
@@ -222,7 +249,7 @@ Widget build(BuildContext context) {
                   borderRadius: BorderRadius.circular(10),
                   child: Image.file(
                     _selectedImage!,
-                    height: 100, // Slightly larger preview
+                    height: 100,
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
@@ -234,7 +261,8 @@ Widget build(BuildContext context) {
                     radius: 14,
                     backgroundColor: Colors.black54,
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 14),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 14),
                       onPressed: () => setState(() => _selectedImage = null),
                       padding: EdgeInsets.zero,
                     ),
@@ -244,31 +272,29 @@ Widget build(BuildContext context) {
             ),
           ),
         const SizedBox(height: 14),
-        
-        // Category selection chips
         Wrap(
-          spacing: 8.0, // Increased spacing for better touch targets
+          spacing: 8.0,
           runSpacing: 4.0,
           children: _categories.map((category) {
             final selected = _selectedCategory == category;
             return ChoiceChip(
               label: Text(category),
               labelStyle: TextStyle(
-                color: selected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black87),
+                color: selected ? Colors.black : kPrimaryTextColor,
+                fontWeight: FontWeight.w600,
               ),
               selected: selected,
               onSelected: (s) {
                 if (s) setState(() => _selectedCategory = category);
               },
-              selectedColor: const Color(0xFF5AC8F2),
-              backgroundColor: Theme.of(context).chipTheme.backgroundColor,
+              selectedColor: kPrimaryAccentColor,
+              backgroundColor: Colors.grey.shade800,
               showCheckmark: false,
+              side: BorderSide.none,
             );
           }).toList(),
         ),
-        const Divider(height: 24),
-        
-        // Action buttons: Image pickers and Post button
+        const Divider(height: 24, color: kBackgroundColor),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -277,13 +303,13 @@ Widget build(BuildContext context) {
                 IconButton(
                   icon: const Icon(Icons.photo_camera_outlined),
                   onPressed: () => _pickImage(ImageSource.camera),
-                  color: Colors.grey[600],
+                  color: kSecondaryTextColor,
                   tooltip: 'Camera',
                 ),
                 IconButton(
                   icon: const Icon(Icons.photo_library_outlined),
                   onPressed: () => _pickImage(ImageSource.gallery),
-                  color: Colors.grey[600],
+                  color: kSecondaryTextColor,
                   tooltip: 'Gallery',
                 ),
               ],
@@ -291,14 +317,19 @@ Widget build(BuildContext context) {
             ElevatedButton(
               onPressed: _isUploading ? null : _postStory,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5AC8F2),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                backgroundColor: kPrimaryAccentColor,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
               ),
               child: _isUploading
                   ? const SizedBox(
-                      width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Post'),
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.black))
+                  : const Text('Post',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),

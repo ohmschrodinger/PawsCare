@@ -1,7 +1,17 @@
+// community_feed_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/post_composer.dart';
 import '../widgets/post_card_widget.dart';
+
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
 
 class CommunityFeedScreen extends StatefulWidget {
   const CommunityFeedScreen({super.key});
@@ -23,10 +33,6 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   Stream<QuerySnapshot<Map<String, dynamic>>> _getPostsStream() {
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('community_posts')
-        .withConverter<Map<String, dynamic>>(
-          fromFirestore: (s, _) => s.data() ?? {},
-          toFirestore: (m, _) => m,
-        )
         .orderBy('postedAt', descending: true);
 
     if (_selectedFilter != 'All Posts') {
@@ -37,40 +43,34 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get theme data to ensure UI consistency
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final appBarColor = isDarkMode ? theme.scaffoldBackgroundColor : Colors.grey.shade50;
-    final appBarTextColor = theme.textTheme.titleLarge?.color;
-
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(), // Dismiss keyboard
       child: Scaffold(
-        // Use theme's background color for consistency
+        backgroundColor: kBackgroundColor,
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: Text(
+          title: const Text(
             'Community Feed',
             style: TextStyle(
-              color: appBarTextColor,
+              color: kPrimaryTextColor,
               fontWeight: FontWeight.bold,
             ),
           ),
-          // Align AppBar with other screens
           centerTitle: false,
-          backgroundColor: appBarColor,
+          backgroundColor: kBackgroundColor,
           elevation: 0,
         ),
         body: Column(
           children: [
+            // NOTE: Ensure your `PostComposer` widget is updated with the dark theme colors.
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: PostComposer(),
             ),
-            
+
             // Filter chips row
             Container(
-              color: theme.cardColor, // Use cardColor for better theme adaptability
+              color: kBackgroundColor, // Seamless with the background
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -85,9 +85,19 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                         onSelected: (bool s) {
                           if (s) setState(() => _selectedFilter = filter);
                         },
-                        // Use theme colors for chips
-                        selectedColor: theme.primaryColor.withOpacity(0.2),
-                        checkmarkColor: theme.primaryColor,
+                        // --- 👇 THESE ARE THE CHANGES ---
+                        showCheckmark: false, // Hides the checkmark icon
+                        visualDensity: VisualDensity.compact, // Makes the chip smaller
+                        // -----------------------------
+                        labelStyle: TextStyle(
+                          color: selected ? Colors.black : kPrimaryTextColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        backgroundColor: kCardColor,
+                        selectedColor: kPrimaryAccentColor,
+                        side: BorderSide(
+                          color: selected ? kPrimaryAccentColor : Colors.grey.shade800,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -101,10 +111,10 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                 stream: _getPostsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(color: kPrimaryAccentColor));
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
                   }
 
                   final posts = snapshot.data?.docs ?? [];
@@ -112,7 +122,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     return const Center(
                       child: Text(
                         'No posts found for this category.',
-                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                        style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
                       ),
                     );
                   }
@@ -123,6 +133,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     itemBuilder: (context, index) {
                       final data = posts[index].data();
                       final postId = posts[index].id;
+                      // NOTE: Ensure your `PostCardWidget` is updated with the dark theme colors.
                       return PostCardWidget(postData: data, postId: postId);
                     },
                   );
