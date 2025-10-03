@@ -105,6 +105,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _handleApprove() async {
     setState(() => _isLoading = true);
     try {
+      // Approve selected application
       await FirebaseFirestore.instance
           .collection('adoptionApplications')
           .doc(widget.applicationId)
@@ -114,10 +115,41 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      if (widget.applicationData['animalId'] != null) {
+      // If linked to an animal, mark it adopted and auto-reject others
+      final String? animalId = widget.applicationData['animalId'] as String?;
+      if (animalId != null) {
+        await FirebaseFirestore.instance
+            .collection('animals')
+            .doc(animalId)
+            .update({
+          'status': 'Adopted',
+          'adoptedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Auto-reject other pending applications for this animal in this collection
+        final QuerySnapshot others = await FirebaseFirestore.instance
+            .collection('adoptionApplications')
+            .where('animalId', isEqualTo: animalId)
+            .where('status', isEqualTo: 'under review')
+            .get();
+
+        final WriteBatch batch = FirebaseFirestore.instance.batch();
+        for (final doc in others.docs) {
+          if (doc.id == widget.applicationId) continue;
+          batch.update(doc.reference, {
+            'status': 'rejected',
+            'adminMessage': _reasonController.text.trim().isNotEmpty
+                ? _reasonController.text.trim()
+                : 'Auto-rejected: another application was approved for this pet.',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        await batch.commit();
+
+        // Update local animal status through service for consistency (optional)
         await AnimalService.updateAnimalStatus(
-          animalId: widget.applicationData['animalId'],
-          status: 'Pending',
+          animalId: animalId,
+          status: 'Adopted',
         );
       }
 

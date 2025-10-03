@@ -357,7 +357,9 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Logic Unchanged
+              // Close the dialog immediately, then process approval
+              Navigator.pop(context);
+              // Approve selected application, mark pet as adopted, and auto-reject others
               try {
                 final appRef = FirebaseFirestore.instance
                     .collection('applications')
@@ -371,14 +373,39 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                 });
 
                 if (appData != null && appData['petId'] != null) {
+                  final String petId = appData['petId'];
+
+                  // Update the animal as adopted with adoptedAt timestamp
                   await FirebaseFirestore.instance
                       .collection('animals')
-                      .doc(appData['petId'])
-                      .update({'status': 'Adopted'});
+                      .doc(petId)
+                      .update({
+                    'status': 'Adopted',
+                    'adoptedAt': FieldValue.serverTimestamp(),
+                  });
+
+                  // Auto-reject all other applications for this pet that are still under review
+                  final QuerySnapshot others = await FirebaseFirestore.instance
+                      .collection('applications')
+                      .where('petId', isEqualTo: petId)
+                      .where('status', isEqualTo: 'Under Review')
+                      .get();
+
+                  final WriteBatch batch = FirebaseFirestore.instance.batch();
+                  for (final doc in others.docs) {
+                    if (doc.id == applicationId) continue;
+                    batch.update(doc.reference, {
+                      'status': 'Rejected',
+                      'adminMessage': (messageController.text.trim().isNotEmpty)
+                          ? messageController.text.trim()
+                          : 'Auto-rejected: another application was approved for this pet.',
+                      'reviewedAt': FieldValue.serverTimestamp(),
+                    });
+                  }
+                  await batch.commit();
                 }
 
                 if (mounted) {
-                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Application approved!'),
@@ -388,7 +415,6 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                 }
               } catch (e) {
                 if (mounted) {
-                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),
