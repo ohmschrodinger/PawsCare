@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import '../services/user_service.dart';
+import '../services/logging_service.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -166,6 +167,14 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           'appliedAt': FieldValue.serverTimestamp(),
           'adminMessage': '',
         });
+        // Log the application submission
+        await LoggingService.logEvent(
+          'adoption_application_submitted',
+          data: {
+            'petId': widget.petData['id'] ?? widget.petData['name'],
+            'petName': widget.petData['name'],
+          },
+        );
         _showSnackBar('Application submitted successfully!', isError: false);
         Navigator.pop(context);
         Navigator.pushReplacement(

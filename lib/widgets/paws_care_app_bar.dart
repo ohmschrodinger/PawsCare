@@ -4,6 +4,7 @@ import '../utils/user_role.dart';
 import '../main_navigation_screen.dart';
 import '../screens/my_applications_screen.dart';
 import '../screens/all_applications_screen.dart';
+import '../screens/admin_logs_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const Color kBackgroundColor = Color(0xFF121212);
@@ -119,6 +120,10 @@ PreferredSizeWidget buildPawsCareAppBar({
                   );
                 } else if (value == 'profile') {
                   mainNavKey.currentState?.selectTab(4);
+                } else if (value == 'activity_logs') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AdminLogsScreen()),
+                  );
                 }
 
                 if (onMenuSelected != null) onMenuSelected(value);
@@ -134,7 +139,7 @@ PreferredSizeWidget buildPawsCareAppBar({
                     ],
                   ),
                 ),
-                if (isAdmin)
+                if (isAdmin) ...[
                   const PopupMenuItem(
                     value: 'all_applications',
                     child: Row(
@@ -145,6 +150,17 @@ PreferredSizeWidget buildPawsCareAppBar({
                       ],
                     ),
                   ),
+                  const PopupMenuItem(
+                    value: 'activity_logs',
+                    child: Row(
+                      children: [
+                        Icon(Icons.history, color: popupIconColor),
+                        SizedBox(width: 8),
+                        Text('Activity Logs', style: popupTextStyle),
+                      ],
+                    ),
+                  ),
+                ],
                 const PopupMenuItem(
                   value: 'my_applications',
                   child: Row(

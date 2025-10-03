@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:pawscare/services/animal_service.dart';
+import 'package:pawscare/services/logging_service.dart';
 import 'package:pawscare/services/storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -681,6 +682,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         imageUrls.add(url);
       }
       await animalDoc.update({'imageUrls': imageUrls});
+      // Log that the user posted an animal
+      await LoggingService.logEvent(
+        'animal_posted_client',
+        data: {'animalId': animalId, 'name': _nameController.text.trim()},
+      );
       if (mounted) {
         _showSnackBar('Animal submitted for review!', isError: false);
         _formKey.currentState!.reset();

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/animal_status.dart';
+import 'logging_service.dart';
 
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -80,6 +81,15 @@ class AnimalService {
 
       // Add the animal document and return its reference
       final docRef = await _firestore.collection('animals').add(animalData);
+      // Log the event client-side
+      await LoggingService.logEvent(
+        'animal_posted',
+        data: {
+          'animalId': docRef.id,
+          'name': name,
+          'approvalStatus': approvalStatus,
+        },
+      );
       print('DEBUG: Created animal document with ID: ${docRef.id}');
       return docRef;
     } catch (e) {
@@ -340,6 +350,10 @@ class AnimalService {
         'adminMessage': adminMessage ?? '',
       });
       print('Animal approved successfully: $animalId');
+      await LoggingService.logEvent(
+        'animal_approved',
+        data: {'animalId': animalId, 'adminMessage': adminMessage ?? ''},
+      );
     } catch (e) {
       print('Error approving animal: $e');
       throw Exception('Failed to approve animal: $e');
@@ -370,6 +384,10 @@ class AnimalService {
         'adminMessage': adminMessage,
       });
       print('Animal rejected successfully: $animalId');
+      await LoggingService.logEvent(
+        'animal_rejected',
+        data: {'animalId': animalId, 'adminMessage': adminMessage},
+      );
     } catch (e) {
       print('Error rejecting animal: $e');
       throw Exception('Failed to reject animal: $e');

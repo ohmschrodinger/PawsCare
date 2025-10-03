@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/animal_service.dart';
+import '../services/logging_service.dart';
 
 // --- Re-using the color palette for consistency ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -72,14 +73,18 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               _reasonController.clear();
               Navigator.pop(context);
             },
-            child: const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               if (!isApprove && _reasonController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                      content: Text('Please provide a reason for rejection')),
+                    content: Text('Please provide a reason for rejection'),
+                  ),
                 );
                 return;
               }
@@ -91,9 +96,13 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isApprove ? Colors.green.shade600 : Colors.red.shade600,
+              backgroundColor: isApprove
+                  ? Colors.green.shade600
+                  : Colors.red.shade600,
               foregroundColor: kPrimaryTextColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(isApprove ? 'Approve' : 'Reject'),
           ),
@@ -110,10 +119,20 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           .collection('adoptionApplications')
           .doc(widget.applicationId)
           .update({
-        'status': 'approved',
-        'adminMessage': _reasonController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': 'approved',
+            'adminMessage': _reasonController.text.trim(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      // Log approval
+      await LoggingService.logEvent(
+        'application_approved',
+        data: {
+          'applicationId': widget.applicationId,
+          'animalId': widget.applicationData['animalId'],
+          'adminMessage': _reasonController.text.trim(),
+        },
+      );
 
       // If linked to an animal, mark it adopted and auto-reject others
       final String? animalId = widget.applicationData['animalId'] as String?;
@@ -122,9 +141,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             .collection('animals')
             .doc(animalId)
             .update({
-          'status': 'Adopted',
-          'adoptedAt': FieldValue.serverTimestamp(),
-        });
+              'status': 'Adopted',
+              'adoptedAt': FieldValue.serverTimestamp(),
+            });
 
         // Auto-reject other pending applications for this animal in this collection
         final QuerySnapshot others = await FirebaseFirestore.instance
@@ -161,8 +180,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -176,20 +196,32 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           .collection('adoptionApplications')
           .doc(widget.applicationId)
           .update({
-        'status': 'rejected',
-        'adminMessage': _reasonController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'status': 'rejected',
+            'adminMessage': _reasonController.text.trim(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+      // Log rejection
+      await LoggingService.logEvent(
+        'application_rejected',
+        data: {
+          'applicationId': widget.applicationId,
+          'animalId': widget.applicationData['animalId'],
+          'adminMessage': _reasonController.text.trim(),
+        },
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Application rejected')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Application rejected')));
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -202,18 +234,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     super.dispose();
   }
 
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return 'Date not available';
-    DateTime? date;
-    if (timestamp is DateTime) {
-      date = timestamp;
-    } else if (timestamp is Timestamp) {
-      date = timestamp.toDate();
-    }
-
-    if (date == null) return 'Date not available';
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  // ...existing code...
 
   @override
   Widget build(BuildContext context) {
@@ -260,100 +281,173 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildStatusBadge(statusText, statusColor, data['adminMessage']),
+                _buildStatusBadge(
+                  statusText,
+                  statusColor,
+                  data['adminMessage'],
+                ),
                 const SizedBox(height: 24),
                 _buildSectionCard(
-                    'Applicant & Pet Information', Icons.person_pin_circle_outlined, [
-                  _buildSectionHeader('Applicant Information'),
-                  _buildInfoRowWithIcon(
-                      'Full Name', data['applicantName'], Icons.person_outline),
-                  _buildInfoRowWithIcon(
-                      'Email', data['applicantEmail'], Icons.email_outlined),
-                  _buildInfoRowWithIcon(
-                      'Phone', data['applicantPhone'], Icons.phone_outlined),
-                  _buildInfoRowWithIcon('Address', data['applicantAddress'],
-                      Icons.location_on_outlined),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Pet Information'),
-                  _buildInfoRowWithIcon(
-                      'Pet Name', data['petName'], Icons.pets_outlined),
-                  _buildInfoRowWithIcon('Type Looking For',
-                      data['petTypeLookingFor'], Icons.search_outlined),
-                  _buildInfoRowWithIcon('Why Adopt', data['whyAdoptPet'],
-                      Icons.volunteer_activism_outlined),
-                ]),
+                  'Applicant & Pet Information',
+                  Icons.person_pin_circle_outlined,
+                  [
+                    _buildSectionHeader('Applicant Information'),
+                    _buildInfoRowWithIcon(
+                      'Full Name',
+                      data['applicantName'],
+                      Icons.person_outline,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Email',
+                      data['applicantEmail'],
+                      Icons.email_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Phone',
+                      data['applicantPhone'],
+                      Icons.phone_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Address',
+                      data['applicantAddress'],
+                      Icons.location_on_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Pet Information'),
+                    _buildInfoRowWithIcon(
+                      'Pet Name',
+                      data['petName'],
+                      Icons.pets_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Type Looking For',
+                      data['petTypeLookingFor'],
+                      Icons.search_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Why Adopt',
+                      data['whyAdoptPet'],
+                      Icons.volunteer_activism_outlined,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 _buildSectionCard(
-                    'Household & Pet History', Icons.family_restroom_outlined, [
-                  _buildSectionHeader('Household Information'),
-                  _buildInfoRowWithIcon(
-                      'Home Ownership', data['homeOwnership'], Icons.house_outlined),
-                  _buildInfoRowWithIcon(
+                  'Household & Pet History',
+                  Icons.family_restroom_outlined,
+                  [
+                    _buildSectionHeader('Household Information'),
+                    _buildInfoRowWithIcon(
+                      'Home Ownership',
+                      data['homeOwnership'],
+                      Icons.house_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
                       'Household Members',
                       (data['householdMembers'] ?? '').toString(),
-                      Icons.groups_outlined),
-                  _buildInfoRowWithIcon('Allergies',
-                      (data['hasAllergies'] ?? '').toString(), Icons.sick_outlined),
-                  _buildInfoRowWithIcon(
+                      Icons.groups_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Allergies',
+                      (data['hasAllergies'] ?? '').toString(),
+                      Icons.sick_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
                       'Members Agree',
                       (data['allMembersAgree'] ?? '').toString(),
-                      Icons.task_alt_outlined),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Pet History'),
-                  _buildInfoRowWithIcon('Has Current Pets',
-                      (data['hasCurrentPets'] ?? '').toString(), Icons.pets),
-                  if (data['hasCurrentPets'] == true)
+                      Icons.task_alt_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Pet History'),
                     _buildInfoRowWithIcon(
-                        'Details', data['currentPetsDetails'], Icons.arrow_right_alt),
-                  _buildInfoRowWithIcon(
+                      'Has Current Pets',
+                      (data['hasCurrentPets'] ?? '').toString(),
+                      Icons.pets,
+                    ),
+                    if (data['hasCurrentPets'] == true)
+                      _buildInfoRowWithIcon(
+                        'Details',
+                        data['currentPetsDetails'],
+                        Icons.arrow_right_alt,
+                      ),
+                    _buildInfoRowWithIcon(
                       'Has Past Pets',
                       (data['hasPastPets'] ?? '').toString(),
-                      Icons.history_edu_outlined),
-                  if (data['hasPastPets'] == true)
+                      Icons.history_edu_outlined,
+                    ),
+                    if (data['hasPastPets'] == true)
+                      _buildInfoRowWithIcon(
+                        'Details',
+                        data['pastPetsDetails'],
+                        Icons.arrow_right_alt,
+                      ),
                     _buildInfoRowWithIcon(
-                        'Details', data['pastPetsDetails'], Icons.arrow_right_alt),
-                  _buildInfoRowWithIcon(
                       'Surrendered Pet?',
                       (data['hasSurrenderedPets'] ?? '').toString(),
-                      Icons.night_shelter),
-                  if (data['hasSurrenderedPets'] == true)
-                    _buildInfoRowWithIcon('Circumstance',
-                        data['surrenderedPetsCircumstance'], Icons.arrow_right_alt),
-                ]),
+                      Icons.night_shelter,
+                    ),
+                    if (data['hasSurrenderedPets'] == true)
+                      _buildInfoRowWithIcon(
+                        'Circumstance',
+                        data['surrenderedPetsCircumstance'],
+                        Icons.arrow_right_alt,
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 24),
-                _buildSectionCard('Care, Vet & Commitment', Icons.favorite_outline, [
-                  _buildSectionHeader('Care & Responsibility'),
-                  _buildInfoRowWithIcon('Hours Left Alone',
-                      data['hoursLeftAlone'], Icons.timer_off_outlined),
-                  _buildInfoRowWithIcon('Kept When Alone',
-                      data['whereKeptWhenAlone'], Icons.home_outlined),
-                  _buildInfoRowWithIcon(
+                _buildSectionCard(
+                  'Care, Vet & Commitment',
+                  Icons.favorite_outline,
+                  [
+                    _buildSectionHeader('Care & Responsibility'),
+                    _buildInfoRowWithIcon(
+                      'Hours Left Alone',
+                      data['hoursLeftAlone'],
+                      Icons.timer_off_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Kept When Alone',
+                      data['whereKeptWhenAlone'],
+                      Icons.home_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
                       'Financially Prepared',
                       (data['financiallyPrepared'] ?? '').toString(),
-                      Icons.attach_money_outlined),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Veterinary Care'),
-                  _buildInfoRowWithIcon(
+                      Icons.attach_money_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Veterinary Care'),
+                    _buildInfoRowWithIcon(
                       'Has Veterinarian',
                       (data['hasVeterinarian'] ?? '').toString(),
-                      Icons.local_hospital_outlined),
-                  if (data['hasVeterinarian'] == true)
-                    _buildInfoRowWithIcon('Vet Contact', data['vetContactInfo'],
-                        Icons.contact_phone_outlined),
-                  _buildInfoRowWithIcon(
+                      Icons.local_hospital_outlined,
+                    ),
+                    if (data['hasVeterinarian'] == true)
+                      _buildInfoRowWithIcon(
+                        'Vet Contact',
+                        data['vetContactInfo'],
+                        Icons.contact_phone_outlined,
+                      ),
+                    _buildInfoRowWithIcon(
                       'Will Provide Vet Care',
                       (data['willingToProvideVetCare'] ?? '').toString(),
-                      Icons.medical_services_outlined),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Commitment'),
-                  _buildInfoRowWithIcon(
+                      Icons.medical_services_outlined,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Commitment'),
+                    _buildInfoRowWithIcon(
                       'Prepared for Lifetime',
                       (data['preparedForLifetimeCommitment'] ?? '').toString(),
-                      Icons.family_restroom_outlined),
-                  _buildInfoRowWithIcon('Plan if cannot keep',
-                      data['ifCannotKeepCare'], Icons.crisis_alert_outlined),
-                ]),
-                
+                      Icons.family_restroom_outlined,
+                    ),
+                    _buildInfoRowWithIcon(
+                      'Plan if cannot keep',
+                      data['ifCannotKeepCare'],
+                      Icons.crisis_alert_outlined,
+                    ),
+                  ],
+                ),
+
                 // --- ADMIN ACTION BUTTONS MOVED HERE ---
                 if (widget.isAdmin && status == 'under review')
                   _buildAdminActionButtons(),
@@ -364,13 +458,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             Container(
               color: Colors.black.withOpacity(0.5),
               child: const Center(
-                  child: CircularProgressIndicator(color: kPrimaryAccentColor)),
+                child: CircularProgressIndicator(color: kPrimaryAccentColor),
+              ),
             ),
         ],
       ),
     );
   }
-  
+
   // --- NEW WIDGET FOR ADMIN BUTTONS ---
   Widget _buildAdminActionButtons() {
     return Padding(
@@ -389,7 +484,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 foregroundColor: kPrimaryTextColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -406,7 +502,8 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 foregroundColor: kPrimaryTextColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -415,7 +512,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     );
   }
 
-  Widget _buildStatusBadge(String statusText, Color color, String? adminMessage) {
+  Widget _buildStatusBadge(
+    String statusText,
+    Color color,
+    String? adminMessage,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -438,10 +539,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             const SizedBox(height: 8),
             Text(
               adminMessage!,
-              style: const TextStyle(
-                color: kSecondaryTextColor,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: kSecondaryTextColor, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -462,7 +560,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, color: kPrimaryTextColor, size: 28), // <-- Color changed
+              Icon(
+                icon,
+                color: kPrimaryTextColor,
+                size: 28,
+              ), // <-- Color changed
               const SizedBox(width: 12),
               Text(
                 title,
