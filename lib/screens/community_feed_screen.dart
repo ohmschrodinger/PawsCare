@@ -80,25 +80,33 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
                       child: FilterChip(
-                        label: Text(filter),
-                        selected: selected,
-                        onSelected: (bool s) {
-                          if (s) setState(() => _selectedFilter = filter);
-                        },
-                        // --- 👇 THESE ARE THE CHANGES ---
-                        showCheckmark: false, // Hides the checkmark icon
-                        visualDensity: VisualDensity.compact, // Makes the chip smaller
-                        // -----------------------------
-                        labelStyle: TextStyle(
-                          color: selected ? Colors.black : kPrimaryTextColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        backgroundColor: kCardColor,
-                        selectedColor: kPrimaryAccentColor,
-                        side: BorderSide(
-                          color: selected ? kPrimaryAccentColor : Colors.grey.shade800,
-                        ),
-                      ),
+  label: Text(filter),
+  selected: selected,
+  onSelected: (bool s) {
+    if (s) setState(() => _selectedFilter = filter);
+  },
+  showCheckmark: false,
+  visualDensity: VisualDensity.compact,
+  labelStyle: TextStyle(
+    color: selected ? kPrimaryTextColor : kSecondaryTextColor,
+    fontWeight: FontWeight.w600,
+  ),
+  backgroundColor: kCardColor, // Unselected chip color
+
+  // --- THE FIX ---
+  // Use a solid, darker shade of amber instead of a transparent one.
+  selectedColor: const Color.fromARGB(255, 255, 162, 0), 
+  // ---------------
+
+  side: BorderSide(
+    // Keep the border a bright amber for a nice highlight effect.
+    color: selected ? const Color.fromARGB(255, 255, 193, 7) : Colors.grey.shade800,
+  ),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+  ),
+)
+
                     );
                   }).toList(),
                 ),

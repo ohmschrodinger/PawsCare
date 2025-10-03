@@ -153,7 +153,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         unselectedLabelColor: kSecondaryTextColor,
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
-          Tab(icon: Icon(Icons.add_circle_outline), text: 'Add New Animal'),
+          Tab(icon: Icon(Icons.add_circle_outline), text: 'Post New Animal'),
         ],
       ),
     );
@@ -434,56 +434,61 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    String hint, {
-    FormFieldValidator<String>? validator,
-    int maxLines = 1,
-    bool isPhoneNumber = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        style: const TextStyle(color: kPrimaryTextColor),
-        keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
-        inputFormatters: isPhoneNumber
-            ? [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
-              ]
-            : [],
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          labelStyle: const TextStyle(color: kSecondaryTextColor),
-          hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
-          prefixIcon: isPhoneNumber
-              ? const Padding(
-                  padding: EdgeInsets.all(15.0),
-                  child: Text('+91',
-                      style: TextStyle(
-                          color: kPrimaryTextColor, fontSize: 16)))
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade800),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade800),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
-          ),
-        ),
-        validator: validator,
+Widget _buildTextField(
+  TextEditingController controller,
+  String label,
+  String hint, {
+  FormFieldValidator<String>? validator,
+  int maxLines = 1,
+  bool isPhoneNumber = false,
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      style: TextStyle(
+        fontSize: 16,
+        color: kPrimaryTextColor, // Dark theme text color
       ),
-    );
-  }
+      keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
+      inputFormatters: isPhoneNumber
+          ? [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ]
+          : [],
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: const TextStyle(color: kSecondaryTextColor),
+        hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+        filled: true,
+        fillColor: kCardColor, // Dark card background like Settings
+        prefixIcon: isPhoneNumber
+            ? const Padding(
+                padding: EdgeInsets.all(15.0),
+                child: Text('+91',
+                    style: TextStyle(color: kPrimaryTextColor, fontSize: 16)))
+            : null,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide(color: Colors.grey.shade800),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide(color: Colors.grey.shade800),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+        ),
+        errorStyle: const TextStyle(color: Colors.redAccent),
+      ),
+      validator: validator,
+    ),
+  );
+}
 
   Widget _buildChoiceChipQuestion({
     required String question,

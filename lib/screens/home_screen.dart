@@ -1,6 +1,5 @@
 // lib/screens/home_screen.dart
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,17 +9,16 @@ import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-// Define the new color palette for easy access and consistency
+// -------------------- Color Palette --------------------
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber; // Vibrant yellow accent
+const Color kPrimaryAccentColor = Colors.amber;
 const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
+// -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
-  final bool showAppBar;
-
-  const HomeScreen({Key? key, this.showAppBar = true}) : super(key: key);
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -37,22 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor, // Set the main background color
-      appBar: widget.showAppBar
-          ? buildPawsCareAppBar(
-              context: context,
-             
-              onMenuSelected: (value) {
-                if (value == 'profile') {
-                  mainNavKey.currentState?.selectTab(4);
-                } else if (value == 'all_applications') {
-                  Navigator.of(context).pushNamed('/all-applications');
-                } else if (value == 'my_applications') {
-                  Navigator.of(context).pushNamed('/my-applications');
-                }
-              },
-            )
-          : null,
+      backgroundColor: kBackgroundColor,
+      appBar: buildPawsCareAppBar(context: context),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,16 +65,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // -------------------- Stats Section --------------------
   Widget _buildStatsSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Card(
         elevation: 4,
-        color: kCardColor, // Dark card background
+        color: kCardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        // --- 👇 CHANGE IS HERE ---
         child: Theme(
-          // This removes the default top/bottom dividers
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             iconColor: kPrimaryAccentColor,
@@ -139,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // -------------------- Animal Section --------------------
   Widget _buildAnimalSection({
     required String title,
     required String subtitle,
@@ -180,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
               if (statusFilter == 'Available')
                 TextButton(
                   onPressed: () {
-                    mainNavKey.currentState?.selectTab(1);
+                    mainNavKey.currentState?.selectTab(1); // Adopt tab
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: kPrimaryAccentColor,
@@ -218,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
               }
 
               final animals = snapshot.data?.docs ?? [];
-
               if (animals.isEmpty) {
                 return Center(
                   child: Text(
@@ -229,24 +212,17 @@ class _HomeScreenState extends State<HomeScreen> {
               }
 
               final previewAnimals = animals.take(10).toList();
-
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: previewAnimals.length,
                 physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
                   final animalData =
                       previewAnimals[index].data() as Map<String, dynamic>;
-                  final imageUrls =
-                      animalData['imageUrls'] as List<dynamic>? ?? [];
-                  final imageUrl =
-                      (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                          (animalData['image'] ??
-                              'https://via.placeholder.com/150');
+                  final imageUrls = animalData['imageUrls'] as List<dynamic>? ?? [];
+                  final imageUrl = (imageUrls.isNotEmpty ? imageUrls.first : null) ??
+                      (animalData['image'] ?? 'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
@@ -273,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// -------------------- Welcome Section --------------------
 class WelcomeSection extends StatefulWidget {
   const WelcomeSection({Key? key}) : super(key: key);
 
@@ -290,28 +267,23 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   final List<Map<String, dynamic>> _infoPages = [
     {
       'title': 'A Winning Team',
-      'text':
-          'Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!',
+      'text': 'Our amazing team of volunteers are committed to helping animals in our community...',
     },
     {
       'title': 'Our History',
-      'text':
-          "Seeing a nonprofit to support our community's animals, we formed our organization to provide sensible solutions. We've grown considerably since then, all thanks to the helping hands of this amazing community!",
+      'text': "Seeing a nonprofit to support our community's animals, we formed our organization...",
     },
     {
       'title': 'Animals Are Our Mission',
-      'text':
-          'We focus on making the maximum positive effect. Our members and volunteers provide the momentum we need. Using community driven models, we take actions that make a long-lasting difference.',
+      'text': 'We focus on making the maximum positive effect...',
     },
     {
       'title': 'Mission',
-      'text':
-          'Our Mission is to “Make a Difference in the life of street animal”',
+      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
     },
     {
       'title': 'Vision',
-      'text':
-          'Our Vision is to provide world’s most successful onsite treatment service for street animals free of cost. Introducing new technology projects that will help street animals and to educate society for a good cause.',
+      'text': 'Our Vision is to provide world’s most successful onsite treatment service for street animals...',
     },
   ];
 
@@ -340,7 +312,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
       margin: EdgeInsets.zero,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
-        color: kCardColor, // Dark background for the welcome section
+        color: kCardColor,
         height: 250,
         child: Column(
           children: [
@@ -349,10 +321,8 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                 controller: _pageController,
                 itemCount: _infoPages.length,
                 itemBuilder: (context, index) {
-                  double scale;
                   double delta = index - _currentPageValue;
-                  delta = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
-                  scale = delta;
+                  double scale = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
 
                   return Transform.scale(
                     scale: scale,
@@ -416,6 +386,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   }
 }
 
+// -------------------- Horizontal Pet Card --------------------
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
@@ -433,7 +404,7 @@ class HorizontalPetCard extends StatelessWidget {
         onTap: onTap,
         child: Card(
           clipBehavior: Clip.antiAlias,
-          color: kCardColor, // Dark card background
+          color: kCardColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

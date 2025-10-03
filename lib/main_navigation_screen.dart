@@ -1,17 +1,13 @@
-// main_navigation_screen.dart
-
 import 'package:flutter/material.dart';
-import 'package:pawscare/screens/home_wrapper.dart';
+import 'package:pawscare/screens/home_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 import 'package:pawscare/screens/animal_adoption_screen.dart';
 
-// --- Re-using the color palette for consistency ---
 const Color kCardColor = Color(0xFF1E1E1E);
 const Color kPrimaryAccentColor = Colors.amber;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -------------------------------------------------
 
 final mainNavKey = GlobalKey<_MainNavigationScreenState>();
 
@@ -26,7 +22,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeWrapper(),
+    const HomeScreen(),
     const AnimalAdoptionScreen(),
     const PostAnimalScreen(),
     const CommunityFeedScreen(),
@@ -40,7 +36,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void selectTab(int index) {
-    // Check if the widget is still in the tree to prevent errors
     if (mounted) {
       setState(() {
         _selectedIndex = index;
@@ -81,16 +76,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        // --- UI Updates ---
-        backgroundColor: kCardColor, // Dark background for the nav bar
-        selectedItemColor: kPrimaryAccentColor, // Yellow for the active item
-        unselectedItemColor: kSecondaryTextColor, // Grey for inactive items
+        backgroundColor: kCardColor,
+        selectedItemColor: kPrimaryAccentColor,
+        unselectedItemColor: kSecondaryTextColor,
         type: BottomNavigationBarType.fixed,
-        // --- 👇 THESE ARE THE CHANGES ---
-        showSelectedLabels: false,   // Hides label for the selected item
-        showUnselectedLabels: false, // Hides labels for unselected items
-        // -----------------------------
-        elevation: 0, // Flat design to match the AppBar
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        elevation: 0,
         onTap: _onItemTapped,
       ),
     );

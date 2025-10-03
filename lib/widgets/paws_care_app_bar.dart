@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/user_role.dart';
 import '../main_navigation_screen.dart';
+import '../screens/my_applications_screen.dart';
+import '../screens/all_applications_screen.dart';
 
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
@@ -24,14 +26,14 @@ PreferredSizeWidget buildPawsCareAppBar({
       onTap: () => mainNavKey.currentState?.selectTab(0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children:  [
-        Image.asset(
-        'lib/assets/pawscare_logo.png', // path relative to project root
-        width: 38,  // adjust as needed
-        height: 38, // adjust as needed
-        ),
-          SizedBox(width: 8),
-          Text(
+        children: [
+          Image.asset(
+            'lib/assets/pawscare_logo.png',
+            width: 38,
+            height: 38,
+          ),
+          const SizedBox(width: 8),
+          const Text(
             'PawsCare',
             style: TextStyle(
               color: kPrimaryTextColor,
@@ -72,13 +74,28 @@ PreferredSizeWidget buildPawsCareAppBar({
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
               onSelected: (value) {
+                // Full-screen navigation
+                if (value == 'my_applications') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const MyApplicationsScreen()),
+                  );
+                } else if (value == 'all_applications') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const AllApplicationsScreen()),
+                  );
+                } else if (value == 'profile') {
+                  mainNavKey.currentState?.selectTab(4);
+                }
+
                 if (onMenuSelected != null) onMenuSelected(value);
               },
               itemBuilder: (context) => [
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'profile',
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.person, color: popupIconColor),
                       SizedBox(width: 8),
                       Text('Profile', style: popupTextStyle),
@@ -86,20 +103,20 @@ PreferredSizeWidget buildPawsCareAppBar({
                   ),
                 ),
                 if (isAdmin)
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'all_applications',
                     child: Row(
-                      children: const [
+                      children: [
                         Icon(Icons.list_alt, color: popupIconColor),
                         SizedBox(width: 8),
                         Text('All Applications', style: popupTextStyle),
                       ],
                     ),
                   ),
-                PopupMenuItem(
+                const PopupMenuItem(
                   value: 'my_applications',
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.assignment, color: popupIconColor),
                       SizedBox(width: 8),
                       Text('My Applications', style: popupTextStyle),
