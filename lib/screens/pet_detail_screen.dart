@@ -119,6 +119,8 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     }
 
     String getField(String key) => widget.petData[key]?.toString() ?? '';
+    final String status = getField('status');
+    final bool isAdopted = status.toLowerCase() == 'adopted' || status == 'Adopted';
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -213,6 +215,9 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                       const SizedBox(height: 8),
                       _buildInfoRow(Icons.access_time, 'Posted On:',
                           _formatDate(widget.petData['postedAt'])),
+                      if (isAdopted)
+                        _buildInfoRow(Icons.event_available, 'Adopted On:',
+                            _formatDate(widget.petData['adoptedAt'])),
                       const SizedBox(height: 120),
                     ],
                   ),
@@ -220,7 +225,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
               ],
             ),
           ),
-          _buildAdoptMeButton(),
+          if (!isAdopted) _buildAdoptMeButton(),
         ],
       ),
     );
