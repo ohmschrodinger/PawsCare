@@ -23,7 +23,10 @@ class AdminLogsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Activity Logs', style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Activity Logs',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         backgroundColor: kBackgroundColor,
         elevation: 0,
         iconTheme: const IconThemeData(color: kPrimaryTextColor),
@@ -37,17 +40,25 @@ class AdminLogsScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-              child: Text('Error loading logs: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+              child: Text(
+                'Error loading logs: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
             );
           }
           if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: kPrimaryAccentColor));
+            return const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
           }
 
           final docs = snapshot.data!.docs;
           if (docs.isEmpty) {
             return const Center(
-              child: Text('No logs yet', style: TextStyle(color: kSecondaryTextColor)),
+              child: Text(
+                'No logs yet',
+                style: TextStyle(color: kSecondaryTextColor),
+              ),
             );
           }
 
@@ -59,24 +70,48 @@ class AdminLogsScreen extends StatelessWidget {
               final d = docs[index];
               final data = d.data() as Map<String, dynamic>;
               final eventType = data['eventType'] ?? 'unknown';
-              final userEmail = data['userEmail'] ?? data['userId'] ?? 'anonymous';
-              final createdAt = _formatTimestamp(data['createdAt'] as Timestamp?);
+              final userEmail =
+                  data['userEmail'] ?? data['userId'] ?? 'anonymous';
+              final createdAt = _formatTimestamp(
+                data['createdAt'] as Timestamp?,
+              );
               final payload = data['data'] ?? {};
 
               return Card(
                 color: kCardColor,
                 child: ListTile(
-                  title: Text(eventType, style: const TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold)),
+                  title: Text(
+                    eventType,
+                    style: const TextStyle(
+                      color: kPrimaryTextColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 6),
-                      Text('By: $userEmail', style: const TextStyle(color: kSecondaryTextColor)),
+                      Text(
+                        'By: $userEmail',
+                        style: const TextStyle(color: kSecondaryTextColor),
+                      ),
                       const SizedBox(height: 4),
-                      Text(payload.toString(), style: const TextStyle(color: kSecondaryTextColor, fontSize: 12)),
+                      Text(
+                        payload.toString(),
+                        style: const TextStyle(
+                          color: kSecondaryTextColor,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
-                  trailing: Text(createdAt, style: const TextStyle(color: kSecondaryTextColor, fontSize: 11)),
+                  trailing: Text(
+                    createdAt,
+                    style: const TextStyle(
+                      color: kSecondaryTextColor,
+                      fontSize: 11,
+                    ),
+                  ),
                 ),
               );
             },
