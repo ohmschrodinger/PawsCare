@@ -118,7 +118,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       backgroundColor: kBackgroundColor,
       appBar: buildPawsCareAppBar(
         context: context,
-        onLogout: _logout,
+        
         onMenuSelected: (value) {
           if (value == 'profile') {
             mainNavKey.currentState?.selectTab(4);

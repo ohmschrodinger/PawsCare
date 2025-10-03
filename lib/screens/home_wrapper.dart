@@ -37,10 +37,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       child: Scaffold(
         appBar: buildPawsCareAppBar(
           context: context,
-          onLogout: () {
-            FirebaseAuth.instance.signOut();
-            Navigator.of(context).pushReplacementNamed('/login');
-          },
+
           onMenuSelected: (value) {
             if (value == 'profile') {
               if (mainNavKey.currentState != null) {

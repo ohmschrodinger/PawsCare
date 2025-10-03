@@ -55,7 +55,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       appBar: widget.showAppBar
           ? buildPawsCareAppBar(
               context: context,
-              onLogout: _logout,
+             
               onMenuSelected: (value) {
                 if (value == 'profile') {
                   mainNavKey.currentState?.selectTab(4);

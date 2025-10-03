@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/services/auth_service.dart';
 import 'package:pawscare/services/user_service.dart';
+import 'package:pawscare/screens/terms_and_service.dart';
+import 'package:pawscare/screens/private_policy.dart'; // <-- Import added
 
 // --- Re-using the color palette for consistency ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -231,9 +233,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 20),
           _buildSectionHeader('Legal'),
-          _buildNavigationTile('Terms of Service', null, () {}),
+          _buildNavigationTile(
+            'Terms of Service',
+            null,
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const TermsAndServiceScreen(),
+                ),
+              );
+            },
+          ),
           const Divider(height: 1, indent: 16, endIndent: 16, color: kCardColor),
-          _buildNavigationTile('Privacy Policy', null, () {}),
+          _buildNavigationTile(
+            'Privacy Policy',
+            null,
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PrivatePolicyScreen(), // <-- Navigation fixed
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 40),
           Center(
             child: TextButton(
@@ -267,35 +289,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildEditableTile(TextEditingController controller, String label,
       {TextInputType? keyboardType}) {
-    return ListTile(
-      title: Text(label,
-          style: const TextStyle(color: kSecondaryTextColor, fontSize: 14)),
-      subtitle: TextFormField(
-        controller: controller,
-        enabled: _isEditing,
-        style: TextStyle(
-            fontSize: 16,
-            color: _isEditing ? kPrimaryTextColor : kSecondaryTextColor,
-            decoration: _isEditing ? TextDecoration.underline : TextDecoration.none,
-            decorationColor: kSecondaryTextColor),
-        keyboardType: keyboardType,
-        decoration: const InputDecoration(
-            border: InputBorder.none,
-            isDense: true,
-            contentPadding: EdgeInsets.zero,
-            errorStyle: TextStyle(color: Colors.redAccent)),
-        validator: (value) =>
-            (value == null || value.isEmpty) ? 'This field cannot be empty' : null,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+                color: kSecondaryTextColor,
+                fontSize: 14,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8.0),
+          TextFormField(
+            controller: controller,
+            enabled: _isEditing,
+            style: TextStyle(
+              fontSize: 16,
+              color: _isEditing ? kPrimaryTextColor : kSecondaryTextColor,
+            ),
+            keyboardType: keyboardType,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: kCardColor,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide(color: Colors.grey.shade800),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide:
+                    const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              errorStyle: const TextStyle(color: Colors.redAccent),
+            ),
+            validator: (value) =>
+                (value == null || value.isEmpty) ? 'This field cannot be empty' : null,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoTile(String label, String value) {
-    return ListTile(
-      title: Text(label,
-          style: const TextStyle(color: kSecondaryTextColor, fontSize: 14)),
-      subtitle: Text(value,
-          style: const TextStyle(fontSize: 16, color: kPrimaryTextColor)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+                color: kSecondaryTextColor,
+                fontSize: 14,
+                fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8.0),
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            decoration: BoxDecoration(
+              color: kCardColor,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, color: kSecondaryTextColor),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
