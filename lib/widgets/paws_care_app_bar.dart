@@ -24,8 +24,12 @@ PreferredSizeWidget buildPawsCareAppBar({
       onTap: () => mainNavKey.currentState?.selectTab(0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.pets, color: kPrimaryAccentColor, size: 24),
+        children:  [
+        Image.asset(
+        'lib/assets/pawscare_logo.png', // path relative to project root
+        width: 38,  // adjust as needed
+        height: 38, // adjust as needed
+        ),
           SizedBox(width: 8),
           Text(
             'PawsCare',
