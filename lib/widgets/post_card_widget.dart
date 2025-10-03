@@ -14,6 +14,8 @@ const Color kCardColor = Color(0xFF1E1E1E);
 const Color kPrimaryAccentColor = Colors.amber;
 const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// New avatar accent for anonymous/profile fallback (blueish)
+const Color kAvatarAccentColor = Colors.blueAccent;
 // -----------------------------------------
 
 class PostCardWidget extends StatefulWidget {
@@ -31,7 +33,7 @@ class PostCardWidget extends StatefulWidget {
 }
 
 class _PostCardWidgetState extends State<PostCardWidget> {
-  final User? currentUser = FirebaseAuth.instance.currentUser;
+  User? currentUser;
   final _commentController = TextEditingController();
   final _commentFocusNode = FocusNode();
   bool _isCommentSectionVisible = false;
@@ -40,10 +42,21 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   static const int _maxLinesCollapsed = 4;
   static const int _minCharsForReadMore = 200;
 
+  // New: resolved author display name
+  String? _resolvedAuthorName;
+  bool _resolvingAuthor = false;
+
+  // New: role state
+  bool _isAdmin = false;
+  bool _roleLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _commentFocusNode.addListener(_onFocusChange);
+    currentUser = FirebaseAuth.instance.currentUser;
+    _loadUserRole();
+    _resolveAuthorNameIfNeeded();
   }
 
   @override
@@ -55,7 +68,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   void _onFocusChange() {
-    // Functionality remains the same
     if (_commentFocusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 250), () {
         if (!mounted) return;
@@ -68,25 +80,100 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     }
   }
 
+  Future<void> _loadUserRole() async {
+    if (currentUser == null) {
+      setState(() {
+        _isAdmin = false;
+        _roleLoaded = true;
+      });
+      return;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).get();
+      final data = doc.data();
+      final role = data != null && data['role'] != null ? data['role'].toString().toLowerCase() : 'user';
+      setState(() {
+        _isAdmin = role == 'admin' || role == 'superadmin';
+        _roleLoaded = true;
+      });
+    } catch (e) {
+      setState(() {
+        _isAdmin = false;
+        _roleLoaded = true;
+      });
+    }
+  }
+
+  /// If post's author string is missing or set to "Anonymous", try to resolve
+  /// using users/{userId} document fields (fullName, name, displayName).
+  Future<void> _resolveAuthorNameIfNeeded() async {
+    final author = (widget.postData['author'] ?? '').toString();
+    final userId = (widget.postData['userId'] ?? '').toString();
+    if (author.trim().isNotEmpty && author.trim().toLowerCase() != 'anonymous') {
+      setState(() => _resolvedAuthorName = author.trim());
+      return;
+    }
+
+    if (userId.isEmpty) {
+      setState(() => _resolvedAuthorName = 'User');
+      return;
+    }
+
+    setState(() => _resolvingAuthor = true);
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final data = doc.data();
+      final candidate = data == null ? null : (data['fullName'] ?? data['name'] ?? data['displayName']);
+      if (candidate != null && candidate.toString().trim().isNotEmpty) {
+        setState(() => _resolvedAuthorName = candidate.toString().trim());
+      } else {
+        // If user doc doesn't contain a name, try to fallback to auth user displayName
+        try {
+          final authUser = await FirebaseAuth.instance.authStateChanges().firstWhere((u) => true, orElse: () => FirebaseAuth.instance.currentUser);
+          final authName = authUser?.displayName;
+          if (authName != null && authName.trim().isNotEmpty) {
+            setState(() => _resolvedAuthorName = authName.trim());
+          } else {
+            setState(() => _resolvedAuthorName = 'User ${userId.substring(userId.length - 4)}');
+          }
+        } catch (_) {
+          setState(() => _resolvedAuthorName = 'User ${userId.substring(userId.length - 4)}');
+        }
+      }
+    } catch (e) {
+      setState(() => _resolvedAuthorName = 'User');
+    } finally {
+      setState(() => _resolvingAuthor = false);
+    }
+  }
+
+  Future<String> _getCurrentUserName() async {
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser == null) return 'User';
+    if (authUser.displayName != null && authUser.displayName!.trim().isNotEmpty) return authUser.displayName!.trim();
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(authUser.uid).get();
+      final data = doc.data();
+      final candidate = data == null ? null : (data['fullName'] ?? data['name'] ?? data['displayName']);
+      if (candidate != null && candidate.toString().trim().isNotEmpty) return candidate.toString().trim();
+    } catch (_) {}
+    return 'User ${authUser.uid.substring(authUser.uid.length - 4)}';
+  }
+
   Future<void> _toggleLike() async {
-    // Functionality remains the same
     if (currentUser == null) return;
-    final docRef = FirebaseFirestore.instance
-        .collection('community_posts')
-        .doc(widget.postId);
+    final docRef = FirebaseFirestore.instance.collection('community_posts').doc(widget.postId);
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = likes.contains(currentUser!.uid);
 
     await docRef.update({
-      'likes': isLiked
-          ? FieldValue.arrayRemove([currentUser!.uid])
-          : FieldValue.arrayUnion([currentUser!.uid])
+      'likes': isLiked ? FieldValue.arrayRemove([currentUser!.uid]) : FieldValue.arrayUnion([currentUser!.uid])
     });
   }
 
   Future<void> _sharePost() async {
-    // Functionality remains the same
-    final String author = (widget.postData['author'] ?? 'Anonymous').toString();
+    final String author = (_resolvedAuthorName ?? widget.postData['author'] ?? 'User').toString();
     final String story = (widget.postData['story'] ?? '').toString();
     final String? imageUrl = (widget.postData['imageUrl'] as String?);
 
@@ -110,6 +197,16 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   Future<void> _deletePost() async {
+    final ownerId = widget.postData['userId'] as String?;
+    final allowed = (currentUser != null && currentUser!.uid == ownerId) || _isAdmin;
+
+    if (!allowed) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You do not have permission to delete this post.')));
+      }
+      return;
+    }
+
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -131,51 +228,37 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     if (confirmed != true) return;
 
     try {
-      if (widget.postData['imageUrl'] != null) {
-        await FirebaseStorage.instance
-            .refFromURL(widget.postData['imageUrl'])
-            .delete();
+      if (widget.postData['imageUrl'] != null && (widget.postData['imageUrl'] as String).isNotEmpty) {
+        try {
+          await FirebaseStorage.instance.refFromURL(widget.postData['imageUrl']).delete();
+        } catch (_) {}
       }
-      await FirebaseFirestore.instance
-          .collection('community_posts')
-          .doc(widget.postId)
-          .delete();
+      await FirebaseFirestore.instance.collection('community_posts').doc(widget.postId).delete();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: const Text('Post deleted successfully.'),
-              backgroundColor: Colors.green.shade800),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Post deleted successfully.'), backgroundColor: Colors.green.shade800));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error deleting post: $e'),
-              backgroundColor: Colors.redAccent),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting post: $e'), backgroundColor: Colors.redAccent));
       }
     }
   }
 
   Future<void> _postComment() async {
-    // Functionality remains the same
     if (_commentController.text.trim().isEmpty || currentUser == null) return;
     final commentText = _commentController.text.trim();
     _commentController.clear();
     _commentFocusNode.unfocus();
 
-    final postRef = FirebaseFirestore.instance
-        .collection('community_posts')
-        .doc(widget.postId);
+    final authorName = await _getCurrentUserName();
+
+    final postRef = FirebaseFirestore.instance.collection('community_posts').doc(widget.postId);
     final commentRef = postRef.collection('comments').doc();
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       transaction.set(commentRef, {
-        'author': currentUser!.displayName?.trim().isNotEmpty == true
-            ? currentUser!.displayName
-            : 'Anonymous',
+        'author': authorName,
         'text': commentText,
         'postedAt': FieldValue.serverTimestamp(),
         'userId': currentUser!.uid,
@@ -185,7 +268,6 @@ class _PostCardWidgetState extends State<PostCardWidget> {
   }
 
   String _getTimeAgo(DateTime dateTime) {
-    // Functionality remains the same
     final difference = DateTime.now().difference(dateTime);
     if (difference.inSeconds < 60) return '${difference.inSeconds}s';
     if (difference.inMinutes < 60) return '${difference.inMinutes}m';
@@ -195,14 +277,15 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final timestamp =
-        (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final timestamp = (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
     final timeAgo = _getTimeAgo(timestamp);
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = currentUser != null && likes.contains(currentUser!.uid);
     final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
     final String storyText = widget.postData['story'] ?? '';
     final bool isLongText = storyText.length > _minCharsForReadMore;
+
+    final displayAuthor = _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
 
     return Card(
       color: kCardColor,
@@ -214,7 +297,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildPostHeader(timeAgo),
+            _buildPostHeader(displayAuthor, timeAgo),
             const SizedBox(height: 12),
             if (storyText.isNotEmpty)
               Column(
@@ -222,12 +305,9 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                 children: [
                   Text(
                     storyText,
-                    style: const TextStyle(
-                        fontSize: 15, height: 1.4, color: kPrimaryTextColor),
+                    style: const TextStyle(fontSize: 15, height: 1.4, color: kPrimaryTextColor),
                     maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                    overflow: _isExpanded
-                        ? TextOverflow.visible
-                        : TextOverflow.ellipsis,
+                    overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                   ),
                   if (isLongText)
                     GestureDetector(
@@ -236,16 +316,13 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
                           _isExpanded ? 'Read less' : 'Read more...',
-                          style: const TextStyle(
-                              color: kPrimaryAccentColor,
-                              fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                 ],
               ),
-            if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty)
-              _buildPostImage(widget.postData['imageUrl']),
+            if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty) _buildPostImage(widget.postData['imageUrl']),
             const SizedBox(height: 8),
             _buildActionButtons(isLiked, likes.length, commentCount),
             if (_isCommentSectionVisible) _buildCommentSection(),
@@ -255,85 +332,90 @@ class _PostCardWidgetState extends State<PostCardWidget> {
     );
   }
 
-  Widget _buildPostHeader(String timeAgo) {
-    final String author = (widget.postData['author'] ?? 'Anonymous').toString();
-    final bool isAuthor = currentUser?.uid == widget.postData['userId'];
+ Widget _buildPostHeader(String displayAuthor, String timeAgo) {
+  final bool isAuthor = currentUser?.uid == widget.postData['userId'];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
-          child: Text(
-            author.isNotEmpty ? author[0].toUpperCase() : 'A',
-            style: const TextStyle(
-                color: kPrimaryAccentColor, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      author,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: kPrimaryTextColor),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('· $timeAgo',
-                      style: const TextStyle(
-                          color: kSecondaryTextColor, fontSize: 14)),
-                ],
-              ),
-              if ((widget.postData['category'] ?? '').toString().isNotEmpty)
-                Text(widget.postData['category'],
+  // Get the profile image URL if available
+  final String? profileImageUrl = widget.postData['profilePicUrl'] as String?;
+
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      CircleAvatar(
+        radius: 22,
+        backgroundColor: kAvatarAccentColor.withOpacity(0.2),
+        backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+            ? NetworkImage(profileImageUrl)
+            : null,
+        child: (profileImageUrl == null || profileImageUrl.isEmpty)
+            ? Text(
+                displayAuthor.isNotEmpty ? displayAuthor[0].toUpperCase() : 'U',
+                style: TextStyle(
+                    color: kAvatarAccentColor, fontWeight: FontWeight.bold),
+              )
+            : null,
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    displayAuthor,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        color: kSecondaryTextColor, fontSize: 12)),
-            ],
-          ),
-        ),
-        if (isAuthor)
-          Theme(
-            data: Theme.of(context).copyWith(
-              popupMenuTheme: const PopupMenuThemeData(
-                color: kCardColor, // Dark background for the menu
-              ),
-            ),
-            child: PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'delete') {
-                  _deletePost();
-                }
-              },
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, color: Colors.redAccent),
-                      SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: Colors.redAccent)),
-                    ],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: kPrimaryTextColor),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Text('· $timeAgo',
+                    style: const TextStyle(
+                        color: kSecondaryTextColor, fontSize: 14)),
               ],
-              icon: const Icon(Icons.more_horiz, color: kSecondaryTextColor),
             ),
-          )
-        else
-          const SizedBox(width: 48), // Keep alignment consistent
-      ],
-    );
-  }
+            if ((widget.postData['category'] ?? '').toString().isNotEmpty)
+              Text(widget.postData['category'],
+                  style:
+                      const TextStyle(color: kSecondaryTextColor, fontSize: 12)),
+          ],
+        ),
+      ),
+      if (_roleLoaded && (isAuthor || _isAdmin))
+        Theme(
+          data: Theme.of(context).copyWith(
+            popupMenuTheme: const PopupMenuThemeData(color: kCardColor),
+          ),
+          child: PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'delete') {
+                _deletePost();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, color: Colors.redAccent),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ],
+            icon: const Icon(Icons.more_horiz, color: kSecondaryTextColor),
+          ),
+        )
+      else
+        const SizedBox(width: 48),
+    ],
+  );
+}
 
   Widget _buildPostImage(String url) {
     return Padding(
@@ -347,13 +429,11 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             fit: BoxFit.cover,
             placeholder: (context, __) => Container(
               color: Colors.grey.shade900,
-              child: const Center(
-                  child: CircularProgressIndicator(color: kPrimaryAccentColor)),
+              child: const Center(child: CircularProgressIndicator(color: kPrimaryAccentColor)),
             ),
             errorWidget: (context, __, ___) => Container(
               color: Colors.grey.shade900,
-              child: const Center(
-                  child: Icon(Icons.broken_image, color: kSecondaryTextColor)),
+              child: const Center(child: Icon(Icons.broken_image, color: kSecondaryTextColor)),
             ),
           ),
         ),
@@ -368,7 +448,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
         _buildActionButton(
           icon: isLiked ? Icons.favorite : Icons.favorite_border,
           text: '$likeCount',
-          color: isLiked ? kPrimaryAccentColor : kSecondaryTextColor,
+          color: isLiked ? Colors.redAccent : kSecondaryTextColor, // like button red when liked
           onTap: _toggleLike,
         ),
         _buildActionButton(
@@ -380,8 +460,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
             if (_isCommentSectionVisible) {
               Future.delayed(const Duration(milliseconds: 50), () {
                 if (!mounted) return;
-                Scrollable.ensureVisible(context,
-                    duration: const Duration(milliseconds: 200));
+                Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 200));
               });
             }
           }),
@@ -411,9 +490,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 6),
-            Text(text,
-                style:
-                    TextStyle(color: color, fontWeight: FontWeight.w500)),
+            Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -438,17 +515,14 @@ class _PostCardWidgetState extends State<PostCardWidget> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Center(
-                      child:
-                          CircularProgressIndicator(color: kPrimaryAccentColor)),
+                  child: Center(child: CircularProgressIndicator(color: kPrimaryAccentColor)),
                 );
               }
               final comments = snapshot.data?.docs ?? [];
               if (comments.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child:
-                      Text('No comments yet.', style: TextStyle(color: kSecondaryTextColor)),
+                  child: Text('No comments yet.', style: TextStyle(color: kSecondaryTextColor)),
                 );
               }
               return ListView.builder(
@@ -457,21 +531,15 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                 itemCount: comments.length,
                 itemBuilder: (context, index) {
                   final commentData = comments[index].data();
-                  final author = (commentData['author'] ?? 'A').toString();
+                  final author = (commentData['author'] ?? '').toString();
                   final text = (commentData['text'] ?? '').toString();
                   return ListTile(
                     leading: CircleAvatar(
                         radius: 15,
-                        backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
-                        child: Text(author.isNotEmpty ? author[0] : 'A', style: const TextStyle(color: kPrimaryAccentColor))),
-                    title: Text(author,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: kPrimaryTextColor)),
-                    subtitle: Text(text,
-                        style: const TextStyle(
-                            fontSize: 14, color: kSecondaryTextColor)),
+                        backgroundColor: kAvatarAccentColor.withOpacity(0.2),
+                        child: Text(author.isNotEmpty ? author[0] : 'U', style: const TextStyle(color: kAvatarAccentColor))),
+                    title: Text(author.isNotEmpty ? author : 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kPrimaryTextColor)),
+                    subtitle: Text(text, style: const TextStyle(fontSize: 14, color: kSecondaryTextColor)),
                     dense: true,
                   );
                 },
@@ -498,8 +566,7 @@ class _PostCardWidgetState extends State<PostCardWidget> {
                       ),
                       filled: true,
                       fillColor: kBackgroundColor,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 0),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0),
                     ),
                   ),
                 ),

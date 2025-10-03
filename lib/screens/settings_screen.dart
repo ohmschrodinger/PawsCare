@@ -4,6 +4,7 @@ import 'package:pawscare/services/auth_service.dart';
 import 'package:pawscare/services/user_service.dart';
 import 'package:pawscare/screens/terms_and_service.dart';
 import 'package:pawscare/screens/private_policy.dart'; // <-- Import added
+import 'package:pawscare/screens/my_posted_animals_screen.dart';
 
 // --- Re-using the color palette for consistency ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -61,8 +62,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       if (doc.exists) {
         final data = doc.data()!;
         _fullNameController.text = data['fullName'] ?? '';
@@ -70,7 +73,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _addressController.text = data['address'] ?? '';
         if (mounted) {
           setState(() {
-            _pushNotificationsEnabled = data['pushNotificationsEnabled'] ?? true;
+            _pushNotificationsEnabled =
+                data['pushNotificationsEnabled'] ?? true;
           });
         }
       }
@@ -110,8 +114,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Failed to update profile: $e'),
-              backgroundColor: Colors.redAccent),
+            content: Text('Failed to update profile: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -179,12 +184,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildBody() {
     if (_isLoading && _fullNameController.text.isEmpty) {
       return const Center(
-          child: CircularProgressIndicator(color: kPrimaryAccentColor));
+        child: CircularProgressIndicator(color: kPrimaryAccentColor),
+      );
     }
     if (_errorMessage.isNotEmpty) {
       return Center(
-          child:
-              Text(_errorMessage, style: const TextStyle(color: Colors.redAccent)));
+        child: Text(
+          _errorMessage,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
+      );
     }
 
     final user = AuthService.getCurrentUser();
@@ -198,27 +207,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSectionHeader('Account'),
           _buildInfoTile('Email', email),
           _buildEditableTile(_fullNameController, 'Full Name'),
-          _buildEditableTile(_phoneController, 'Phone Number',
-              keyboardType: TextInputType.phone),
-          _buildEditableTile(_addressController, 'Address',
-              keyboardType: TextInputType.streetAddress),
+          _buildEditableTile(
+            _phoneController,
+            'Phone Number',
+            keyboardType: TextInputType.phone,
+          ),
+          _buildEditableTile(
+            _addressController,
+            'Address',
+            keyboardType: TextInputType.streetAddress,
+          ),
           if (_isEditing)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               child: TextButton(
                 onPressed: () => _toggleEditState(false),
-                child:
-                    const Text('Cancel', style: TextStyle(color: Colors.redAccent)),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
               ),
             ),
           const SizedBox(height: 20),
           _buildSectionHeader('My Activity'),
-          _buildNavigationTile('My Posts', Icons.article_outlined, () {}),
-          const Divider(height: 1, indent: 16, endIndent: 16, color: kCardColor),
+          _buildNavigationTile('My Posts', Icons.article_outlined, () {            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MyPostedAnimalsScreen()),
+            );}),
+          const Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: kCardColor,
+          ),
           _buildNavigationTile(
-              'My Applications', Icons.playlist_add_check_outlined, () {}),
-          const Divider(height: 1, indent: 16, endIndent: 16, color: kCardColor),
+            'My Applications',
+            Icons.playlist_add_check_outlined,
+            () {},
+          ),
+          const Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: kCardColor,
+          ),
           _buildNavigationTile('Saved Posts', Icons.bookmark_border, () {}),
           const SizedBox(height: 20),
           _buildSectionHeader('Preferences'),
@@ -233,29 +267,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 20),
           _buildSectionHeader('Legal'),
-          _buildNavigationTile(
-            'Terms of Service',
-            null,
-            () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const TermsAndServiceScreen(),
-                ),
-              );
-            },
+          _buildNavigationTile('Terms of Service', null, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TermsAndServiceScreen()),
+            );
+          }),
+          const Divider(
+            height: 1,
+            indent: 16,
+            endIndent: 16,
+            color: kCardColor,
           ),
-          const Divider(height: 1, indent: 16, endIndent: 16, color: kCardColor),
-          _buildNavigationTile(
-            'Privacy Policy',
-            null,
-            () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const PrivatePolicyScreen(), // <-- Navigation fixed
-                ),
-              );
-            },
-          ),
+          _buildNavigationTile('Privacy Policy', null, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    const PrivatePolicyScreen(), // <-- Navigation fixed
+              ),
+            );
+          }),
           const SizedBox(height: 40),
           Center(
             child: TextButton(
@@ -263,9 +293,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text(
                 'Logout',
                 style: TextStyle(
-                    color: Colors.redAccent,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.redAccent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -280,15 +311,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Text(
         title.toUpperCase(),
         style: const TextStyle(
-            color: kSecondaryTextColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 12),
+          color: kSecondaryTextColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
 
-  Widget _buildEditableTile(TextEditingController controller, String label,
-      {TextInputType? keyboardType}) {
+  Widget _buildEditableTile(
+    TextEditingController controller,
+    String label, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -297,9 +332,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             label,
             style: const TextStyle(
-                color: kSecondaryTextColor,
-                fontSize: 14,
-                fontWeight: FontWeight.bold),
+              color: kSecondaryTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8.0),
           TextFormField(
@@ -313,16 +349,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: InputDecoration(
               filled: true,
               fillColor: kCardColor,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
                 borderSide: BorderSide(color: Colors.grey.shade800),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
-                borderSide:
-                    const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+                borderSide: const BorderSide(
+                  color: kPrimaryAccentColor,
+                  width: 1.5,
+                ),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12.0),
@@ -330,8 +370,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               errorStyle: const TextStyle(color: Colors.redAccent),
             ),
-            validator: (value) =>
-                (value == null || value.isEmpty) ? 'This field cannot be empty' : null,
+            validator: (value) => (value == null || value.isEmpty)
+                ? 'This field cannot be empty'
+                : null,
           ),
         ],
       ),
@@ -347,15 +388,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             label,
             style: const TextStyle(
-                color: kSecondaryTextColor,
-                fontSize: 14,
-                fontWeight: FontWeight.bold),
+              color: kSecondaryTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8.0),
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
             decoration: BoxDecoration(
               color: kCardColor,
               borderRadius: BorderRadius.circular(12.0),
@@ -370,11 +414,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildNavigationTile(String title, IconData? icon, VoidCallback? onTap) {
+  Widget _buildNavigationTile(
+    String title,
+    IconData? icon,
+    VoidCallback? onTap,
+  ) {
     return ListTile(
       leading: icon != null ? Icon(icon, color: kSecondaryTextColor) : null,
-      title: Text(title,
-          style: const TextStyle(fontSize: 16, color: kPrimaryTextColor)),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+      ),
       trailing: onTap != null
           ? const Icon(Icons.chevron_right, color: kSecondaryTextColor)
           : null,
@@ -383,11 +433,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSwitchTile(
-      String title, IconData icon, bool value, ValueChanged<bool> onChanged) {
+    String title,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return SwitchListTile(
       secondary: Icon(icon, color: kSecondaryTextColor),
-      title: Text(title,
-          style: const TextStyle(fontSize: 16, color: kPrimaryTextColor)),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+      ),
       value: value,
       onChanged: onChanged,
       activeColor: kPrimaryAccentColor,

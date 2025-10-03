@@ -198,7 +198,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
       return Scaffold(
         backgroundColor: kBackgroundColor,
         appBar: AppBar(
-          title: const Text('Adoption Application', style: TextStyle(color: kPrimaryTextColor)),
+          title: const Text(
+            'Adoption Application',
+            style: TextStyle(color: kPrimaryTextColor),
+          ),
           backgroundColor: kBackgroundColor,
           elevation: 0,
           centerTitle: true,
@@ -211,7 +214,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Adoption Application', style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Adoption Application',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         backgroundColor: kBackgroundColor,
         elevation: 0,
         centerTitle: true,
@@ -233,8 +239,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     controller: _fullNameController,
                     label: 'Full Name',
                     icon: Icons.person,
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Please enter your full name' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please enter your full name'
+                        : null,
                   ),
                   _buildTextField(
                     controller: _emailController,
@@ -242,7 +249,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     icon: Icons.email,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) =>
-                        (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                        (value == null || !value.contains('@'))
+                        ? 'Enter a valid email'
+                        : null,
                   ),
                   _buildTextField(
                     controller: _phoneNumberController,
@@ -255,8 +264,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     label: 'Address',
                     icon: Icons.location_on,
                     maxLines: 3,
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Please enter your address' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please enter your address'
+                        : null,
                   ),
                 ],
               ),
@@ -322,7 +332,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     value: _homeOwnership,
                     items: ['Own', 'Rent'],
                     icon: Icons.house,
-                    onChanged: (value) => setState(() => _homeOwnership = value),
+                    onChanged: (value) =>
+                        setState(() => _homeOwnership = value),
                     validator: (value) =>
                         value == null ? 'Please select an option' : null,
                   ),
@@ -358,7 +369,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                         : null,
                   ),
                   _buildDropdownQuestion(
-                    label: 'Do you have a preference for breed, age, or gender?',
+                    label:
+                        'Do you have a preference for breed, age, or gender?',
                     value: _preferenceForBreedAgeGender,
                     items: ['Yes', 'No'],
                     icon: Icons.tune,
@@ -388,8 +400,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     label: 'How many hours will the animal be left alone?',
                     icon: Icons.timer_off_outlined,
                     keyboardType: TextInputType.number,
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Please provide the hours' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please provide the hours'
+                        : null,
                   ),
                   _buildTextField(
                     controller: _whereKeptWhenAloneController,
@@ -432,8 +445,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                   _buildYesNoQuestion(
                     'Are you willing to provide regular vet care?',
                     _willingToProvideVetCare,
-                    (value) =>
-                        setState(() => _willingToProvideVetCare = value),
+                    (value) => setState(() => _willingToProvideVetCare = value),
                   ),
                 ],
               ),
@@ -454,8 +466,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                         'What will you do if you can no longer care for the animal?',
                     icon: Icons.crisis_alert_outlined,
                     maxLines: 3,
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Please explain your plan' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Please explain your plan'
+                        : null,
                   ),
                 ],
               ),
@@ -475,8 +488,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        _showSnackBar('Terms & Conditions page coming soon!',
-                            isError: false);
+                        _showSnackBar(
+                          'Terms & Conditions page coming soon!',
+                          isError: false,
+                        );
                       },
                       child: const Text.rich(
                         TextSpan(
@@ -510,7 +525,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               _isLoading
                   ? const Center(
                       child: CircularProgressIndicator(
-                          color: kPrimaryAccentColor))
+                        color: kPrimaryAccentColor,
+                      ),
+                    )
                   : Center(
                       child: SizedBox(
                         width: MediaQuery.of(context).size.width * 0.7,
@@ -528,7 +545,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                           child: const Text(
                             'Submit Application',
                             style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -574,16 +593,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 Text(
                   'Applying for:',
                   style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: kSecondaryTextColor.withOpacity(0.8)),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: kSecondaryTextColor.withOpacity(0.8),
+                  ),
                 ),
                 Text(
                   widget.petData['name'] ?? 'Unknown Pet',
                   style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryAccentColor),
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryAccentColor,
+                  ),
                 ),
                 Text(
                   '${widget.petData['species'] ?? 'N/A'} • ${widget.petData['age'] ?? 'N/A'}',
@@ -618,17 +639,20 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 Text(
                   title,
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryAccentColor),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryAccentColor,
+                  ),
                 ),
               ],
             ),
             const Divider(height: 24, color: kBackgroundColor),
-            ...children.map((child) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: child,
-                )),
+            ...children.map(
+              (child) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: child,
+              ),
+            ),
           ],
         ),
       ),
@@ -644,45 +668,77 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: kPrimaryTextColor),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: kSecondaryTextColor),
-        hintText: hint,
-        hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
-        prefixIcon: icon != null ? Icon(icon, color: kSecondaryTextColor) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade800),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: kPrimaryTextColor,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade800),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          style: const TextStyle(color: kPrimaryTextColor),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+            prefixIcon: icon != null
+                ? Icon(icon, color: kSecondaryTextColor)
+                : null,
+            filled: true,
+            fillColor: kCardColor,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade800),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.grey.shade800),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: kPrimaryAccentColor,
+                width: 2,
+              ),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide.none,
+            ),
+            errorStyle: const TextStyle(color: Colors.redAccent),
+          ),
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          validator: validator,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
-        ),
-      ),
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
+      ],
     );
   }
 
   Widget _buildYesNoQuestion(
-      String question, bool? currentValue, ValueChanged<bool?> onChanged) {
+    String question,
+    bool? currentValue,
+    ValueChanged<bool?> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           question,
           style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: kPrimaryTextColor),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: kPrimaryTextColor,
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -691,20 +747,24 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               child: OutlinedButton(
                 onPressed: () => onChanged(true),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor:
-                      currentValue == true ? kPrimaryAccentColor : Colors.transparent,
+                  backgroundColor: currentValue == true
+                      ? kPrimaryAccentColor
+                      : Colors.transparent,
                   side: BorderSide(
-                      color: currentValue == true
-                          ? kPrimaryAccentColor
-                          : kSecondaryTextColor),
+                    color: currentValue == true
+                        ? kPrimaryAccentColor
+                        : kSecondaryTextColor,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: Text(
                   'Yes',
                   style: TextStyle(
-                    color:
-                        currentValue == true ? Colors.black : kPrimaryTextColor,
+                    color: currentValue == true
+                        ? Colors.black
+                        : kPrimaryTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -715,20 +775,24 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               child: OutlinedButton(
                 onPressed: () => onChanged(false),
                 style: OutlinedButton.styleFrom(
-                  backgroundColor:
-                      currentValue == false ? kPrimaryAccentColor : Colors.transparent,
+                  backgroundColor: currentValue == false
+                      ? kPrimaryAccentColor
+                      : Colors.transparent,
                   side: BorderSide(
-                      color: currentValue == false
-                          ? kPrimaryAccentColor
-                          : kSecondaryTextColor),
+                    color: currentValue == false
+                        ? kPrimaryAccentColor
+                        : kSecondaryTextColor,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 child: Text(
                   'No',
                   style: TextStyle(
-                    color:
-                        currentValue == false ? Colors.black : kPrimaryTextColor,
+                    color: currentValue == false
+                        ? Colors.black
+                        : kPrimaryTextColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -750,45 +814,80 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
   }) {
     return Theme(
       data: Theme.of(context).copyWith(canvasColor: kCardColor),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: kSecondaryTextColor),
-          prefixIcon: Icon(icon, color: kSecondaryTextColor),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade800),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: kPrimaryTextColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 2),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: value,
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon, color: kSecondaryTextColor),
+              filled: true,
+              fillColor: kCardColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 12.0,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade800),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(
+                  color: kPrimaryAccentColor,
+                  width: 2,
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              errorStyle: const TextStyle(color: Colors.redAccent),
+            ),
+            items: items.map<DropdownMenuItem<String>>((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(
+                  item,
+                  style: const TextStyle(color: kPrimaryTextColor),
+                ),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            validator: validator,
           ),
-        ),
-        items: items.map<DropdownMenuItem<String>>((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item, style: const TextStyle(color: kPrimaryTextColor)),
-          );
-        }).toList(),
-        onChanged: onChanged,
-        validator: validator,
+        ],
       ),
     );
   }
 
   Widget _buildNumberInput(
-      String label, int currentValue, ValueChanged<int> onChanged) {
+    String label,
+    int currentValue,
+    ValueChanged<int> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: kPrimaryTextColor),
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: kPrimaryTextColor,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
@@ -801,8 +900,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.remove_circle_outline,
-                    color: kPrimaryAccentColor),
+                icon: const Icon(
+                  Icons.remove_circle_outline,
+                  color: kPrimaryAccentColor,
+                ),
                 onPressed: () {
                   if (currentValue > 1) onChanged(currentValue - 1);
                 },
@@ -810,13 +911,16 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               Text(
                 currentValue.toString(),
                 style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: kPrimaryTextColor),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryTextColor,
+                ),
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle_outline,
-                    color: kPrimaryAccentColor),
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  color: kPrimaryAccentColor,
+                ),
                 onPressed: () {
                   onChanged(currentValue + 1);
                 },

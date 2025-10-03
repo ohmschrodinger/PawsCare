@@ -4,11 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter/cupertino.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryAccentColor = Color.fromARGB(255, 255, 193, 7);
 const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
@@ -36,7 +38,9 @@ class _PostComposerState extends State<PostComposer> {
     'Question',
     'General'
   ];
-  String _userName = 'Anonymous';
+
+  String _userName = 'User';
+  String? _uid;
 
   @override
   void initState() {
@@ -51,11 +55,42 @@ class _PostComposerState extends State<PostComposer> {
     super.dispose();
   }
 
-  void _fetchUserName() {
+  Future<void> _fetchUserName() async {
     final user = FirebaseAuth.instance.currentUser;
-    final name = user?.displayName;
-    if (name != null && name.trim().isNotEmpty) {
-      _userName = name.trim();
+    if (user == null) {
+      setState(() {
+        _userName = 'User';
+        _uid = null;
+      });
+      return;
+    }
+    _uid = user.uid;
+    if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
+      setState(() {
+        _userName = user.displayName!.trim();
+      });
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data();
+      final candidate = data == null
+          ? null
+          : (data['fullName'] ?? data['name'] ?? data['displayName']);
+      if (candidate != null && candidate.toString().trim().isNotEmpty) {
+        setState(() {
+          _userName = candidate.toString().trim();
+        });
+      } else {
+        setState(() {
+          _userName = 'User ${user.uid.substring(user.uid.length - 4)}';
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _userName = 'User ${user.uid.substring(user.uid.length - 4)}';
+      });
     }
   }
 
@@ -71,7 +106,6 @@ class _PostComposerState extends State<PostComposer> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    // Functionality remains the same
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
@@ -92,7 +126,6 @@ class _PostComposerState extends State<PostComposer> {
   }
 
   Future<void> _postStory() async {
-    // Functionality remains the same
     final text = _storyController.text.trim();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,6 +136,10 @@ class _PostComposerState extends State<PostComposer> {
       return;
     }
     setState(() => _isUploading = true);
+
+    // Re-resolve name immediately before posting (ensures we have best value)
+    await _fetchUserName();
+
     try {
       String? imageUrl;
       if (_selectedImage != null) {
@@ -114,6 +151,8 @@ class _PostComposerState extends State<PostComposer> {
         imageUrl = await uploadTask.ref.getDownloadURL();
       }
 
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+
       await FirebaseFirestore.instance.collection('community_posts').add({
         'author': _userName,
         'story': text,
@@ -122,7 +161,7 @@ class _PostComposerState extends State<PostComposer> {
         'postedAt': FieldValue.serverTimestamp(),
         'likes': <String>[],
         'commentCount': 0,
-        'userId': FirebaseAuth.instance.currentUser?.uid,
+        'userId': uid,
       });
 
       if (!mounted) return;
@@ -177,22 +216,29 @@ class _PostComposerState extends State<PostComposer> {
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: kPrimaryAccentColor.withOpacity(0.2),
+          backgroundColor: const Color.fromARGB(82, 7, 85, 255).withOpacity(0.2),
           child: Text(
-            _userName.isNotEmpty ? _userName[0].toUpperCase() : 'A',
+            _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
             style: const TextStyle(
-                color: kPrimaryAccentColor, fontWeight: FontWeight.bold),
+                color: Color.fromARGB(149, 7, 168, 255), fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(width: 16),
-        const Expanded(
+        Expanded(
           child: Text(
-            'Share your story...',
-            style: TextStyle(color: kSecondaryTextColor),
+            'Share your story as $_userName',
+            style: const TextStyle(color: kSecondaryTextColor),
           ),
         ),
-        const Icon(Icons.add_photo_alternate_outlined,
-            color: kSecondaryTextColor),
+        // small logo icon instead of generic icon:
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: kPrimaryAccentColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.send, color: kPrimaryAccentColor, size: 18),
+        ),
       ],
     );
   }
@@ -210,7 +256,7 @@ class _PostComposerState extends State<PostComposer> {
                 "Posting as $_userName",
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: kSecondaryTextColor),
               ),
@@ -223,6 +269,7 @@ class _PostComposerState extends State<PostComposer> {
           ],
         ),
         const Divider(color: kBackgroundColor),
+        // === UPDATED TEXTFIELD: dark filled appearance ===
         TextField(
           controller: _storyController,
           autofocus: true,
@@ -231,13 +278,22 @@ class _PostComposerState extends State<PostComposer> {
           maxLength: 3000,
           style: const TextStyle(color: kPrimaryTextColor),
           keyboardType: TextInputType.multiline,
-          decoration: const InputDecoration(
+          cursorColor: kPrimaryAccentColor,
+          decoration: InputDecoration(
             hintText: 'What’s on your mind?',
-            hintStyle: TextStyle(color: kSecondaryTextColor),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
+            hintStyle: const TextStyle(color: kSecondaryTextColor),
+            filled: true,
+            fillColor: kCardColor, // matches card and dark theme
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             counterText: "",
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: const Color.fromARGB(172, 255, 193, 7).withOpacity(0.6), width: 1.2),
+            ),
           ),
         ),
         if (_selectedImage != null)
@@ -261,8 +317,7 @@ class _PostComposerState extends State<PostComposer> {
                     radius: 14,
                     backgroundColor: Colors.black54,
                     child: IconButton(
-                      icon: const Icon(Icons.close,
-                          color: Colors.white, size: 14),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 14),
                       onPressed: () => setState(() => _selectedImage = null),
                       padding: EdgeInsets.zero,
                     ),
@@ -314,23 +369,38 @@ class _PostComposerState extends State<PostComposer> {
                 ),
               ],
             ),
-            ElevatedButton(
-              onPressed: _isUploading ? null : _postStory,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryAccentColor,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
+
+            // === POST LOGO BUTTON (replace text button) ===
+            // OPTION A: Simple built-in icon (no extra dependency)
+// === POST LOGO BUTTON (Cupertino style) ===
+GestureDetector(
+  onTap: _isUploading ? null : _postStory,
+  child: Container(
+    width: 35,
+    height: 35,
+    decoration: BoxDecoration(
+      color: kCardColor, // dark background, same as cards
+      shape: BoxShape.circle,
+      border: Border.all(color: kPrimaryAccentColor.withOpacity(0.8), width: 1.2),
+    ),
+    child: _isUploading
+        ? const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color.fromARGB(181, 255, 193, 7),
               ),
-              child: _isUploading
-                  ? const SizedBox(
-                      width: 15,
-                      height: 15,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.black))
-                  : const Text('Post',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
             ),
+          )
+        : const Icon(
+            CupertinoIcons.paperplane_fill,
+            color: Color.fromARGB(188, 255, 193, 7),
+            size: 18,
+          ),
+  ),
+),
           ],
         ),
       ],

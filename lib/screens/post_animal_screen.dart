@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../main_navigation_screen.dart';
+import 'package:pawscare/screens/view_details_screen.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -105,12 +106,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     });
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
+  // ...existing code...
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +114,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       backgroundColor: kBackgroundColor,
       appBar: buildPawsCareAppBar(
         context: context,
-        
+
         onMenuSelected: (value) {
           if (value == 'profile') {
             mainNavKey.currentState?.selectTab(4);
@@ -163,8 +159,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return const Center(
-        child: Text('Please log in to view pending requests',
-            style: TextStyle(color: kSecondaryTextColor)),
+        child: Text(
+          'Please log in to view pending requests',
+          style: TextStyle(color: kSecondaryTextColor),
+        ),
       );
     }
     return StreamBuilder<QuerySnapshot>(
@@ -172,8 +170,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.redAccent)));
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -434,61 +435,67 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-Widget _buildTextField(
-  TextEditingController controller,
-  String label,
-  String hint, {
-  FormFieldValidator<String>? validator,
-  int maxLines = 1,
-  bool isPhoneNumber = false,
-}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8.0),
-    child: TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      style: TextStyle(
-        fontSize: 16,
-        color: kPrimaryTextColor, // Dark theme text color
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    String hint, {
+    FormFieldValidator<String>? validator,
+    int maxLines = 1,
+    bool isPhoneNumber = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        style: TextStyle(
+          fontSize: 16,
+          color: kPrimaryTextColor, // Dark theme text color
+        ),
+        keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
+        inputFormatters: isPhoneNumber
+            ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ]
+            : [],
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+          filled: true,
+          fillColor: kCardColor, // Dark card background like Settings
+          prefixIcon: isPhoneNumber
+              ? const Padding(
+                  padding: EdgeInsets.all(15.0),
+                  child: Text(
+                    '+91',
+                    style: TextStyle(color: kPrimaryTextColor, fontSize: 16),
+                  ),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide(color: Colors.grey.shade800),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: const BorderSide(
+              color: kPrimaryAccentColor,
+              width: 1.5,
+            ),
+          ),
+          errorStyle: const TextStyle(color: Colors.redAccent),
+        ),
+        validator: validator,
       ),
-      keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
-      inputFormatters: isPhoneNumber
-          ? [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ]
-          : [],
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: const TextStyle(color: kSecondaryTextColor),
-        hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
-        filled: true,
-        fillColor: kCardColor, // Dark card background like Settings
-        prefixIcon: isPhoneNumber
-            ? const Padding(
-                padding: EdgeInsets.all(15.0),
-                child: Text('+91',
-                    style: TextStyle(color: kPrimaryTextColor, fontSize: 16)))
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade800),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide(color: Colors.grey.shade800),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
-        ),
-        errorStyle: const TextStyle(color: Colors.redAccent),
-      ),
-      validator: validator,
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildChoiceChipQuestion({
     required String question,
@@ -524,9 +531,10 @@ Widget _buildTextField(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                      color: isSelected
-                          ? kPrimaryAccentColor
-                          : Colors.grey.shade800),
+                    color: isSelected
+                        ? kPrimaryAccentColor
+                        : Colors.grey.shade800,
+                  ),
                 ),
                 showCheckmark: false,
               );
@@ -590,26 +598,35 @@ Widget _buildTextField(
         Row(
           children: [
             OutlinedButton.icon(
-              onPressed: _images.length < 5
-                  ? () => _pickImage(ImageSource.gallery)
-                  : null,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Gallery'),
-              style: OutlinedButton.styleFrom(
-                  foregroundColor: kPrimaryTextColor,
-                  side: const BorderSide(color: kSecondaryTextColor)),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: _images.length < 5
-                  ? () => _pickImage(ImageSource.camera)
-                  : null,
+              onPressed: () => _pickImage(ImageSource.camera),
               icon: const Icon(Icons.camera_alt),
               label: const Text('Camera'),
               style: OutlinedButton.styleFrom(
-                  foregroundColor: kPrimaryTextColor,
-                  side: const BorderSide(color: kSecondaryTextColor)),
+                foregroundColor: kPrimaryTextColor,
+                side: const BorderSide(color: kSecondaryTextColor),
+              ),
             ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: () => _pickImage(ImageSource.gallery),
+              icon: const Icon(Icons.photo_library),
+              label: const Text('Gallery'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kPrimaryTextColor,
+                side: const BorderSide(color: kSecondaryTextColor),
+              ),
+            ),
+            const Spacer(),
+            if (_images.isNotEmpty) ...[
+              Text(
+                '${_images.length}/5 selected',
+                style: const TextStyle(color: kSecondaryTextColor),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _images.clear()),
+                icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              ),
+            ],
           ],
         ),
       ],
@@ -754,8 +771,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                             imageUrls[index],
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
-                                Icons.error_outline,
-                                color: kSecondaryTextColor),
+                              Icons.error_outline,
+                              color: kSecondaryTextColor,
+                            ),
                           ),
                         )
                       : Container(
@@ -810,12 +828,22 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 const SizedBox(height: 4),
                 Text(
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
-                  style:
-                      const TextStyle(fontSize: 14, color: kSecondaryTextColor),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: kSecondaryTextColor,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () => _showDetailsDialog(context),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ViewDetailsScreen(animalData: widget.animalData),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.info_outline),
                   label: const Text('View Details'),
                   style: OutlinedButton.styleFrom(
@@ -869,14 +897,18 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        title: const Text('Approve Animal',
-            style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Approve Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This will make the animal visible for adoption.',
-                style: TextStyle(color: kSecondaryTextColor)),
+            const Text(
+              'This will make the animal visible for adoption.',
+              style: TextStyle(color: kSecondaryTextColor),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
@@ -885,12 +917,15 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 labelText: 'Optional Message',
                 hintText: 'Add any notes or comments (optional)',
                 labelStyle: const TextStyle(color: kSecondaryTextColor),
-                hintStyle:
-                    TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+                hintStyle: TextStyle(
+                  color: kSecondaryTextColor.withOpacity(0.5),
+                ),
                 border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade800)),
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
                 focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: kPrimaryAccentColor)),
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -899,8 +934,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -939,85 +976,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 
-  void _showDetailsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCardColor,
-        title: Text(widget.animalData['name'] ?? 'Animal Details',
-            style: const TextStyle(color: kPrimaryTextColor)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailItem('Species', widget.animalData['species']),
-              _buildDetailItem('Breed', widget.animalData['breed']),
-              _buildDetailItem('Age', widget.animalData['age']),
-              _buildDetailItem('Gender', widget.animalData['gender']),
-              _buildDetailItem(
-                  'Mother Status', widget.animalData['motherStatus']),
-              _buildDetailItem(
-                  'Sterilization', widget.animalData['sterilization']),
-              _buildDetailItem('Vaccination', widget.animalData['vaccination']),
-              _buildDetailItem('Deworming', widget.animalData['deworming']),
-              _buildDetailItem('Location', widget.animalData['location']),
-              _buildDetailItem('Contact', widget.animalData['contactPhone']),
-              if (widget.animalData['medicalIssues']?.isNotEmpty ?? false)
-                _buildDetailItem(
-                    'Medical Issues', widget.animalData['medicalIssues']),
-              if (widget.animalData['rescueStory']?.isNotEmpty ?? false) ...[
-                const Divider(height: 24, color: kBackgroundColor),
-                const Text(
-                  'Rescue Story',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: kPrimaryTextColor),
-                ),
-                const SizedBox(height: 8),
-                Text(widget.animalData['rescueStory'] ?? '',
-                    style: const TextStyle(color: kSecondaryTextColor)),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Close', style: TextStyle(color: kPrimaryTextColor)),
-          ),
-        ],
-      ),
-    );
-  }
+  // details are shown in ViewDetailsScreen via navigation
 
-  Widget _buildDetailItem(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: kSecondaryTextColor,
-              ),
-            ),
-          ),
-          Expanded(
-              child: Text(value,
-                  style:
-                      const TextStyle(fontSize: 14, color: kPrimaryTextColor))),
-        ],
-      ),
-    );
-  }
+  // details shown in separate ViewDetailsScreen
 
   void _showRejectDialog(BuildContext context, String animalId) {
     final messageController = TextEditingController();
@@ -1025,8 +986,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        title: const Text('Reject Animal',
-            style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Reject Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1043,12 +1006,15 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 labelText: 'Reason for Rejection *',
                 hintText: 'Explain why this post is being rejected',
                 labelStyle: const TextStyle(color: kSecondaryTextColor),
-                hintStyle:
-                    TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
+                hintStyle: TextStyle(
+                  color: kSecondaryTextColor.withOpacity(0.5),
+                ),
                 border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade800)),
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
                 focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: kPrimaryAccentColor)),
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -1057,8 +1023,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {

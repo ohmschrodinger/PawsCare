@@ -4,6 +4,7 @@ import '../utils/user_role.dart';
 import '../main_navigation_screen.dart';
 import '../screens/my_applications_screen.dart';
 import '../screens/all_applications_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
@@ -27,11 +28,7 @@ PreferredSizeWidget buildPawsCareAppBar({
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            'lib/assets/pawscare_logo.png',
-            width: 38,
-            height: 38,
-          ),
+          Image.asset('lib/assets/pawscare_logo.png', width: 38, height: 38),
           const SizedBox(width: 8),
           const Text(
             'PawsCare',
@@ -47,12 +44,44 @@ PreferredSizeWidget buildPawsCareAppBar({
     actions: [
       IconButton(
         icon: const Icon(Icons.chat_bubble_outline, color: kPrimaryTextColor),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Chat feature coming soon!')),
+        onPressed: () async {
+          const rawPhone =
+              '917057517218'; // country code + number, no '+' sign for these URIs
+          const defaultMessage = 'Hello, I\'m interested in PawsCare!';
+
+          // 1) Try WhatsApp app (preferred)
+          final whatsappAppUri = Uri.parse(
+            'whatsapp://send?phone=$rawPhone&text=${Uri.encodeComponent(defaultMessage)}',
           );
+
+          // 2) Fallback to web wa.me
+          final webUri = Uri.parse(
+            'https://wa.me/$rawPhone?text=${Uri.encodeComponent(defaultMessage)}',
+          );
+
+          try {
+            if (await canLaunchUrl(whatsappAppUri)) {
+              await launchUrl(
+                whatsappAppUri,
+                mode: LaunchMode.externalApplication,
+              );
+            } else if (await canLaunchUrl(webUri)) {
+              await launchUrl(webUri, mode: LaunchMode.externalApplication);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Could not open WhatsApp or web fallback.'),
+                ),
+              );
+            }
+          } catch (err) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error opening WhatsApp: $err')),
+            );
+          }
         },
       ),
+
       IconButton(
         icon: const Icon(Icons.notifications_none, color: kPrimaryTextColor),
         onPressed: () {
@@ -61,6 +90,7 @@ PreferredSizeWidget buildPawsCareAppBar({
           );
         },
       ),
+
       FutureBuilder<String>(
         future: getCurrentUserRole(),
         builder: (context, snapshot) {
@@ -78,12 +108,14 @@ PreferredSizeWidget buildPawsCareAppBar({
                 if (value == 'my_applications') {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                        builder: (_) => const MyApplicationsScreen()),
+                      builder: (_) => const MyApplicationsScreen(),
+                    ),
                   );
                 } else if (value == 'all_applications') {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                        builder: (_) => const AllApplicationsScreen()),
+                      builder: (_) => const AllApplicationsScreen(),
+                    ),
                   );
                 } else if (value == 'profile') {
                   mainNavKey.currentState?.selectTab(4);
