@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/services.dart';
+import '../services/user_favorites_service.dart';
 import 'pet_detail_screen.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
@@ -12,67 +12,81 @@ const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
-class MyPostedAnimalsScreen extends StatefulWidget {
-  const MyPostedAnimalsScreen({super.key});
+class SavedPostsScreen extends StatefulWidget {
+  const SavedPostsScreen({super.key});
 
   @override
-  State<MyPostedAnimalsScreen> createState() => _MyPostedAnimalsScreenState();
+  State<SavedPostsScreen> createState() => _SavedPostsScreenState();
 }
 
-class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
-  Stream<QuerySnapshot> _getAnimalsStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Stream.empty();
-    }
-    return FirebaseFirestore.instance
-        .collection('animals')
-        .where('postedBy', isEqualTo: user.uid)
-        .snapshots();
-  }
-
+class _SavedPostsScreenState extends State<SavedPostsScreen> {
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: kBackgroundColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Saved Posts',
+            style: TextStyle(
+                color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: const Center(
+          child: Text(
+            'Please log in to view your saved posts.',
+            style: TextStyle(color: kSecondaryTextColor),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        systemOverlayStyle: SystemUiOverlayStyle.light,
         backgroundColor: kBackgroundColor,
-        elevation: 0,
-        title: const Text(
-          'My Posted Animals',
-          style: TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
-        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Saved Posts',
+          style: TextStyle(
+              color: kPrimaryTextColor, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _getAnimalsStream(),
+        stream: UserFavoritesService.getSavedAnimalDetails(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text('Something went wrong.', style: TextStyle(color: Colors.redAccent)),
-            );
-          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: kPrimaryAccentColor),
-            );
+                child: CircularProgressIndicator(color: kPrimaryAccentColor));
+          }
+          if (snapshot.hasError) {
+            return Center(
+                child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent),
+            ));
           }
 
           final animals = snapshot.data?.docs ?? [];
-
           if (animals.isEmpty) {
             return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.pets_outlined, size: 64, color: kSecondaryTextColor),
-                  SizedBox(height: 16),
-                  Text("You haven't posted any animals yet.", style: TextStyle(fontSize: 18, color: kSecondaryTextColor)),
-                ],
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "You haven't saved any animals yet.",
+                  style: TextStyle(color: kSecondaryTextColor, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
               ),
             );
           }
@@ -90,9 +104,8 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
               final doc = animals[index];
               final data = doc.data() as Map<String, dynamic>;
               final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
-              final animalId = doc.id;
               final petData = {
-                'id': animalId,
+                'id': doc.id,
                 ...data,
                 'image': imageUrls.isNotEmpty ? imageUrls.first : null,
               };
@@ -115,13 +128,18 @@ class _AnimalGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PetDetailScreen(petData: pet)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PetDetailScreen(petData: pet),
+          ),
+        );
       },
       child: Card(
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: kCardColor,
         elevation: 2,
+        color: kCardColor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -132,12 +150,20 @@ class _AnimalGridCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey.shade900,
-                        child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                        child: const Icon(
+                          Icons.pets,
+                          color: kSecondaryTextColor,
+                          size: 40,
+                        ),
                       ),
                     )
                   : Container(
                       color: Colors.grey.shade900,
-                      child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                      child: const Icon(
+                        Icons.pets,
+                        color: kSecondaryTextColor,
+                        size: 40,
+                      ),
                     ),
             ),
             Padding(
@@ -147,14 +173,23 @@ class _AnimalGridCard extends StatelessWidget {
                 children: [
                   Text(
                     pet['name'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kPrimaryTextColor),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 12, color: kSecondaryTextColor),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: kSecondaryTextColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

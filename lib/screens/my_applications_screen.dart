@@ -5,8 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/screens/application_detail_screen.dart';
-import '../widgets/paws_care_app_bar.dart';
-import '../../main_navigation_screen.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -17,9 +15,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class MyApplicationsScreen extends StatefulWidget {
-  final bool showAppBar;
-
-  const MyApplicationsScreen({super.key, this.showAppBar = true});
+  const MyApplicationsScreen({super.key});
 
   @override
   State<MyApplicationsScreen> createState() => _MyApplicationsScreenState();
@@ -27,6 +23,7 @@ class MyApplicationsScreen extends StatefulWidget {
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   String? _statusFilter;
+
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -34,114 +31,86 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     if (currentUser == null) {
       return Scaffold(
         backgroundColor: kBackgroundColor,
-        appBar: widget.showAppBar ? _buildAppBar() : null,
         body: const Center(
-          child: Text('Please log in to view your applications.',
-              style: TextStyle(color: kSecondaryTextColor)),
+          child: Text(
+            'Please log in to view your applications.',
+            style: TextStyle(color: kSecondaryTextColor),
+          ),
         ),
       );
     }
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: widget.showAppBar
-          ? buildPawsCareAppBar(
-              context: context,
-             
-              onMenuSelected: (value) {
-                if (value == 'profile') {
-                  mainNavKey.currentState?.selectTab(4);
-                } else if (value == 'all_applications') {
-                  Navigator.of(context).pushNamed('/all-applications');
-                }
-              },
-            )
-          : null,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'My Applications',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryTextColor),
-                ),
-                Theme(
-                  data: Theme.of(context).copyWith(canvasColor: kCardColor),
-                  child: DropdownButton<String>(
-                    value: _statusFilter,
-                    hint: const Text('Filter by Status',
-                        style: TextStyle(color: kSecondaryTextColor)),
-                    icon:
-                        const Icon(Icons.filter_list, color: kSecondaryTextColor),
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(
-                          value: null,
-                          child: Text('All Status',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Under Review',
-                          child: Text('Under Review',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Accepted',
-                          child: Text('Accepted',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Rejected',
-                          child: Text('Rejected',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                    ],
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _statusFilter = newValue;
-                      });
-                    },
+      appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: kCardColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            const Text(
+              'My Applications',
+              style: TextStyle(
+                  color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+            ),
+            const Spacer(),
+            // FILTER DROPDOWN on the right
+            Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: kCardColor, // popup background color dark
+              ),
+              child: DropdownButton<String>(
+                value: _statusFilter,
+                hint: const Text('Filter by Status',
+                    style: TextStyle(color: kSecondaryTextColor)),
+                icon: const Icon(Icons.filter_list, color: kSecondaryTextColor),
+                underline: const SizedBox(),
+                items: const [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text('All Status',
+                        style: TextStyle(color: kPrimaryTextColor)),
                   ),
-                ),
-              ],
+                  DropdownMenuItem(
+                    value: 'Under Review',
+                    child: Text('Under Review',
+                        style: TextStyle(color: kPrimaryTextColor)),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Accepted',
+                    child: Text('Accepted',
+                        style: TextStyle(color: kPrimaryTextColor)),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Rejected',
+                    child: Text('Rejected',
+                        style: TextStyle(color: kPrimaryTextColor)),
+                  ),
+                ],
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _statusFilter = newValue;
+                  });
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildApplicationsList(
-              userId: currentUser.uid,
-              isAdminView: false,
-            ),
-          ),
-        ],
+          ],
+        ),
+        centerTitle: false,
       ),
+      body: _buildApplicationsList(userId: currentUser.uid),
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      backgroundColor: kBackgroundColor,
-      elevation: 0,
-      title: const Text(
-        'PawsCare',
-        style:
-            TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
-      ),
-      centerTitle: false,
-    );
-  }
-
-  Widget _buildApplicationsList({String? userId, required bool isAdminView}) {
+  Widget _buildApplicationsList({required String userId}) {
     Query query = FirebaseFirestore.instance
         .collection('applications')
+        .where('userId', isEqualTo: userId)
         .orderBy('appliedAt', descending: true);
-
-    if (!isAdminView && userId != null) {
-      query = query.where('userId', isEqualTo: userId);
-    }
 
     if (_statusFilter != null) {
       query = query.where('status', isEqualTo: _statusFilter);
@@ -332,62 +301,33 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    height: 300,
-                    width: double.infinity,
-                    child: hasImages
-                        ? PageView.builder(
-                            controller: _pageController,
-                            itemCount: imageUrls.length,
-                            onPageChanged: (index) =>
-                                setState(() => _currentPage = index),
-                            itemBuilder: (context, index) {
-                              return Image.network(
-                                imageUrls[index],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                  color: Colors.grey.shade900,
-                                  child: const Icon(Icons.pets,
-                                      size: 60, color: kSecondaryTextColor),
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey.shade900,
-                            child: const Icon(Icons.pets,
-                                size: 60, color: kSecondaryTextColor),
-                          ),
-                  ),
-                  if (imageUrls.length > 1)
-                    Positioned(
-                      bottom: 10.0,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          imageUrls.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 3.0),
-                            height: 8.0,
-                            width: _currentPage == index ? 24.0 : 8.0,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index
-                                  ? kPrimaryAccentColor
-                                  : kSecondaryTextColor.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 300,
+                width: double.infinity,
+                child: hasImages
+                    ? PageView.builder(
+                        controller: _pageController,
+                        itemCount: imageUrls.length,
+                        onPageChanged: (index) =>
+                            setState(() => _currentPage = index),
+                        itemBuilder: (context, index) {
+                          return Image.network(
+                            imageUrls[index],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              color: Colors.grey.shade900,
+                              child: const Icon(Icons.pets,
+                                  size: 60, color: kSecondaryTextColor),
                             ),
-                          ),
-                        ),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey.shade900,
+                        child: const Icon(Icons.pets,
+                            size: 60, color: kSecondaryTextColor),
                       ),
-                    ),
-                ],
               ),
             ),
             Padding(

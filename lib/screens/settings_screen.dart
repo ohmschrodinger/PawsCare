@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pawscare/screens/my_applications_screen.dart';
+import 'package:pawscare/screens/saved_posts_screen.dart';
 import 'package:pawscare/services/auth_service.dart';
 import 'package:pawscare/services/user_service.dart';
 import 'package:pawscare/screens/terms_and_service.dart';
@@ -233,9 +235,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           const SizedBox(height: 20),
           _buildSectionHeader('My Activity'),
-          _buildNavigationTile('My Posts', Icons.article_outlined, () {            Navigator.of(context).push(
+          _buildNavigationTile('My Posted Animals', Icons.article_outlined, () {
+            Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MyPostedAnimalsScreen()),
-            );}),
+            );
+          }),
           const Divider(
             height: 1,
             indent: 16,
@@ -245,7 +249,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildNavigationTile(
             'My Applications',
             Icons.playlist_add_check_outlined,
-            () {},
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MyApplicationsScreen()),
+              );
+            },
           ),
           const Divider(
             height: 1,
@@ -253,7 +261,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             endIndent: 16,
             color: kCardColor,
           ),
-          _buildNavigationTile('Saved Posts', Icons.bookmark_border, () {}),
+          _buildNavigationTile(
+            'Saved Posts',
+            Icons.bookmark_border,
+            () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SavedPostsScreen()),
+              );
+            },
+          ),
+          
           const SizedBox(height: 20),
           _buildSectionHeader('Preferences'),
           _buildSwitchTile(

@@ -121,7 +121,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print("Google Sign-In successful ✅");
       // Use pushReplacementNamed to prevent going back to signup screen
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
+       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+
       }
     } catch (e) {
       print("Google Sign-In error: $e");

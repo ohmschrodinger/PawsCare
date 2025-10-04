@@ -114,14 +114,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _handleApprove() async {
     setState(() => _isLoading = true);
     try {
-      // Approve selected application
+      // Approve selected application (use same collection & status format as other screens)
       await FirebaseFirestore.instance
-          .collection('adoptionApplications')
+          .collection('applications')
           .doc(widget.applicationId)
           .update({
-            'status': 'approved',
+            'status': 'Accepted',
             'adminMessage': _reasonController.text.trim(),
-            'updatedAt': FieldValue.serverTimestamp(),
+            'reviewedAt': FieldValue.serverTimestamp(),
           });
 
       // Log approval
@@ -129,45 +129,49 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         'application_approved',
         data: {
           'applicationId': widget.applicationId,
-          'animalId': widget.applicationData['animalId'],
+          'petId':
+              widget.applicationData['petId'] ??
+              widget.applicationData['animalId'],
           'adminMessage': _reasonController.text.trim(),
         },
       );
 
-      // If linked to an animal, mark it adopted and auto-reject others
-      final String? animalId = widget.applicationData['animalId'] as String?;
-      if (animalId != null) {
+      // If linked to an animal/pet, mark it adopted and auto-reject others
+      final String? petId =
+          (widget.applicationData['petId'] as String?) ??
+          (widget.applicationData['animalId'] as String?);
+      if (petId != null) {
         await FirebaseFirestore.instance
             .collection('animals')
-            .doc(animalId)
+            .doc(petId)
             .update({
               'status': 'Adopted',
               'adoptedAt': FieldValue.serverTimestamp(),
             });
 
-        // Auto-reject other pending applications for this animal in this collection
+        // Auto-reject other pending applications for this pet in the same collection
         final QuerySnapshot others = await FirebaseFirestore.instance
-            .collection('adoptionApplications')
-            .where('animalId', isEqualTo: animalId)
-            .where('status', isEqualTo: 'under review')
+            .collection('applications')
+            .where('petId', isEqualTo: petId)
+            .where('status', isEqualTo: 'Under Review')
             .get();
 
         final WriteBatch batch = FirebaseFirestore.instance.batch();
         for (final doc in others.docs) {
           if (doc.id == widget.applicationId) continue;
           batch.update(doc.reference, {
-            'status': 'rejected',
+            'status': 'Rejected',
             'adminMessage': _reasonController.text.trim().isNotEmpty
                 ? _reasonController.text.trim()
                 : 'Auto-rejected: another application was approved for this pet.',
-            'updatedAt': FieldValue.serverTimestamp(),
+            'reviewedAt': FieldValue.serverTimestamp(),
           });
         }
         await batch.commit();
 
         // Update local animal status through service for consistency (optional)
         await AnimalService.updateAnimalStatus(
-          animalId: animalId,
+          animalId: petId,
           status: 'Adopted',
         );
       }
@@ -192,13 +196,14 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
   Future<void> _handleReject() async {
     setState(() => _isLoading = true);
     try {
+      // Update application status in the main 'applications' collection
       await FirebaseFirestore.instance
-          .collection('adoptionApplications')
+          .collection('applications')
           .doc(widget.applicationId)
           .update({
-            'status': 'rejected',
+            'status': 'Rejected',
             'adminMessage': _reasonController.text.trim(),
-            'updatedAt': FieldValue.serverTimestamp(),
+            'reviewedAt': FieldValue.serverTimestamp(),
           });
 
       // Log rejection
@@ -206,7 +211,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
         'application_rejected',
         data: {
           'applicationId': widget.applicationId,
-          'animalId': widget.applicationData['animalId'],
+          'petId':
+              widget.applicationData['petId'] ??
+              widget.applicationData['animalId'],
           'adminMessage': _reasonController.text.trim(),
         },
       );
@@ -244,9 +251,10 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     String statusText;
 
     switch (status) {
+      case 'accepted':
       case 'approved':
         statusColor = Colors.green.shade400;
-        statusText = 'Approved';
+        statusText = 'Accepted';
         break;
       case 'rejected':
         statusColor = Colors.red.shade400;

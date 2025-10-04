@@ -84,7 +84,8 @@ class _LoginScreenState extends State<LoginScreen> {
           print('Warning: Failed to ensure user document exists: $e');
         }
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/main');
+        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -107,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final userCredential = await AuthService.signInWithGoogle();
       if (userCredential != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
+        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+
       }
     } catch (e) {
       if (mounted) {

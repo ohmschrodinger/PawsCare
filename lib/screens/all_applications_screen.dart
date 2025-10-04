@@ -16,9 +16,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class AllApplicationsScreen extends StatefulWidget {
-  final bool showAppBar;
-
-  const AllApplicationsScreen({super.key, this.showAppBar = true});
+  const AllApplicationsScreen({super.key});
 
   @override
   State<AllApplicationsScreen> createState() => _AllApplicationsScreenState();
@@ -49,11 +47,7 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
         });
       }
     } else {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -62,7 +56,6 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: kBackgroundColor,
-        appBar: widget.showAppBar ? _buildAppBar() : null,
         body: const Center(
             child: CircularProgressIndicator(color: kPrimaryAccentColor)),
       );
@@ -71,102 +64,89 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
     if (!_isAdmin) {
       return Scaffold(
         backgroundColor: kBackgroundColor,
-        appBar: widget.showAppBar ? _buildAppBar() : null,
         body: const Center(
-          child: Text('You do not have permission to view this page.',
-              style: TextStyle(color: kSecondaryTextColor)),
+          child: Text(
+            'You do not have permission to view this page.',
+            style: TextStyle(color: kSecondaryTextColor),
+          ),
         ),
       );
     }
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: widget.showAppBar
-          ? buildPawsCareAppBar(
-              context: context,
-          
-              onMenuSelected: (value) {
-                if (value == 'profile') {
-                  mainNavKey.currentState?.selectTab(4);
-                } else if (value == 'my_applications') {
-                  Navigator.of(context).pushNamed('/my-applications');
-                }
-              },
-            )
-          : null,
+      // --- MODIFIED APP BAR ---
+      appBar: AppBar(
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'All Applications',
+          style:
+              TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        actions: [
+          // --- FILTER DROPDOWN MOVED HERE ---
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _statusFilter,
+                hint: Row(
+                  children: const [
+                    Text('All Status',
+                        style: TextStyle(color: kSecondaryTextColor)),
+                    SizedBox(width: 8),
+                  ],
+                ),
+                icon: const Icon(Icons.filter_list, color: kSecondaryTextColor), // Hides the default icon
+                dropdownColor: kCardColor, // Dark background for the menu
+                style: const TextStyle(color: kPrimaryTextColor, fontSize: 16),
+                items: const [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text('All Status'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Under Review',
+                    child: Text('Under Review'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Accepted',
+                    child: Text('Accepted'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Rejected',
+                    child: Text('Rejected'),
+                  ),
+                ],
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _statusFilter = newValue;
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      // --- MODIFIED BODY ---
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'All Applications',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryTextColor),
-                ),
-                Theme(
-                  data: Theme.of(context).copyWith(canvasColor: kCardColor),
-                  child: DropdownButton<String>(
-                    value: _statusFilter,
-                    hint: const Text('Filter by Status',
-                        style: TextStyle(color: kSecondaryTextColor)),
-                    icon:
-                        const Icon(Icons.filter_list, color: kSecondaryTextColor),
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(
-                          value: null,
-                          child: Text('All Status',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Under Review',
-                          child: Text('Under Review',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Accepted',
-                          child: Text('Accepted',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                      DropdownMenuItem(
-                          value: 'Rejected',
-                          child: Text('Rejected',
-                              style: TextStyle(color: kPrimaryTextColor))),
-                    ],
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _statusFilter = newValue;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(child: _buildApplicationsList(isAdminView: true)),
+          // APPLICATIONS LIST (Filter is no longer here)
+          Expanded(child: _buildApplicationsList()),
         ],
       ),
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      backgroundColor: kBackgroundColor,
-      elevation: 0,
-      title: const Text(
-        'PawsCare - Admin',
-        style:
-            TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
-      ),
-      centerTitle: false,
-    );
-  }
-
-  Widget _buildApplicationsList({required bool isAdminView}) {
+  Widget _buildApplicationsList() {
     Query query = FirebaseFirestore.instance
         .collection('applications')
         .orderBy('appliedAt', descending: true);
@@ -206,21 +186,7 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
             final appData = applicationDoc.data() as Map<String, dynamic>;
             final petId = appData['petId'];
 
-            if (petId == null) {
-              return Card(
-                color: kCardColor,
-                margin:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: ListTile(
-                  title: Text(appData['petName'] ?? 'Unknown Pet',
-                      style: const TextStyle(color: kPrimaryTextColor)),
-                  subtitle: const Text(
-                    'Error: Application is not linked to a pet correctly.',
-                    style: TextStyle(color: Colors.redAccent),
-                  ),
-                ),
-              );
-            }
+            if (petId == null) return const SizedBox();
 
             return FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
@@ -228,31 +194,23 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
                   .doc(petId)
                   .get(),
               builder: (context, animalSnapshot) {
-                if (animalSnapshot.connectionState == ConnectionState.waiting) {
+                if (animalSnapshot.connectionState ==
+                    ConnectionState.waiting) {
                   return const SizedBox(
-                    height: 150, // Reduced height for faster loading perception
+                    height: 150,
                     child: Center(
-                        child:
-                            CircularProgressIndicator(color: kPrimaryAccentColor)),
+                        child: CircularProgressIndicator(
+                            color: kPrimaryAccentColor)),
                   );
                 }
 
                 if (!animalSnapshot.hasData || !animalSnapshot.data!.exists) {
-                  return Card(
-                    color: kCardColor,
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 8, horizontal: 16),
-                    child: ListTile(
-                      title: Text(appData['petName'] ?? 'Unknown Pet',
-                          style: const TextStyle(color: kPrimaryTextColor)),
-                      subtitle: const Text('Could not load pet details.',
-                          style: TextStyle(color: kSecondaryTextColor)),
-                    ),
-                  );
+                  return const SizedBox();
                 }
 
                 final animalData =
                     animalSnapshot.data!.data() as Map<String, dynamic>;
+
                 return _StyledApplicationCard(
                   applicationData: appData,
                   animalData: animalData,
