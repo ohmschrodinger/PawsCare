@@ -18,7 +18,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
 // -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -251,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // -------------------- Welcome Section --------------------
 class WelcomeSection extends StatefulWidget {
-  const WelcomeSection({Key? key}) : super(key: key);
+  const WelcomeSection({super.key});
 
   @override
   _WelcomeSectionState createState() => _WelcomeSectionState();
@@ -391,8 +391,7 @@ class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
 
-  const HorizontalPetCard({Key? key, required this.pet, required this.onTap})
-      : super(key: key);
+  const HorizontalPetCard({super.key, required this.pet, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

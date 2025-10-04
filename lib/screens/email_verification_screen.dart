@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/auth_error_messages.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({Key? key}) : super(key: key);
+  const EmailVerificationScreen({super.key});
 
   @override
   State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();

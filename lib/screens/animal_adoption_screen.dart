@@ -15,7 +15,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class AnimalAdoptionScreen extends StatelessWidget {
-  const AnimalAdoptionScreen({Key? key}) : super(key: key);
+  const AnimalAdoptionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

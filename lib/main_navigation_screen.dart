@@ -12,7 +12,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 final mainNavKey = GlobalKey<_MainNavigationScreenState>();
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
+  const MainNavigationScreen({super.key});
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();

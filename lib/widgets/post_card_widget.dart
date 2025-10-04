@@ -23,10 +23,10 @@ class PostCardWidget extends StatefulWidget {
   final String postId;
 
   const PostCardWidget({
-    Key? key,
+    super.key,
     required this.postData,
     required this.postId,
-  }) : super(key: key);
+  });
 
   @override
   State<PostCardWidget> createState() => _PostCardWidgetState();

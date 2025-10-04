@@ -12,7 +12,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class AdminAnimalApprovalScreen extends StatelessWidget {
-  const AdminAnimalApprovalScreen({Key? key}) : super(key: key);
+  const AdminAnimalApprovalScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

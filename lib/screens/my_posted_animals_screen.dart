@@ -7,7 +7,7 @@ import '../utils/constants.dart';
 
 // Key Change: Renamed widget to MyPostedAnimalsScreen
 class MyPostedAnimalsScreen extends StatefulWidget {
-  const MyPostedAnimalsScreen({Key? key}) : super(key: key);
+  const MyPostedAnimalsScreen({super.key});
 
   @override
   // Key Change: Renamed state class to _MyPostedAnimalsScreenState

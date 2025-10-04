@@ -8,7 +8,7 @@ const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
 class PrivatePolicyScreen extends StatelessWidget {
-  const PrivatePolicyScreen({Key? key}) : super(key: key);
+  const PrivatePolicyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

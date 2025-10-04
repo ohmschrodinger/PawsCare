@@ -18,10 +18,10 @@ class FullAnimalListScreen extends StatefulWidget {
   final String animalStatus; // 'Available' or 'Adopted'
 
   const FullAnimalListScreen({
-    Key? key,
+    super.key,
     required this.title,
     required this.animalStatus,
-  }) : super(key: key);
+  });
 
   @override
   State<FullAnimalListScreen> createState() => _FullAnimalListScreenState();

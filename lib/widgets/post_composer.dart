@@ -16,7 +16,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class PostComposer extends StatefulWidget {
-  const PostComposer({Key? key}) : super(key: key);
+  const PostComposer({super.key});
 
   @override
   State<PostComposer> createState() => _PostComposerState();

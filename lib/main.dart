@@ -38,7 +38,7 @@ void main() async {
 }
 
 class PawsCareApp extends StatelessWidget {
-  const PawsCareApp({Key? key}) : super(key: key);
+  const PawsCareApp({super.key});
 
   @override
   Widget build(BuildContext context) {

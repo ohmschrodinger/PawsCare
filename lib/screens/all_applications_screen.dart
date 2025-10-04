@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/screens/application_detail_screen.dart';

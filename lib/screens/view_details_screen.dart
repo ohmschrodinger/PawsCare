@@ -12,8 +12,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 class ViewDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animalData;
 
-  const ViewDetailsScreen({Key? key, required this.animalData})
-    : super(key: key);
+  const ViewDetailsScreen({super.key, required this.animalData});
 
   @override
   State<ViewDetailsScreen> createState() => _ViewDetailsScreenState();

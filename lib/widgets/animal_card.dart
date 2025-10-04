@@ -34,7 +34,7 @@ class AnimalCard extends StatefulWidget {
   final int likeCount;
 
   const AnimalCard({
-    Key? key,
+    super.key,
     required this.animal,
     this.onTap,
     this.onLike,
@@ -42,7 +42,7 @@ class AnimalCard extends StatefulWidget {
     this.isLiked = false,
     this.isSaved = false,
     this.likeCount = 0,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimalCard> createState() => _AnimalCardState();
@@ -101,8 +101,9 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     super.didUpdateWidget(oldWidget);
     if (widget.isLiked != _isLiked) setState(() => _isLiked = widget.isLiked);
     if (widget.isSaved != _isSaved) setState(() => _isSaved = widget.isSaved);
-    if (widget.likeCount != _likeCount)
+    if (widget.likeCount != _likeCount) {
       setState(() => _likeCount = widget.likeCount);
+    }
   }
 
   Future<void> _initializeFavoriteStatus() async {

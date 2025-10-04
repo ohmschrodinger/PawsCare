@@ -8,7 +8,7 @@ const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
 class TermsAndServiceScreen extends StatelessWidget {
-  const TermsAndServiceScreen({Key? key}) : super(key: key);
+  const TermsAndServiceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

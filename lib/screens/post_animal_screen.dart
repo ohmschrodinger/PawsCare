@@ -24,10 +24,10 @@ class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
   final int initialTab;
   const PostAnimalScreen({
-    Key? key,
+    super.key,
     this.initialTab = 0,
     this.showAppBar = true,
-  }) : super(key: key);
+  });
 
   @override
   State<PostAnimalScreen> createState() => _PostAnimalScreenState();
@@ -59,7 +59,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _images = [];
+  final List<XFile> _images = [];
 
   @override
   void initState() {
@@ -345,8 +345,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   isPhoneNumber: true,
                   validator: (v) {
                     if (v!.isEmpty) return "Phone number is required";
-                    if (v.length != 10)
+                    if (v.length != 10) {
                       return "Please enter a valid 10-digit number";
+                    }
                     return null;
                   },
                 ),
@@ -974,8 +975,8 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 }
               }
             },
-            child: const Text('Approve'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Approve'),
           ),
         ],
       ),
@@ -1072,8 +1073,8 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 }
               }
             },
-            child: const Text('Reject'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Reject'),
           ),
         ],
       ),

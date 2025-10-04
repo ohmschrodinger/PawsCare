@@ -10,7 +10,7 @@ const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 
 class AdminLogsScreen extends StatelessWidget {
-  const AdminLogsScreen({Key? key}) : super(key: key);
+  const AdminLogsScreen({super.key});
 
   String _formatTimestamp(Timestamp? ts) {
     if (ts == null) return '';

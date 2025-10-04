@@ -17,11 +17,11 @@ class ApplicationDetailScreen extends StatefulWidget {
   final bool isAdmin;
 
   const ApplicationDetailScreen({
-    Key? key,
+    super.key,
     required this.applicationData,
     required this.applicationId,
     this.isAdmin = false,
-  }) : super(key: key);
+  });
 
   @override
   State<ApplicationDetailScreen> createState() =>

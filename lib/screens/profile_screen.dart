@@ -19,7 +19,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -------------------------------------------------
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -218,7 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(text: initialAddress);
 
-    final darkInputDecoration = (String label) => InputDecoration(
+    darkInputDecoration(String label) => InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: kSecondaryTextColor),
       filled: true,
@@ -338,14 +338,14 @@ class _ProfileHeader extends StatelessWidget {
   final VoidCallback onEditProfile;
 
   const _ProfileHeader({
-    Key? key,
+    super.key,
     required this.displayName,
     required this.email,
     this.photoUrl,
     this.isUploading = false,
     required this.onChangePhoto,
     required this.onEditProfile,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -447,10 +447,10 @@ class _AnimalGridView extends StatelessWidget {
   final String emptyMessage;
 
   const _AnimalGridView({
-    Key? key,
+    super.key,
     required this.stream,
     required this.emptyMessage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -517,7 +517,7 @@ class _AnimalGridView extends StatelessWidget {
 class _AnimalGridCard extends StatelessWidget {
   final Map<String, dynamic> pet;
 
-  const _AnimalGridCard({Key? key, required this.pet}) : super(key: key);
+  const _AnimalGridCard({super.key, required this.pet});
 
   @override
   Widget build(BuildContext context) {

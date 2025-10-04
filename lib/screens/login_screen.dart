@@ -14,7 +14,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();

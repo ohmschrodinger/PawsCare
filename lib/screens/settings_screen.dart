@@ -15,7 +15,7 @@ const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -------------------------------------------------
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();

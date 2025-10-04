@@ -13,7 +13,7 @@ class AuthService {
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
       }
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e) {
       throw Exception('sendEmailVerification_generic');
@@ -38,7 +38,7 @@ class AuthService {
   static Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e) {
       throw Exception('sendPasswordResetEmail_generic');
@@ -60,7 +60,7 @@ class AuthService {
       await sendEmailVerification();
 
       return userCredential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e) {
       throw Exception('createUserWithEmailAndPassword_generic');
@@ -82,7 +82,7 @@ class AuthService {
       await userCredential.user?.reload();
 
       return userCredential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e) {
       throw Exception('signInWithEmailAndPassword_generic');
@@ -103,7 +103,7 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
       return await _auth.signInWithCredential(credential);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e) {
       throw Exception('signInWithGoogle_generic');
