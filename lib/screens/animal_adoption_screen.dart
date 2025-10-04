@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/services/animal_service.dart';
-import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/paws_care_app_bar.dart';
 import 'package:pawscare/widgets/animal_card.dart';
 import '../main_navigation_screen.dart';

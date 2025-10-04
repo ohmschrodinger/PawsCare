@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/animal_card.dart';
-import '../utils/constants.dart';
 
 // Key Change: Renamed widget to MyPostedAnimalsScreen
 class MyPostedAnimalsScreen extends StatefulWidget {

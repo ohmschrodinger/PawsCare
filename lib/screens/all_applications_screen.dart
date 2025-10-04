@@ -57,13 +57,6 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
     }
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
