@@ -84,3 +84,5 @@ firebase_options.dart
 lib/firebase_options.dart
 **/firebase_options.dart
 .env
+
+service-account.json

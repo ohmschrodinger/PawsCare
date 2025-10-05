@@ -455,3 +455,90 @@ export const onAdoptionApplicationApproved = functions.firestore
     }
   });
 
+import { google } from "googleapis";
+export const logUserToSheet = functions
+  .region("us-central1")
+  .firestore.document("users/{uid}")
+  .onWrite(async (change, context) => {
+    try {
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+
+      const uid = context.params.uid;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+
+      // Ignore deletes
+      if (before && !after) return null;
+
+      const eventType = (!before && after) ? "create" : "update";
+
+      // Prepare list of fields to track
+      const fieldsToTrack = [
+        "email",
+        "fullName",
+        "role",
+        "phoneNumber",
+        "address",
+        "isActive",
+        "profileCompleted",
+        "pushNotificationsEnabled",
+        "createdAt",
+        "updatedAt"
+      ];
+
+      const row: any[] = [eventType, uid];
+      const changedFields: string[] = [];
+
+      for (const field of fieldsToTrack) {
+        const beforeValue = before?.[field];
+        const afterValue = after?.[field];
+
+        // Convert timestamps to ISO strings if needed
+        const formatValue = (val: any) => (val?.toDate ? val.toDate().toISOString() : val);
+
+        row.push(formatValue(afterValue));
+
+        if (eventType === "update" && beforeValue !== afterValue) {
+          changedFields.push(field);
+        }
+      }
+
+      const loggedAt = new Date().toISOString();
+      row.push(loggedAt);
+
+      // Add last column with changed fields (comma separated)
+      row.push(eventType === "update" ? changedFields.join(", ") || "none" : "all");
+
+      // Authenticate with Google Sheets
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(
+        keyJson.client_email,
+        undefined,
+        keyJson.private_key,
+        ["https://www.googleapis.com/auth/spreadsheets"]
+      );
+      await jwt.authorize();
+
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "Sheet1!A1", // <-- target Sheet1
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: [row] },
+      });
+
+      console.log(`logUserToSheet: row appended for user ${uid}`);
+      return null;
+    } catch (err) {
+      console.error("logUserToSheet error:", err);
+      throw err;
+    }
+  });
