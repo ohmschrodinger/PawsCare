@@ -50,6 +50,25 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     }
   }
 
+  Future<void> _onVerifiedButtonPressed() async {
+    await _checkVerificationStatus();
+    if (!_isVerified && mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Not Verified'),
+          content: const Text('Email not yet verified, try again later.'),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   Future<void> _resendVerificationEmail() async {
     if (!_canResend) return;
 
@@ -257,7 +276,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _checkVerificationStatus,
+                    onPressed: _isLoading ? null : _onVerifiedButtonPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5AC8F2),
                       foregroundColor: Colors.white,

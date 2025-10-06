@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'user_service.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -92,7 +93,17 @@ class AuthService {
   /// Sign in with Google
   static Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      // Create a single client and ensure we disconnect/sign out first so the chooser appears
+      final googleSignIn = GoogleSignIn();
+      try {
+        // Best effort: disconnect clears the current account selection on some platforms
+        await googleSignIn.disconnect();
+      } catch (_) {}
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         // User cancelled the sign-in
         return null;
@@ -102,7 +113,25 @@ class AuthService {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      return await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Ensure Firestore user document exists/created for Google sign-in
+      final user = userCredential.user;
+      if (user != null) {
+        final String email = user.email ?? googleUser.email;
+        final String? fullName = user.displayName;
+        try {
+          await UserService.ensureUserDocumentExists(
+            uid: user.uid,
+            email: email,
+            fullName: fullName,
+          );
+        } catch (_) {
+          // Soft-fail to avoid blocking sign-in
+        }
+      }
+
+      return userCredential;
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
