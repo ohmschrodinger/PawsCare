@@ -445,9 +445,11 @@ exports.onAdoptionApplicationApproved = functions.firestore
         }
     }
 });
-
-// DELETE THE FOLLOWING LINE LATER 
 const googleapis_1 = require("googleapis");
+/**
+ * Append to users_log sheet:
+ * [uid, email, Fullname, role, phonenumber, address, field_updated, timestamp]
+ */
 exports.logUserToSheet = functions
     .region("us-central1")
     .firestore.document("users/{uid}")
@@ -463,52 +465,91 @@ exports.logUserToSheet = functions
         const uid = context.params.uid;
         const before = change.before.exists ? change.before.data() : null;
         const after = change.after.exists ? change.after.data() : null;
-        // Ignore deletes
+        // ignore deletes
         if (before && !after)
             return null;
-        const eventType = (!before && after) ? "create" : "update";
-        // Prepare list of fields to track
-        const fieldsToTrack = [
+        // Fields we track (and the column order after uid)
+        const trackedFields = [
             "email",
             "fullName",
             "role",
             "phoneNumber",
             "address",
-            "isActive",
-            "profileCompleted",
-            "pushNotificationsEnabled",
-            "createdAt",
-            "updatedAt"
         ];
-        const row = [eventType, uid];
+        const normalize = (val) => {
+            if (val === null || val === undefined)
+                return "";
+            if (typeof val?.toDate === "function") {
+                try {
+                    return val.toDate().toISOString();
+                }
+                catch {
+                    return String(val);
+                }
+            }
+            if (val instanceof Date)
+                return val.toISOString();
+            if (typeof val === "object") {
+                try {
+                    return JSON.stringify(val);
+                }
+                catch {
+                    return String(val);
+                }
+            }
+            return String(val);
+        };
+        const isCreate = !before && !!after;
+        const isUpdate = !!before && !!after;
+        // Build normalized maps for comparison
+        const beforeNormalized = {};
+        const afterNormalized = {};
+        for (const f of trackedFields) {
+            beforeNormalized[f] = normalize(before?.[f]);
+            afterNormalized[f] = normalize(after?.[f]);
+        }
+        // Determine changed tracked fields
         const changedFields = [];
-        for (const field of fieldsToTrack) {
-            const beforeValue = before?.[field];
-            const afterValue = after?.[field];
-            // Convert timestamps to ISO strings if needed
-            const formatValue = (val) => (val?.toDate ? val.toDate().toISOString() : val);
-            row.push(formatValue(afterValue));
-            if (eventType === "update" && beforeValue !== afterValue) {
-                changedFields.push(field);
+        if (isUpdate) {
+            for (const f of trackedFields) {
+                if (beforeNormalized[f] !== afterNormalized[f]) {
+                    changedFields.push(f);
+                }
             }
         }
-        const loggedAt = new Date().toISOString();
-        row.push(loggedAt);
-        // Add last column with changed fields (comma separated)
-        row.push(eventType === "update" ? changedFields.join(", ") || "none" : "all");
-        // Authenticate with Google Sheets
+        // Decide whether to append:
+        // - always append for create
+        // - for update append only if any tracked field changed
+        if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+            // nothing to log
+            return null;
+        }
+        // Build the row in requested order:
+        // uid, email, Fullname, role, phonenumber, address, field_updated, timestamp
+        const rowValues = [
+            uid,
+            afterNormalized["email"] || "",
+            afterNormalized["fullName"] || "",
+            afterNormalized["role"] || "",
+            afterNormalized["phoneNumber"] || "",
+            afterNormalized["address"] || "",
+        ];
+        const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
+        const timestampISO = new Date().toISOString();
+        rowValues.push(fieldUpdated || "none", timestampISO);
+        // Authenticate to Sheets
         const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
         const jwt = new googleapis_1.google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
         await jwt.authorize();
         const sheets = googleapis_1.google.sheets({ version: "v4", auth: jwt });
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Sheet1!A1", // <-- target Sheet1
-            valueInputOption: "USER_ENTERED",
+            range: "users_log!A1",
+            valueInputOption: "RAW",
             insertDataOption: "INSERT_ROWS",
-            requestBody: { values: [row] },
+            requestBody: { values: [rowValues] },
         });
-        console.log(`logUserToSheet: row appended for user ${uid}`);
+        console.log(`logUserToSheet: appended for uid=${uid} fieldUpdated=${fieldUpdated}`);
         return null;
     }
     catch (err) {
