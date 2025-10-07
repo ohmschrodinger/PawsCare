@@ -119,7 +119,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         setState(() => _isLoading = false);
         return;
       }
+      
       try {
+        // Check if there are existing applications for this pet
+        final petId = widget.petData['id'] ?? widget.petData['name'];
+        final existingApplicationsQuery = await FirebaseFirestore.instance
+            .collection('applications')
+            .where('petId', isEqualTo: petId)
+            .where('status', isEqualTo: 'Under Review')
+            .get();
+        
+        final hasExistingApplications = existingApplicationsQuery.docs.isNotEmpty;
+        
         try {
           await UserService.updateUserProfile(
             uid: user.uid,
@@ -133,9 +144,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         } catch (e) {
           print('Warning: Failed to update user profile: $e');
         }
+        
         await FirebaseFirestore.instance.collection('applications').add({
           'userId': user.uid,
-          'petId': widget.petData['id'] ?? widget.petData['name'],
+          'petId': petId,
           'petName': widget.petData['name'],
           'petImage': widget.petData['image'],
           'applicantName': _fullNameController.text.trim(),
@@ -167,20 +179,27 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           'appliedAt': FieldValue.serverTimestamp(),
           'adminMessage': '',
         });
+        
         // Log the application submission
         await LoggingService.logEvent(
           'adoption_application_submitted',
           data: {
-            'petId': widget.petData['id'] ?? widget.petData['name'],
+            'petId': petId,
             'petName': widget.petData['name'],
           },
         );
-        _showSnackBar('Application submitted successfully!', isError: false);
-        Navigator.pop(context);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
-        );
+        
+        // Show appropriate message based on existing applications
+        if (hasExistingApplications) {
+          _showHeadsUpDialog();
+        } else {
+          _showSnackBar('Application submitted successfully!', isError: false);
+          Navigator.pop(context);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
+          );
+        }
       } catch (e) {
         _showSnackBar('Failed to submit application: $e');
         print('Error submitting application: $e');
@@ -190,6 +209,42 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     } else if (!_agreedToTerms) {
       _showSnackBar('Please agree to the terms and conditions.');
     }
+  }
+
+  void _showHeadsUpDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: kCardColor,
+          title: const Text(
+            'Application Submitted!',
+            style: TextStyle(color: kPrimaryTextColor),
+          ),
+          content: Text(
+            "We've received your request for ${widget.petData['name']}. Since others have applied too, you can explore more pets in the meantime.",
+            style: const TextStyle(color: kSecondaryTextColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.pop(context); // Close adoption form
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
+                );
+              },
+              child: const Text(
+                'OK',
+                style: TextStyle(color: kPrimaryAccentColor),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showSnackBar(String message, {bool isError = true}) {

@@ -54,174 +54,184 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: kBackgroundColor,
-        body: const Center(
-            child: CircularProgressIndicator(color: kPrimaryAccentColor)),
-      );
-    }
-
-    if (!_isAdmin) {
-      return Scaffold(
-        backgroundColor: kBackgroundColor,
-        body: const Center(
-          child: Text(
-            'You do not have permission to view this page.',
-            style: TextStyle(color: kSecondaryTextColor),
-          ),
+        body: Center(
+          child: CircularProgressIndicator(color: kPrimaryAccentColor),
         ),
       );
     }
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      // --- MODIFIED APP BAR ---
-      appBar: AppBar(
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        backgroundColor: kBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'All Applications',
-          style:
-              TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: false,
-        actions: [
-          // --- FILTER DROPDOWN MOVED HERE ---
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _statusFilter,
-                hint: Row(
-                  children: const [
-                    Text('All Status',
-                        style: TextStyle(color: kSecondaryTextColor)),
-                    SizedBox(width: 8),
-                  ],
+      appBar: buildPawsCareAppBar(
+        context: context,
+        onMenuSelected: (value) {
+          if (value == 'profile') {
+            mainNavKey.currentState?.selectTab(4);
+          } else if (value == 'all_applications') {
+            Navigator.of(context).pushNamed('/all-applications');
+          } else if (value == 'my_applications') {
+            Navigator.of(context).pushNamed('/my-applications');
+          }
+        },
+      ),
+      body: Column(
+        children: [
+          // Filter buttons
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: FilterChip(
+                    label: const Text('All'),
+                    selected: _statusFilter == null,
+                    onSelected: (selected) {
+                      setState(() => _statusFilter = null);
+                    },
+                    selectedColor: kPrimaryAccentColor.withOpacity(0.3),
+                    checkmarkColor: kPrimaryAccentColor,
+                    labelStyle: TextStyle(
+                      color: _statusFilter == null ? kPrimaryAccentColor : kSecondaryTextColor,
+                    ),
+                  ),
                 ),
-                icon: const Icon(Icons.filter_list, color: kSecondaryTextColor), // Hides the default icon
-                dropdownColor: kCardColor, // Dark background for the menu
-                style: const TextStyle(color: kPrimaryTextColor, fontSize: 16),
-                items: const [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text('All Status'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilterChip(
+                    label: const Text('Under Review'),
+                    selected: _statusFilter == 'Under Review',
+                    onSelected: (selected) {
+                      setState(() => _statusFilter = 'Under Review');
+                    },
+                    selectedColor: kPrimaryAccentColor.withOpacity(0.3),
+                    checkmarkColor: kPrimaryAccentColor,
+                    labelStyle: TextStyle(
+                      color: _statusFilter == 'Under Review' ? kPrimaryAccentColor : kSecondaryTextColor,
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: 'Under Review',
-                    child: Text('Under Review'),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilterChip(
+                    label: const Text('Accepted'),
+                    selected: _statusFilter == 'Accepted',
+                    onSelected: (selected) {
+                      setState(() => _statusFilter = 'Accepted');
+                    },
+                    selectedColor: Colors.green.withOpacity(0.3),
+                    checkmarkColor: Colors.green,
+                    labelStyle: TextStyle(
+                      color: _statusFilter == 'Accepted' ? Colors.green : kSecondaryTextColor,
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: 'Accepted',
-                    child: Text('Accepted'),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilterChip(
+                    label: const Text('Rejected'),
+                    selected: _statusFilter == 'Rejected',
+                    onSelected: (selected) {
+                      setState(() => _statusFilter = 'Rejected');
+                    },
+                    selectedColor: Colors.red.withOpacity(0.3),
+                    checkmarkColor: Colors.red,
+                    labelStyle: TextStyle(
+                      color: _statusFilter == 'Rejected' ? Colors.red : kSecondaryTextColor,
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: 'Rejected',
-                    child: Text('Rejected'),
-                  ),
-                ],
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _statusFilter = newValue;
-                  });
-                },
-              ),
+                ),
+              ],
+            ),
+          ),
+          // Applications list
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _statusFilter == null
+                  ? FirebaseFirestore.instance
+                      .collection('applications')
+                      .orderBy('appliedAt', descending: true)
+                      .snapshots()
+                  : FirebaseFirestore.instance
+                      .collection('applications')
+                      .where('status', isEqualTo: _statusFilter)
+                      .orderBy('appliedAt', descending: true)
+                      .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Error loading applications',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  );
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: kPrimaryAccentColor),
+                  );
+                }
+
+                final applications = snapshot.data?.docs ?? [];
+
+                if (applications.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No applications found',
+                      style: TextStyle(color: kSecondaryTextColor),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: applications.length,
+                  itemBuilder: (context, index) {
+                    final applicationDoc = applications[index];
+                    final appData = applicationDoc.data() as Map<String, dynamic>;
+                    final petId = appData['petId'];
+
+                    if (petId == null) return const SizedBox();
+
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('animals')
+                          .doc(petId)
+                          .get(),
+                      builder: (context, animalSnapshot) {
+                        if (animalSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const SizedBox(
+                            height: 150,
+                            child: Center(
+                                child: CircularProgressIndicator(
+                                    color: kPrimaryAccentColor)),
+                          );
+                        }
+
+                        if (!animalSnapshot.hasData || !animalSnapshot.data!.exists) {
+                          return const SizedBox();
+                        }
+
+                        final animalData =
+                            animalSnapshot.data!.data() as Map<String, dynamic>;
+
+                        return _StyledApplicationCard(
+                          applicationData: appData,
+                          animalData: animalData,
+                          applicationId: applicationDoc.id,
+                          showAdminActions: _isAdmin,
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
-      // --- MODIFIED BODY ---
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // APPLICATIONS LIST (Filter is no longer here)
-          Expanded(child: _buildApplicationsList()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildApplicationsList() {
-    Query query = FirebaseFirestore.instance
-        .collection('applications')
-        .orderBy('appliedAt', descending: true);
-
-    if (_statusFilter != null) {
-      query = query.where('status', isEqualTo: _statusFilter);
-    }
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-              child: CircularProgressIndicator(color: kPrimaryAccentColor));
-        }
-        if (snapshot.hasError) {
-          return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.redAccent)));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No applications found.',
-              style: TextStyle(fontSize: 16, color: kSecondaryTextColor),
-            ),
-          );
-        }
-
-        final applications = snapshot.data!.docs;
-
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 8, bottom: 16),
-          itemCount: applications.length,
-          itemBuilder: (context, index) {
-            final applicationDoc = applications[index];
-            final appData = applicationDoc.data() as Map<String, dynamic>;
-            final petId = appData['petId'];
-
-            if (petId == null) return const SizedBox();
-
-            return FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance
-                  .collection('animals')
-                  .doc(petId)
-                  .get(),
-              builder: (context, animalSnapshot) {
-                if (animalSnapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const SizedBox(
-                    height: 150,
-                    child: Center(
-                        child: CircularProgressIndicator(
-                            color: kPrimaryAccentColor)),
-                  );
-                }
-
-                if (!animalSnapshot.hasData || !animalSnapshot.data!.exists) {
-                  return const SizedBox();
-                }
-
-                final animalData =
-                    animalSnapshot.data!.data() as Map<String, dynamic>;
-
-                return _StyledApplicationCard(
-                  applicationData: appData,
-                  animalData: animalData,
-                  applicationId: applicationDoc.id,
-                  showAdminActions: true,
-                );
-              },
-            );
-          },
-        );
-      },
     );
   }
 }
@@ -263,196 +273,6 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
           applicationId: widget.applicationId,
           isAdmin: widget.showAdminActions,
         ),
-      ),
-    );
-  }
-
-  void _showApproveDialog(BuildContext context, String applicationId) {
-    final messageController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCardColor,
-        title: const Text('Approve Application',
-            style: TextStyle(color: kPrimaryTextColor)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'This will mark the pet as "Adopted" and approve the application.',
-              style: TextStyle(color: kSecondaryTextColor),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              style: const TextStyle(color: kPrimaryTextColor),
-              decoration: InputDecoration(
-                labelText: 'Optional Message',
-                labelStyle: const TextStyle(color: kSecondaryTextColor),
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade800)),
-                focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: kPrimaryAccentColor)),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // Close the dialog immediately, then process approval
-              Navigator.pop(context);
-              // Approve selected application, mark pet as adopted, and auto-reject others
-              try {
-                final appRef = FirebaseFirestore.instance
-                    .collection('applications')
-                    .doc(applicationId);
-                final appSnap = await appRef.get();
-                final appData = appSnap.data();
-                await appRef.update({
-                  'status': 'Accepted',
-                  'adminMessage': messageController.text.trim(),
-                  'reviewedAt': FieldValue.serverTimestamp(),
-                });
-
-                if (appData != null && appData['petId'] != null) {
-                  final String petId = appData['petId'];
-
-                  // Update the animal as adopted with adoptedAt timestamp
-                  await FirebaseFirestore.instance
-                      .collection('animals')
-                      .doc(petId)
-                      .update({
-                    'status': 'Adopted',
-                    'adoptedAt': FieldValue.serverTimestamp(),
-                  });
-
-                  // Auto-reject all other applications for this pet that are still under review
-                  final QuerySnapshot others = await FirebaseFirestore.instance
-                      .collection('applications')
-                      .where('petId', isEqualTo: petId)
-                      .where('status', isEqualTo: 'Under Review')
-                      .get();
-
-                  final WriteBatch batch = FirebaseFirestore.instance.batch();
-                  for (final doc in others.docs) {
-                    if (doc.id == applicationId) continue;
-                    batch.update(doc.reference, {
-                      'status': 'Rejected',
-                      'adminMessage': (messageController.text.trim().isNotEmpty)
-                          ? messageController.text.trim()
-                          : 'Auto-rejected: another application was approved for this pet.',
-                      'reviewedAt': FieldValue.serverTimestamp(),
-                    });
-                  }
-                  await batch.commit();
-                }
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Application approved!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Approve'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRejectDialog(BuildContext context, String applicationId) {
-    final messageController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCardColor,
-        title: const Text('Reject Application',
-            style: TextStyle(color: kPrimaryTextColor)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('This will reject the adoption application.',
-                style: TextStyle(color: kSecondaryTextColor)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              style: const TextStyle(color: kPrimaryTextColor),
-              decoration: InputDecoration(
-                labelText: 'Reason for Rejection *',
-                labelStyle: const TextStyle(color: kSecondaryTextColor),
-                border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey.shade800)),
-                focusedBorder: const OutlineInputBorder(
-                    borderSide: BorderSide(color: kPrimaryAccentColor)),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child:
-                const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // Logic Unchanged
-              if (messageController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please provide a reason for rejection.'),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                await FirebaseFirestore.instance
-                    .collection('applications')
-                    .doc(applicationId)
-                    .update({
-                  'status': 'Rejected',
-                  'adminMessage': messageController.text.trim(),
-                  'reviewedAt': FieldValue.serverTimestamp(),
-                });
-                if (mounted) {
-                  Navigator.pop(context);
-                }
-              } catch (e) {
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
     );
   }
@@ -547,20 +367,39 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                           imageUrls.length,
                           (index) => AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
-                            margin:
-                                const EdgeInsets.symmetric(horizontal: 3.0),
-                            height: 8.0,
-                            width: _currentPage == index ? 24.0 : 8.0,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            height: 8,
+                            width: _currentPage == index ? 24 : 8,
                             decoration: BoxDecoration(
                               color: _currentPage == index
                                   ? kPrimaryAccentColor
-                                  : kSecondaryTextColor.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(12),
+                                  : Colors.white.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                         ),
                       ),
                     ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: appStatusColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        appStatus,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -575,100 +414,59 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                         child: Text(
                           petName,
                           style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: kPrimaryTextColor),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (gender != null) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          gender.toLowerCase() == 'male'
-                              ? Icons.male
-                              : Icons.female,
-                          color: gender.toLowerCase() == 'male'
-                              ? Colors.blue
-                              : Colors.pink,
-                          size: 24,
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Applicant: $applicantName',
-                    style: const TextStyle(
-                        fontSize: 15, color: kSecondaryTextColor),
-                  ),
-                  const Divider(height: 24, color: kBackgroundColor),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Application Status:',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: kPrimaryTextColor),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: appStatusColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          appStatus,
-                          style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: appStatusColor,
+                            color: kPrimaryTextColor,
                           ),
                         ),
                       ),
+                      if (gender != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: kPrimaryAccentColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            gender,
+                            style: const TextStyle(
+                              color: kPrimaryAccentColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Applied by: $applicantName',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: kSecondaryTextColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      TextButton(
-                        onPressed: () =>
-                            _showApplicationDetails(context, widget.applicationData),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: const Text(
-                          'View Details',
-                          style: TextStyle(
-                            color: kPrimaryAccentColor,
-                            fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              _showApplicationDetails(context, widget.applicationData),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimaryAccentColor,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            'View Details',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      if (widget.showAdminActions &&
-                          appStatus == 'Under Review') ...[
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showApproveDialog(context, widget.applicationId),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade800,
-                              foregroundColor: Colors.white),
-                          child: const Text('Approve'),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () =>
-                              _showRejectDialog(context, widget.applicationId),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade800,
-                              foregroundColor: Colors.white),
-                          child: const Text('Reject'),
-                        ),
-                      ],
                     ],
                   ),
                 ],
