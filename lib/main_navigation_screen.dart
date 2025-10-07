@@ -20,8 +20,6 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  // Keep a stack of visited tab indices (most-recent-last). Home (0) is the base.
-  final List<int> _navStack = [0];
 
   // Keep a persistent list of screens
   final List<Widget> _screens = [
@@ -39,21 +37,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     if (_selectedIndex != index) {
       setState(() {
         _selectedIndex = index;
-        // Maintain MRU order: remove if present and push to end
-        _navStack.remove(index);
-        _navStack.add(index);
       });
     }
   }
 
   void selectTab(int index) {
-    // Public API: select a tab programmatically and update the stack similarly
     if (_selectedIndex != index) {
       _onItemTapped(index);
-    } else {
-      // If selecting the same tab, ensure it's the most recent in the stack
-      _navStack.remove(index);
-      _navStack.add(index);
     }
   }
 
@@ -61,26 +51,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // If we have a history of tabs, pop back to the previous one.
-        if (_navStack.length > 1) {
-          setState(() {
-            _navStack.removeLast();
-            _selectedIndex = _navStack.last;
-          });
-          return false; // handled
-        }
-
-        // If stack is only one entry but it's not Home, navigate to Home instead of exiting
+        // If not on Home tab, navigate to Home instead of exiting
         if (_selectedIndex != 0) {
           setState(() {
             _selectedIndex = 0;
-            _navStack.removeWhere((i) => i == 0);
-            _navStack.add(0);
           });
           return false;
         }
 
-        // Default: allow the system to handle the back button (exit app)
+        // On Home tab: allow the system to handle back (exit app)
         return true;
       },
       child: Scaffold(
