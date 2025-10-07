@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/services/animal_service.dart';
+import 'package:pawscare/services/stats_service.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -77,34 +78,69 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: kPrimaryTextColor,
               ),
             ),
-            children: const [
-              ListTile(
-                title: Text(
-                  'Pets Adopted this Month',
-                  style: TextStyle(color: kSecondaryTextColor),
-                ),
-                trailing: Text(
-                  '14',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: kPrimaryAccentColor,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              ListTile(
-                title: Text(
-                  'Active Rescues',
-                  style: TextStyle(color: kSecondaryTextColor),
-                ),
-                trailing: Text(
-                  '32',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: kPrimaryAccentColor,
-                    fontSize: 16,
-                  ),
-                ),
+            children: [
+              StreamBuilder<Map<String, int>>(
+                stream: StatsService.getAdoptionStatsStream(),
+                builder: (context, snapshot) {
+                  print('DEBUG: StreamBuilder - ConnectionState: ${snapshot.connectionState}');
+                  print('DEBUG: StreamBuilder - HasData: ${snapshot.hasData}');
+                  print('DEBUG: StreamBuilder - Data: ${snapshot.data}');
+                  print('DEBUG: StreamBuilder - Error: ${snapshot.error}');
+                  
+                  if (snapshot.hasError) {
+                    return const ListTile(
+                      title: Text(
+                        'Error loading stats',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    );
+                  }
+                  
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                    return const ListTile(
+                      title: Text(
+                        'Loading stats...',
+                        style: TextStyle(color: kSecondaryTextColor),
+                      ),
+                    );
+                  }
+                  
+                  final stats = snapshot.data ?? {'adoptedThisMonth': 0, 'activeRescues': 0};
+                  print('DEBUG: UI displaying stats - Adopted: ${stats['adoptedThisMonth']}, Active: ${stats['activeRescues']}');
+                  
+                  return Column(
+                    children: [
+                      ListTile(
+                        title: const Text(
+                          'Pets Adopted this Month',
+                          style: TextStyle(color: kSecondaryTextColor),
+                        ),
+                        trailing: Text(
+                          '${stats['adoptedThisMonth']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryAccentColor,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text(
+                          'Active Rescues',
+                          style: TextStyle(color: kSecondaryTextColor),
+                        ),
+                        trailing: Text(
+                          '${stats['activeRescues']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryAccentColor,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
