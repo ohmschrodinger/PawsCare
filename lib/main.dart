@@ -12,6 +12,7 @@ import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
 import 'main_navigation_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'services/notification_service.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -25,6 +26,9 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
+    
+    // Initialize notification service
+    await NotificationService.initialize();
   } catch (e) {
     // If Firebase is already initialized, ignore the error
     if (e.toString().contains('duplicate-app')) {

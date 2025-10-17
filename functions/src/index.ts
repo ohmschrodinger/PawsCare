@@ -2,11 +2,96 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 import cors from 'cors';
+// import { google } from "googleapis";
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
 const corsHandler = cors({ origin: true });
+
+// Helper function to send push notifications
+async function sendPushNotification({
+  userId,
+  title,
+  body,
+  data = {}
+}: {
+  userId: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+}) {
+  try {
+    // Get user's FCM token
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      console.log('User document not found for push notification');
+      return;
+    }
+
+    const userData = userDoc.data();
+    const fcmToken = userData?.fcmToken;
+
+    if (!fcmToken) {
+      console.log('No FCM token found for user:', userId);
+      return;
+    }
+
+    // Send push notification
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: title,
+        body: body,
+      },
+      data: data,
+      android: {
+        notification: {
+          icon: 'ic_launcher',
+          color: '#5AC8F2',
+          sound: 'default',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('Push notification sent successfully:', response);
+    
+    // Log notification to Firestore
+    await admin.firestore().collection('notification_logs').add({
+      userId: userId,
+      title: title,
+      body: body,
+      data: data,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'sent',
+      messageId: response
+    });
+
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+    
+    // Log failed notification
+    await admin.firestore().collection('notification_logs').add({
+      userId: userId,
+      title: title,
+      body: body,
+      data: data,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'failed',
+      error: String(error)
+    });
+  }
+}
 
 // Email templates
 const emailTemplates = {
@@ -365,6 +450,53 @@ export const onAnimalPostApproved = functions.firestore
     }
   });
 
+// Firestore trigger for when new animal is added and approved
+export const onNewAnimalApproved = functions.firestore
+  .document('animals/{animalId}')
+  .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    
+    // Check if approvalStatus changed from pending to approved
+    if (beforeData.approvalStatus === 'pending' && afterData.approvalStatus === 'approved') {
+      try {
+        // Get all users who have opted in for new animal notifications
+        const usersSnapshot = await admin.firestore()
+          .collection('users')
+          .where('newAnimalNotifications', '==', true)
+          .get();
+
+        if (usersSnapshot.empty) {
+          console.log('No users found with notifications enabled');
+          return;
+        }
+
+        // Send notification to all users
+        const notificationPromises = usersSnapshot.docs.map(async (userDoc) => {
+          const userId = userDoc.id;
+
+          await sendPushNotification({
+            userId: userId,
+            title: '🐾 New Animal Available!',
+            body: `Meet ${afterData.name || 'a new friend'} - ${afterData.species || 'pet'} available for adoption!`,
+            data: {
+              type: 'new_animal',
+              animalId: context.params.animalId,
+              animalName: afterData.name || 'Animal',
+              animalSpecies: afterData.species || 'Pet'
+            }
+          });
+        });
+
+        await Promise.all(notificationPromises);
+        console.log(`New animal notification sent to ${usersSnapshot.docs.length} users`);
+
+      } catch (error) {
+        console.error('Error sending new animal notifications:', error);
+      }
+    }
+  });
+
 // Firestore trigger for when adoption application is approved
 export const onAdoptionApplicationApproved = functions.firestore
   .document('applications/{applicationId}')
@@ -434,6 +566,21 @@ export const onAdoptionApplicationApproved = functions.firestore
         await transporter.sendMail(mailOptions);
         console.log('Adoption approval email sent to:', userEmail);
 
+        // Send push notification if user has adoption notifications enabled
+        if (userData?.adoptionNotifications !== false) {
+          await sendPushNotification({
+            userId: afterData.userId,
+            title: '🎉 Adoption Approved!',
+            body: `Your adoption application for ${animalData?.name || 'the animal'} has been approved!`,
+            data: {
+              type: 'adoption_approved',
+              applicationId: context.params.applicationId,
+              animalId: afterData.animalId,
+              animalName: animalData?.name || 'Animal'
+            }
+          });
+        }
+
         // Log to Firestore
         await admin.firestore().collection('email_logs').add({
           type: 'adoption_approved',
@@ -455,12 +602,66 @@ export const onAdoptionApplicationApproved = functions.firestore
     }
   });
 
+// Firestore trigger for when adoption application is rejected
+export const onAdoptionApplicationRejected = functions.firestore
+  .document('applications/{applicationId}')
+  .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    
+    // Check if status changed from pending to rejected
+    if (beforeData.status === 'pending' && afterData.status === 'rejected') {
+      try {
+        // Get user data
+        const userDoc = await admin.firestore()
+          .collection('users')
+          .doc(afterData.userId)
+          .get();
 
-import { google } from "googleapis";
+        if (!userDoc.exists) {
+          console.log('User document not found for adoption rejection notification');
+          return;
+        }
+
+        const userData = userDoc.data();
+
+        // Get animal data
+        const animalDoc = await admin.firestore()
+          .collection('animals')
+          .doc(afterData.animalId)
+          .get();
+
+        const animalData = animalDoc.exists ? animalDoc.data() : {};
+
+        // Send push notification if user has adoption notifications enabled
+        if (userData?.adoptionNotifications !== false) {
+          await sendPushNotification({
+            userId: afterData.userId,
+            title: 'Adoption Application Update',
+            body: `Your adoption application for ${animalData?.name || 'the animal'} has been reviewed.`,
+            data: {
+              type: 'adoption_rejected',
+              applicationId: context.params.applicationId,
+              animalId: afterData.animalId,
+              animalName: animalData?.name || 'Animal'
+            }
+          });
+        }
+
+        console.log('Adoption rejection notification sent to user:', afterData.userId);
+
+      } catch (error) {
+        console.error('Error sending adoption rejection notification:', error);
+      }
+    }
+  });
+
 /**
  * Append to users_log sheet:
  * [uid, email, Fullname, role, phonenumber, address, field_updated, timestamp]
  */
+// Temporarily commented out due to googleapis import issues
+/*
 export const logUserToSheet = functions
   .region("us-central1")
   .firestore.document("users/{uid}")
@@ -589,3 +790,4 @@ export const logUserToSheet = functions
       throw err;
     }
   });
+*/

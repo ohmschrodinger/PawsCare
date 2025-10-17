@@ -51,6 +51,8 @@ dependencies:
   smooth_page_indicator: ^1.1.0
   font_awesome_flutter: ^10.4.0  # or latest
   url_launcher: ^6.3.0   # or latest
+  firebase_messaging: ^16.0.0
+  flutter_local_notifications: ^17.2.3
 
 
  
