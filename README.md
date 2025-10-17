@@ -1,16 +1,7 @@
-# pawscare
+# PawsCare
 
-A new Flutter project.
+This is an Animal Adoption App, currently in the works for the PawsCare Animal Resq NGO. It’s for anyone who wants to adopt a pet, put pets up for adoption, promote adoption, or just enjoy looking at adorable animal pics cause who doesn’t love these cuties?
 
-## Getting Started
+Once the app is ready, you’ll be able to post pets for adoption and even adopt animals yourself. PawsCare acts as a go-between, reviewing applications and being the main point of contact.
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The app also has a community page where you can share pet stories, ask questions, or post about any concerns you have.
