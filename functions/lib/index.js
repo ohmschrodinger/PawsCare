@@ -36,12 +36,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = void 0;
+exports.logUserToSheet = exports.cleanupAdoptedAnimalPhotos = exports.onAnimalCreated = exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const nodemailer = __importStar(require("nodemailer"));
 const cors_1 = __importDefault(require("cors"));
-// import { google } from "googleapis";
+const path = __importStar(require("path"));
+const os = __importStar(require("os"));
+const fs = __importStar(require("fs"));
+const googleapis_1 = require("googleapis");
 // Initialize Firebase Admin
 admin.initializeApp();
 const corsHandler = (0, cors_1.default)({ origin: true });
@@ -613,139 +616,208 @@ exports.onAdoptionApplicationRejected = functions.firestore
         }
     }
 });
+const backupConfig = functions.config().backup;
+const DRIVE_FOLDER_ID = backupConfig.folder_id;
+const SERVICE_ACCOUNT_KEY_B64 = backupConfig.key_b64;
+const FIREBASE_BUCKET_NAME = backupConfig.bucket_name;
+// Google Drive setup
+const key = JSON.parse(Buffer.from(SERVICE_ACCOUNT_KEY_B64, 'base64').toString('utf8'));
+const jwtClient = new googleapis_1.google.auth.JWT(key.client_email, undefined, key.private_key, ['https://www.googleapis.com/auth/drive']);
+const drive = googleapis_1.google.drive({ version: 'v3', auth: jwtClient });
+// ==================== Helper Functions ====================
+async function uploadFileToDrive(localPath, fileName) {
+    await jwtClient.authorize();
+    const fileMetadata = {
+        name: fileName,
+        parents: [DRIVE_FOLDER_ID],
+    };
+    const media = {
+        body: fs.createReadStream(localPath),
+    };
+    const response = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, webViewLink',
+    });
+    return response.data;
+}
+async function backupAnimalToFirestore(animalData, animalId, driveLinks) {
+    const backupRef = admin.firestore().collection('animals_backup').doc(animalId);
+    await backupRef.set({
+        ...animalData,
+        backupDriveLinks: driveLinks,
+        backedUpAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+}
+// ==================== Firestore Trigger ====================
+exports.onAnimalCreated = functions.firestore
+    .document('animals/{animalId}')
+    .onCreate(async (snap, context) => {
+    const animalData = snap.data();
+    const animalId = context.params.animalId;
+    if (!animalData)
+        return;
+    // Upload all photos to Drive
+    const driveLinks = [];
+    if (animalData.photos && Array.isArray(animalData.photos)) {
+        for (const photoUrl of animalData.photos) {
+            try {
+                const fileName = `${animalId}_${path.basename(photoUrl)}`;
+                const tempFilePath = path.join(os.tmpdir(), fileName);
+                // Download the file from Firebase Storage
+                const bucket = admin.storage().bucket(FIREBASE_BUCKET_NAME);
+                const file = bucket.file(photoUrl.replace(`https://storage.googleapis.com/${FIREBASE_BUCKET_NAME}/`, ''));
+                await file.download({ destination: tempFilePath });
+                // Upload to Drive
+                const driveFile = await uploadFileToDrive(tempFilePath, fileName);
+                driveLinks.push(driveFile.webViewLink || '');
+                // Cleanup temp
+                fs.unlinkSync(tempFilePath);
+            }
+            catch (err) {
+                console.error('Error backing up photo:', err);
+            }
+        }
+    }
+    // Backup entire animal to animals_backup
+    await backupAnimalToFirestore(animalData, animalId, driveLinks);
+    // Add isArchived flag in main animals collection
+    await snap.ref.update({ isArchived: false });
+    console.log(`Animal ${animalId} backed up successfully.`);
+});
+// ==================== Scheduled Cleanup for Adopted Animals ====================
+exports.cleanupAdoptedAnimalPhotos = functions.pubsub
+    .schedule('every 1 hours')
+    .onRun(async () => {
+    console.log('Running cleanupAdoptedAnimalPhotos job...');
+    const animalsRef = admin.firestore().collection('animals');
+    const snapshot = await animalsRef.where('status', '==', 'adopted').get();
+    for (const doc of snapshot.docs) {
+        const data = doc.data();
+        if (!data.photos || !Array.isArray(data.photos))
+            continue;
+        if (data.photos.length > 100) {
+            console.log(`Cleaning up ${data.photos.length} photos for animal ${doc.id}`);
+            // Remove URLs from Firestore
+            await doc.ref.update({
+                photos: [],
+                isArchived: true,
+            });
+            console.log(`Removed Firestore URLs for animal ${doc.id}`);
+        }
+    }
+    console.log('Cleanup job completed.');
+});
 /**
  * Append to users_log sheet:
  * [uid, email, Fullname, role, phonenumber, address, field_updated, timestamp]
  */
 // Temporarily commented out due to googleapis import issues
-/*
-export const logUserToSheet = functions
-  .region("us-central1")
-  .firestore.document("users/{uid}")
-  .onWrite(async (change, context) => {
+exports.logUserToSheet = functions
+    .region("us-central1")
+    .firestore.document("users/{uid}")
+    .onWrite(async (change, context) => {
     try {
-      const cfg = functions.config();
-      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
-      const KEY_B64 = cfg.sheets?.key_b64;
-
-      if (!SPREADSHEET_ID || !KEY_B64) {
-        console.error(
-          "Missing functions config: sheets.spreadsheet_id or sheets.key_b64"
-        );
-        return null;
-      }
-
-      const uid = context.params.uid;
-      const before = change.before.exists ? change.before.data() : null;
-      const after = change.after.exists ? change.after.data() : null;
-
-      // ignore deletes
-      if (before && !after) return null;
-
-      // Fields we track (and the column order after uid)
-      const trackedFields = [
-        "email",
-        "fullName",
-        "role",
-        "phoneNumber",
-        "address",
-      ];
-
-      const normalize = (val: any): string => {
-        if (val === null || val === undefined) return "";
-        if (typeof val?.toDate === "function") {
-          try {
-            return val.toDate().toISOString();
-          } catch {
-            return String(val);
-          }
+        const cfg = functions.config();
+        const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+        const KEY_B64 = cfg.sheets?.key_b64;
+        if (!SPREADSHEET_ID || !KEY_B64) {
+            console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+            return null;
         }
-        if (val instanceof Date) return val.toISOString();
-        if (typeof val === "object") {
-          try {
-            return JSON.stringify(val);
-          } catch {
+        const uid = context.params.uid;
+        const before = change.before.exists ? change.before.data() : null;
+        const after = change.after.exists ? change.after.data() : null;
+        // ignore deletes
+        if (before && !after)
+            return null;
+        // Fields we track (and the column order after uid)
+        const trackedFields = [
+            "email",
+            "fullName",
+            "role",
+            "phoneNumber",
+            "address",
+        ];
+        const normalize = (val) => {
+            if (val === null || val === undefined)
+                return "";
+            if (typeof val?.toDate === "function") {
+                try {
+                    return val.toDate().toISOString();
+                }
+                catch {
+                    return String(val);
+                }
+            }
+            if (val instanceof Date)
+                return val.toISOString();
+            if (typeof val === "object") {
+                try {
+                    return JSON.stringify(val);
+                }
+                catch {
+                    return String(val);
+                }
+            }
             return String(val);
-          }
-        }
-        return String(val);
-      };
-
-      const isCreate = !before && !!after;
-      const isUpdate = !!before && !!after;
-
-      // Build normalized maps for comparison
-      const beforeNormalized: Record<string, string> = {};
-      const afterNormalized: Record<string, string> = {};
-
-      for (const f of trackedFields) {
-        beforeNormalized[f] = normalize(before?.[f]);
-        afterNormalized[f] = normalize(after?.[f]);
-      }
-
-      // Determine changed tracked fields
-      const changedFields: string[] = [];
-      if (isUpdate) {
+        };
+        const isCreate = !before && !!after;
+        const isUpdate = !!before && !!after;
+        // Build normalized maps for comparison
+        const beforeNormalized = {};
+        const afterNormalized = {};
         for (const f of trackedFields) {
-          if (beforeNormalized[f] !== afterNormalized[f]) {
-            changedFields.push(f);
-          }
+            beforeNormalized[f] = normalize(before?.[f]);
+            afterNormalized[f] = normalize(after?.[f]);
         }
-      }
-
-      // Decide whether to append:
-      // - always append for create
-      // - for update append only if any tracked field changed
-      if (!isCreate && !(isUpdate && changedFields.length > 0)) {
-        // nothing to log
+        // Determine changed tracked fields
+        const changedFields = [];
+        if (isUpdate) {
+            for (const f of trackedFields) {
+                if (beforeNormalized[f] !== afterNormalized[f]) {
+                    changedFields.push(f);
+                }
+            }
+        }
+        // Decide whether to append:
+        // - always append for create
+        // - for update append only if any tracked field changed
+        if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+            // nothing to log
+            return null;
+        }
+        // Build the row in requested order:
+        // uid, email, Fullname, role, phonenumber, address, field_updated, timestamp
+        const rowValues = [
+            uid,
+            afterNormalized["email"] || "",
+            afterNormalized["fullName"] || "",
+            afterNormalized["role"] || "",
+            afterNormalized["phoneNumber"] || "",
+            afterNormalized["address"] || "",
+        ];
+        const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
+        const timestampISO = new Date().toISOString();
+        rowValues.push(fieldUpdated || "none", timestampISO);
+        // Authenticate to Sheets
+        const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+        const jwt = new googleapis_1.google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
+        await jwt.authorize();
+        const sheets = googleapis_1.google.sheets({ version: "v4", auth: jwt });
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "users_log!A1",
+            valueInputOption: "RAW",
+            insertDataOption: "INSERT_ROWS",
+            requestBody: { values: [rowValues] },
+        });
+        console.log(`logUserToSheet: appended for uid=${uid} fieldUpdated=${fieldUpdated}`);
         return null;
-      }
-
-      // Build the row in requested order:
-      // uid, email, Fullname, role, phonenumber, address, field_updated, timestamp
-      const rowValues: string[] = [
-        uid,
-        afterNormalized["email"] || "",
-        afterNormalized["fullName"] || "",
-        afterNormalized["role"] || "",
-        afterNormalized["phoneNumber"] || "",
-        afterNormalized["address"] || "",
-      ];
-
-      const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
-      const timestampISO = new Date().toISOString();
-
-      rowValues.push(fieldUpdated || "none", timestampISO);
-
-      // Authenticate to Sheets
-      const keyJson = JSON.parse(
-        Buffer.from(KEY_B64, "base64").toString("utf8")
-      );
-      const jwt = new google.auth.JWT(
-        keyJson.client_email,
-        undefined,
-        keyJson.private_key,
-        ["https://www.googleapis.com/auth/spreadsheets"]
-      );
-      await jwt.authorize();
-
-      const sheets = google.sheets({ version: "v4", auth: jwt });
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: SPREADSHEET_ID,
-        range: "users_log!A1",
-        valueInputOption: "RAW",
-        insertDataOption: "INSERT_ROWS",
-        requestBody: { values: [rowValues] },
-      });
-
-      console.log(
-        `logUserToSheet: appended for uid=${uid} fieldUpdated=${fieldUpdated}`
-      );
-      return null;
-    } catch (err) {
-      console.error("logUserToSheet error:", err);
-      throw err;
     }
-  });
-*/
+    catch (err) {
+        console.error("logUserToSheet error:", err);
+        throw err;
+    }
+});
 //# sourceMappingURL=index.js.map

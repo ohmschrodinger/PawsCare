@@ -2,7 +2,10 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 import cors from 'cors';
-// import { google } from "googleapis";
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
+import { google } from 'googleapis';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -656,12 +659,136 @@ export const onAdoptionApplicationRejected = functions.firestore
     }
   });
 
+
+
+
+
+
+const backupConfig = functions.config().backup;
+const DRIVE_FOLDER_ID = backupConfig.folder_id;
+const SERVICE_ACCOUNT_KEY_B64 = backupConfig.key_b64;
+const FIREBASE_BUCKET_NAME = backupConfig.bucket_name;
+
+// Google Drive setup
+const key = JSON.parse(Buffer.from(SERVICE_ACCOUNT_KEY_B64, 'base64').toString('utf8'));
+const jwtClient = new google.auth.JWT(
+  key.client_email,
+  undefined,
+  key.private_key,
+  ['https://www.googleapis.com/auth/drive']
+);
+const drive = google.drive({ version: 'v3', auth: jwtClient });
+
+// ==================== Helper Functions ====================
+
+async function uploadFileToDrive(localPath: string, fileName: string) {
+  await jwtClient.authorize();
+  const fileMetadata = {
+    name: fileName,
+    parents: [DRIVE_FOLDER_ID],
+  };
+  const media = {
+    body: fs.createReadStream(localPath),
+  };
+  const response = await drive.files.create({
+    requestBody: fileMetadata,
+    media: media,
+    fields: 'id, webViewLink',
+  });
+  return response.data;
+}
+
+async function backupAnimalToFirestore(animalData: any, animalId: string, driveLinks: string[]) {
+  const backupRef = admin.firestore().collection('animals_backup').doc(animalId);
+  await backupRef.set({
+    ...animalData,
+    backupDriveLinks: driveLinks,
+    backedUpAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// ==================== Firestore Trigger ====================
+
+export const onAnimalCreated = functions.firestore
+  .document('animals/{animalId}')
+  .onCreate(async (snap, context) => {
+    const animalData = snap.data();
+    const animalId = context.params.animalId;
+
+    if (!animalData) return;
+
+    // Upload all photos to Drive
+    const driveLinks: string[] = [];
+    if (animalData.photos && Array.isArray(animalData.photos)) {
+      for (const photoUrl of animalData.photos) {
+        try {
+          const fileName = `${animalId}_${path.basename(photoUrl)}`;
+          const tempFilePath = path.join(os.tmpdir(), fileName);
+
+          // Download the file from Firebase Storage
+          const bucket = admin.storage().bucket(FIREBASE_BUCKET_NAME);
+          const file = bucket.file(photoUrl.replace(`https://storage.googleapis.com/${FIREBASE_BUCKET_NAME}/`, ''));
+          await file.download({ destination: tempFilePath });
+
+          // Upload to Drive
+          const driveFile = await uploadFileToDrive(tempFilePath, fileName);
+          driveLinks.push(driveFile.webViewLink || '');
+
+          // Cleanup temp
+          fs.unlinkSync(tempFilePath);
+        } catch (err) {
+          console.error('Error backing up photo:', err);
+        }
+      }
+    }
+
+    // Backup entire animal to animals_backup
+    await backupAnimalToFirestore(animalData, animalId, driveLinks);
+
+    // Add isArchived flag in main animals collection
+    await snap.ref.update({ isArchived: false });
+
+    console.log(`Animal ${animalId} backed up successfully.`);
+  });
+
+// ==================== Scheduled Cleanup for Adopted Animals ====================
+
+export const cleanupAdoptedAnimalPhotos = functions.pubsub
+  .schedule('every 1 hours')
+  .onRun(async () => {
+    console.log('Running cleanupAdoptedAnimalPhotos job...');
+
+    const animalsRef = admin.firestore().collection('animals');
+    const snapshot = await animalsRef.where('status', '==', 'adopted').get();
+
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (!data.photos || !Array.isArray(data.photos)) continue;
+
+      if (data.photos.length > 100) {
+        console.log(`Cleaning up ${data.photos.length} photos for animal ${doc.id}`);
+
+        // Remove URLs from Firestore
+        await doc.ref.update({
+          photos: [],
+          isArchived: true,
+        });
+
+        console.log(`Removed Firestore URLs for animal ${doc.id}`);
+      }
+    }
+
+    console.log('Cleanup job completed.');
+  });
+
+
+
 /**
  * Append to users_log sheet:
  * [uid, email, Fullname, role, phonenumber, address, field_updated, timestamp]
  */
 // Temporarily commented out due to googleapis import issues
-/*
+
 export const logUserToSheet = functions
   .region("us-central1")
   .firestore.document("users/{uid}")
@@ -790,4 +917,4 @@ export const logUserToSheet = functions
       throw err;
     }
   });
-*/
+
