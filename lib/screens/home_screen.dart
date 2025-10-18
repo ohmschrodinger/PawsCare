@@ -1,4 +1,5 @@
 // lib/screens/home_screen.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
@@ -82,11 +83,13 @@ class _HomeScreenState extends State<HomeScreen> {
               StreamBuilder<Map<String, int>>(
                 stream: StatsService.getAdoptionStatsStream(),
                 builder: (context, snapshot) {
-                  print('DEBUG: StreamBuilder - ConnectionState: ${snapshot.connectionState}');
+                  print(
+                    'DEBUG: StreamBuilder - ConnectionState: ${snapshot.connectionState}',
+                  );
                   print('DEBUG: StreamBuilder - HasData: ${snapshot.hasData}');
                   print('DEBUG: StreamBuilder - Data: ${snapshot.data}');
                   print('DEBUG: StreamBuilder - Error: ${snapshot.error}');
-                  
+
                   if (snapshot.hasError) {
                     return const ListTile(
                       title: Text(
@@ -95,8 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   }
-                  
-                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
                     return const ListTile(
                       title: Text(
                         'Loading stats...',
@@ -104,10 +108,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   }
-                  
-                  final stats = snapshot.data ?? {'adoptedThisMonth': 0, 'activeRescues': 0};
-                  print('DEBUG: UI displaying stats - Adopted: ${stats['adoptedThisMonth']}, Active: ${stats['activeRescues']}');
-                  
+
+                  final stats =
+                      snapshot.data ??
+                      {'adoptedThisMonth': 0, 'activeRescues': 0};
+                  print(
+                    'DEBUG: UI displaying stats - Adopted: ${stats['adoptedThisMonth']}, Active: ${stats['activeRescues']}',
+                  );
+
                   return Column(
                     children: [
                       ListTile(
@@ -241,15 +249,21 @@ class _HomeScreenState extends State<HomeScreen> {
               final previewAnimals = animals.take(10).toList();
               return ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: previewAnimals.length,
                 physics: const BouncingScrollPhysics(),
                 itemBuilder: (context, index) {
                   final animalData =
                       previewAnimals[index].data() as Map<String, dynamic>;
-                  final imageUrls = animalData['imageUrls'] as List<dynamic>? ?? [];
-                  final imageUrl = (imageUrls.isNotEmpty ? imageUrls.first : null) ??
-                      (animalData['image'] ?? 'https://via.placeholder.com/150');
+                  final imageUrls =
+                      animalData['imageUrls'] as List<dynamic>? ?? [];
+                  final imageUrl =
+                      (imageUrls.isNotEmpty ? imageUrls.first : null) ??
+                      (animalData['image'] ??
+                          'https://via.placeholder.com/150');
                   final pet = {
                     'id': previewAnimals[index].id,
                     ...animalData,
@@ -289,28 +303,33 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   double _currentPageValue = 0.0;
 
   _WelcomeSectionState()
-      : _pageController = PageController(viewportFraction: 0.85);
+    : _pageController = PageController(viewportFraction: 0.95);
 
   final List<Map<String, dynamic>> _infoPages = [
     {
-      'title': 'A Winning Team',
-      'text': 'Our amazing team of volunteers are committed to helping animals in our community...',
+      'title': 'Welcome to PawsCare',
+      'text':
+          'Your one-stop app for adopting, rescuing, and caring for animals in need. Whether you’re looking to adopt or just spread love, PawsCare connects you with pets who need a home.',
     },
     {
-      'title': 'Our History',
-      'text': "Seeing a nonprofit to support our community's animals, we formed our organization...",
+      'title': 'About PawsCare Animal Resq',
+      'text':
+          "PawsCare is a passionate NGO dedicated to rescuing, rehabilitating, and rehoming stray animals.",
     },
     {
-      'title': 'Animals Are Our Mission',
-      'text': 'We focus on making the maximum positive effect...',
+      'title': 'What You Can Do in the App',
+      'text':
+          'Discover animals up for adoption, share stories, or post your own rescues. PawsCare isn’t just an app it’s a community for animal lovers.',
     },
     {
-      'title': 'Mission',
-      'text': 'Our Mission is to “Make a Difference in the life of street animal”',
+      'title': 'Meet Our Happy Tails',
+      'text':
+          'Over 100 pets have already found loving homes through PawsCare. Every adoption story inspires the next.\nyours could be next!',
     },
     {
-      'title': 'Vision',
-      'text': 'Our Vision is to provide world’s most successful onsite treatment service for street animals...',
+      'title': 'Join the Mission',
+      'text':
+          'Adopt, volunteer, or spread the word — every small action makes a big difference. Together, we can create a world where every animal is cared for and loved.',
     },
   ];
 
@@ -332,69 +351,102 @@ class _WelcomeSectionState extends State<WelcomeSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        color: kCardColor,
-        height: 250,
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _infoPages.length,
-                itemBuilder: (context, index) {
-                  double delta = index - _currentPageValue;
-                  double scale = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
+    return SizedBox(
+      height: 250,
+      child: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _infoPages.length,
+              itemBuilder: (context, index) {
+                double delta = index - _currentPageValue;
+                double scale = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
 
-                  return Transform.scale(
-                    scale: scale,
-                    child: _buildInfoPage(
-                      title: _infoPages[index]['title'],
-                      text: _infoPages[index]['text'],
-                    ),
-                  );
-                },
-              ),
+                return Transform.scale(
+                  scale: scale,
+                  child: _buildInfoPage(
+                    title: _infoPages[index]['title'],
+                    text: _infoPages[index]['text'],
+                    imagePath: 'assets/images/welcome${index + 1}.png',
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 10),
-            _buildPageIndicator(),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          _buildPageIndicator(),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoPage({required String title, required String text}) {
+  // ---------- MODIFIED WIDGET ----------
+  Widget _buildInfoPage({
+    required String title,
+    required String text,
+    required String imagePath,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: kPrimaryTextColor,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 4,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. Background Image (No effects)
+            Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                // This helps you see if the image path is wrong
+                return Container(
+                  color: const Color.fromARGB(255, 255, 254, 254),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Image not found',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                );
+              },
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            text,
-            textAlign: TextAlign.start,
-            style: const TextStyle(
-              fontSize: 15,
-              color: kSecondaryTextColor,
-              height: 1.4,
+
+            // 2. Text Content
+            Padding(
+              // Reduced vertical padding to prevent overflow
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20.0,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: kPrimaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    text,
+                    textAlign: TextAlign.start,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: kPrimaryTextColor,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -447,8 +499,11 @@ class HorizontalPetCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.black.withOpacity(0.5),
-                    child: const Icon(Icons.pets,
-                        color: kSecondaryTextColor, size: 50),
+                    child: const Icon(
+                      Icons.pets,
+                      color: kSecondaryTextColor,
+                      size: 50,
+                    ),
                   ),
                 ),
               ),

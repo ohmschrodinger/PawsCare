@@ -6,6 +6,7 @@ import '../screens/my_applications_screen.dart';
 import '../screens/all_applications_screen.dart';
 import '../screens/admin_logs_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
@@ -28,14 +29,23 @@ PreferredSizeWidget buildPawsCareAppBar({
       onTap: () => mainNavKey.currentState?.selectTab(0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Image.asset('lib/assets/pawscare_logo.png', width: 38, height: 38),
+          Image.asset('lib/assets/pawscare_logo.png', width: 38, height: 35),
           const SizedBox(width: 8),
-          const Text(
-            'PawsCare',
-            style: TextStyle(
-              color: kPrimaryTextColor,
-              fontWeight: FontWeight.bold,
+          
+          // Add padding to manually adjust the text's vertical position.
+          Padding(
+            padding: const EdgeInsets.only(top: 10.0), // You can adjust this value
+            child: Text(
+              'PawsCare',
+              style: GoogleFonts.borel(
+                textStyle: const TextStyle(
+                  color: Color.fromARGB(255, 255, 255, 255),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 25,
+                ),
+              ),
             ),
           ),
         ],
@@ -48,14 +58,12 @@ PreferredSizeWidget buildPawsCareAppBar({
         onPressed: () async {
           const rawPhone =
               '917057517218'; // country code + number, no '+' sign for these URIs
-          const defaultMessage = 'Hello, I\'m interested in PawsCare!';
+          const defaultMessage = '';
 
-          // 1) Try WhatsApp app (preferred)
           final whatsappAppUri = Uri.parse(
             'whatsapp://send?phone=$rawPhone&text=${Uri.encodeComponent(defaultMessage)}',
           );
 
-          // 2) Fallback to web wa.me
           final webUri = Uri.parse(
             'https://wa.me/$rawPhone?text=${Uri.encodeComponent(defaultMessage)}',
           );
@@ -82,7 +90,6 @@ PreferredSizeWidget buildPawsCareAppBar({
           }
         },
       ),
-
       IconButton(
         icon: const Icon(Icons.notifications_none, color: kPrimaryTextColor),
         onPressed: () {
@@ -91,7 +98,6 @@ PreferredSizeWidget buildPawsCareAppBar({
           );
         },
       ),
-
       FutureBuilder<String>(
         future: getCurrentUserRole(),
         builder: (context, snapshot) {
@@ -105,7 +111,6 @@ PreferredSizeWidget buildPawsCareAppBar({
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
               onSelected: (value) {
-                // Full-screen navigation
                 if (value == 'my_applications') {
                   Navigator.of(context).push(
                     MaterialPageRoute(
