@@ -49,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
               emptyMessage: "No animals adopted yet",
             ),
             const SizedBox(height: 24),
+            // Extra padding at bottom to account for floating navbar
+            const SizedBox(height: 90),
           ],
         ),
       ),
@@ -238,31 +240,59 @@ class _HomeScreenState extends State<HomeScreen> {
           // Header with "Pet of the Day" and "See More"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Text(
                 'Pet of the Day',
                 style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700, // HIG: Bold for section headers
                   color: kPrimaryTextColor,
+                  letterSpacing: 0.35,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  mainNavKey.currentState?.selectTab(
-                    1,
-                  ); // Navigate to Adopt tab
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: kPrimaryAccentColor,
+              // Rounded "See More" button with lighter yellow color
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(
+                    192,
+                    255,
+                    204,
+                    0,
+                  ), // Lighter, more iOS-like yellow
+                  borderRadius: BorderRadius.circular(60),
                 ),
-                child: Row(
-                  children: const [
-                    Text('See More'),
-                    SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 18),
-                  ],
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      mainNavKey.currentState?.selectTab(
+                        1,
+                      ); // Navigate to Adopt tab
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text(
+                            'See More',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 13, // HIG: Smaller button text
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.08,
+                            ),
+                          ),
+                          SizedBox(width: 2),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -296,8 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment:
-                            MainAxisAlignment.start, // Prevent overflow
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // Top part with Title and Description
                           Column(
@@ -306,55 +335,80 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text(
                                 'Meet Rocky!',
                                 style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: kPrimaryAccentColor,
+                                  fontSize: 20, // HIG: Title 2
+                                  fontWeight: FontWeight.w700,
+                                  color: kPrimaryTextColor,
+                                  letterSpacing: 0.38,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              SizedBox(height: 6),
                               Text(
                                 'This playful pup loves belly rubs.',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 15, // HIG: Body
+                                  fontWeight: FontWeight.w400,
                                   color: kSecondaryTextColor,
+                                  letterSpacing: -0.24,
+                                  height: 1.3,
                                 ),
                               ),
                             ],
                           ),
-                          // Bottom part with Button
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PetDetailScreen(
-                                    petData: {
-                                      'name': 'Rocky',
-                                      'species': 'Cat',
-                                      'age': '2 years',
-                                      'image':
-                                          'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
-                                    },
+                          // Bottom part with Centered Rounded Button
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFFFFCC00,
+                                ), // Lighter yellow
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFFFFCC00,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PetDetailScreen(
+                                          petData: {
+                                            'name': 'Rocky',
+                                            'species': 'Cat',
+                                            'age': '2 years',
+                                            'image':
+                                                'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(60),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 15,
+                                      vertical: 7.5,
+                                    ),
+                                    child: const Text(
+                                      'Learn More',
+                                      style: TextStyle(
+                                        fontSize: 15, // HIG: Body/Button text
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                        letterSpacing: -0.24,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kPrimaryAccentColor,
-                              foregroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 6, // Reduce vertical padding
-                              ),
-                            ),
-                            child: const Text(
-                              'Learn More',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),

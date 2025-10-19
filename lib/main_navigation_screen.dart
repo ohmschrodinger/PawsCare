@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:pawscare/screens/home_screen.dart';
 import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
@@ -89,43 +90,119 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           bucket: _bucket,
           child: IndexedStack(index: _selectedIndex, children: _screens),
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
+        // Remove default bottomNavigationBar
+        bottomNavigationBar: null,
+        // Use extendBody to allow content to go behind the floating nav bar
+        extendBody: true,
+        // Add custom floating navigation bar
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: _buildFloatingNavBar(),
+      ),
+    );
+  }
+
+ Widget _buildFloatingNavBar() {
+  return Align(
+    alignment: Alignment.bottomCenter,
+    child: Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                offset: const Offset(0, 8),
+                blurRadius: 32,
+              ),
+            ],
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E).withOpacity(0.7),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(icon: Icons.home_rounded, index: 0, label: 'Home'),
+                  _buildNavItem(icon: Icons.pets_rounded, index: 1, label: 'Adopt'),
+                  _buildNavItem(
+                    icon: Icons.add_circle_rounded,
+                    index: 2,
+                    label: 'Post',
+                    isCenter: true,
+                  ),
+                  _buildNavItem(icon: Icons.groups_rounded, index: 3, label: 'Community'),
+                  _buildNavItem(icon: Icons.person_rounded, index: 4, label: 'Account'),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.pets_outlined),
-              activeIcon: Icon(Icons.pets),
-              label: 'Adopt',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
-              label: 'Post',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.groups_outlined),
-              activeIcon: Icon(Icons.groups),
-              label: 'Community',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Account',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          backgroundColor: kCardColor,
-          selectedItemColor: kPrimaryAccentColor,
-          unselectedItemColor: kSecondaryTextColor,
-          type: BottomNavigationBarType.fixed,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          elevation: 0,
-          onTap: _onItemTapped,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+
+
+
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required int index,
+    required String label,
+    bool isCenter = false,
+  }) {
+    final isSelected = _selectedIndex == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onItemTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isCenter
+                      ? kPrimaryAccentColor.withOpacity(0.15)
+                      : Colors.white.withOpacity(0.1))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: isCenter ? 28 : 24,
+                color: isSelected ? kPrimaryAccentColor : Colors.grey[400],
+              ),
+              if (isSelected) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: kPrimaryAccentColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
