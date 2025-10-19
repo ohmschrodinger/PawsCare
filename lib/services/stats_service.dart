@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
-import '../constants/animal_status.dart';
 
 class StatsService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;

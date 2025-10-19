@@ -66,7 +66,10 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     return Chip(
       label: Text(status),
       backgroundColor: backgroundColor,
-      labelStyle: TextStyle(color: foregroundColor, fontWeight: FontWeight.bold),
+      labelStyle: TextStyle(
+        color: foregroundColor,
+        fontWeight: FontWeight.bold,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
         side: BorderSide(color: borderColor),
@@ -74,38 +77,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     );
   }
 
-  // --- 👇 CHANGES ARE HERE ---
-  Widget _buildTraitChip(String label, IconData icon) {
-    return Chip(
-      avatar: Icon(icon, color: kSecondaryTextColor, size: 18), // Reduced icon size
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 13, // Reduced font size
-          fontWeight: FontWeight.w500,
-          color: kPrimaryTextColor,
-        ),
-      ),
-      backgroundColor: kCardColor,
-      // Added compact density and reduced padding to make the chip smaller
-      visualDensity: VisualDensity.compact,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-        side: BorderSide(color: Colors.grey.shade800),
-      ),
-    );
-  }
-  // -------------------------
-
-  Widget _buildTraitsRow(List<Widget> chips) {
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 4.0,
-      children: chips,
-    );
-  }
-
+  // --- 👇 UI CHANGES ARE HERE ---
   @override
   Widget build(BuildContext context) {
     List<String> imageUrls = [];
@@ -114,13 +86,13 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
       imageUrls = raw.whereType<String>().toList();
     } else if (raw is String && raw.isNotEmpty) {
       imageUrls = [raw];
-    } else if (widget.petData['image'] is String && widget.petData['image'] != null) {
+    } else if (widget.petData['image'] is String &&
+        widget.petData['image'] != null) {
       imageUrls = [widget.petData['image']];
     }
 
-    String getField(String key) => widget.petData[key]?.toString() ?? '';
-    final String status = getField('status');
-    final bool isAdopted = status.toLowerCase() == 'adopted' || status == 'Adopted';
+    final String status = widget.petData['status']?.toString() ?? 'available';
+    final bool isAdopted = status.toLowerCase() == 'adopted';
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -134,138 +106,228 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.favorite_border, color: Colors.white),
+            icon: const Icon(Icons.share, color: Colors.white),
             onPressed: () {
-              // TODO: Implement favorite functionality
+              // TODO: Implement share functionality
             },
           ),
         ],
       ),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildImageGallery(imageUrls),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  getField('name'),
-                                  style: const TextStyle(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.bold,
-                                    color: kPrimaryTextColor,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${getField('gender')} • ${getField('age')} • ${getField('size')}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: kSecondaryTextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _getStatusChip(getField('status')),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader('Traits & Compatibility'),
-                      const SizedBox(height: 8),
-                      _buildTraitsRow([
-                        _buildTraitChip('House Trained', Icons.check),
-                        _buildTraitChip('Cat Compatible', Icons.pets),
-                        _buildTraitChip('Shots Up to Date', Icons.vaccines),
-                        _buildTraitChip('Kid Compatible', Icons.child_friendly),
-                        _buildTraitChip('Slightly Active', Icons.directions_run),
-                      ]),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader('About ${getField('name')}'),
-                      const SizedBox(height: 8),
-                      Text(
-                        getField('rescueStory').isNotEmpty
-                            ? getField('rescueStory')
-                            : 'No rescue story available.',
-                        style: const TextStyle(
-                            fontSize: 16, height: 1.5, color: kPrimaryTextColor),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader('Location'),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(
-                          Icons.location_on, 'Location:', getField('location')),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(Icons.email, 'Posted By:',
-                          getField('postedByEmail')),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(Icons.access_time, 'Posted On:',
-                          _formatDate(widget.petData['postedAt'])),
-                      if (isAdopted)
-                        _buildInfoRow(Icons.event_available, 'Adopted On:',
-                            _formatDate(widget.petData['adoptedAt'])),
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildImageGallery(imageUrls),
+          _buildContentBody(status),
           if (!isAdopted) _buildAdoptMeButton(),
         ],
       ),
     );
   }
 
+  Widget _buildContentBody(String status) {
+    String getField(String key) => widget.petData[key]?.toString() ?? '';
+    final bool isAdopted = status.toLowerCase() == 'adopted';
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // This SizedBox creates the space for the image behind the card
+          const SizedBox(height: 360),
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: kBackgroundColor,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          getField('name'),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryTextColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Favorite button styled like the reference image
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: const Color(0xFFFBE6C2),
+                        child: Icon(
+                          Icons.favorite,
+                          color: Colors.brown.shade800,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${getField('species')} • ${getField('age')} • ${getField('gender')}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: kSecondaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('About ${getField('name')}'),
+                  const SizedBox(height: 8),
+                  Text(
+                    getField('rescueStory').isNotEmpty
+                        ? getField('rescueStory')
+                        : 'No story available.',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: kPrimaryTextColor,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('Details'),
+                  const SizedBox(height: 8),
+                  _getStatusChip(getField('status')),
+                  const SizedBox(height: 8),
+                  // Basic meta
+                  _buildInfoRow(
+                    Icons.email,
+                    'Posted By:',
+                    getField('postedByEmail'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.access_time,
+                    'Posted On:',
+                    _formatDate(widget.petData['postedAt']),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Pet specifics from the submission form
+                  _buildInfoRow(
+                    Icons.pets,
+                    'Breed Type:',
+                    getField('breedType'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.label, 'Breed:', getField('breed')),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.transgender,
+                    'Gender:',
+                    getField('gender'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.calendar_today, 'Age:', getField('age')),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.health_and_safety,
+                    'Sterilized:',
+                    getField('sterilization'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.vaccines,
+                    'Vaccination:',
+                    getField('vaccination'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.waves,
+                    'Dewormed:',
+                    getField('deworming'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.family_restroom,
+                    'Mother Status:',
+                    getField('motherStatus'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.medical_information,
+                    'Known Medical Issues:',
+                    getField('medicalIssues'),
+                  ),
+                  const SizedBox(height: 12),
+                  // Location & contact
+                  _buildInfoRow(
+                    Icons.location_on,
+                    'Location:',
+                    getField('location'),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInfoRow(
+                    Icons.phone,
+                    'Contact:',
+                    getField('contactPhone'),
+                  ),
+                  if (isAdopted)
+                    _buildInfoRow(
+                      Icons.event_available,
+                      'Adopted On:',
+                      _formatDate(widget.petData['adoptedAt']),
+                    ),
+
+                  // This SizedBox ensures there's space for the floating "Adopt Me" button
+                  const SizedBox(height: 120),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // --- END OF UI CHANGES ---
+
   Widget _buildImageGallery(List<String> imageUrls) {
     if (imageUrls.isEmpty) {
       return Container(
-          height: 400,
-          width: double.infinity,
-          color: Colors.grey.shade900,
-          child:
-              const Icon(Icons.pets, size: 80, color: kSecondaryTextColor));
+        height: 400,
+        width: double.infinity,
+        color: Colors.grey.shade900,
+        child: const Icon(Icons.pets, size: 80, color: kSecondaryTextColor),
+      );
     }
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+    return SizedBox(
+      height: 400,
+      width: double.infinity,
       child: Stack(
         children: [
-          SizedBox(
-            height: 400,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: imageUrls.length,
-              itemBuilder: (context, index) {
-                return Image.network(
-                  imageUrls[index],
+          PageView.builder(
+            controller: _pageController,
+            itemCount: imageUrls.length,
+            itemBuilder: (context, index) {
+              return Image.network(
+                imageUrls[index],
+                height: 400,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
                   height: 400,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 400,
-                    width: double.infinity,
-                    color: Colors.grey.shade900,
-                    child: const Icon(Icons.pets, size: 80, color: kSecondaryTextColor),
+                  color: Colors.grey.shade900,
+                  child: const Icon(
+                    Icons.pets,
+                    size: 80,
+                    color: kSecondaryTextColor,
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
+          // Gradient overlay for better text visibility on the AppBar
           Container(
             height: 120,
             decoration: BoxDecoration(
@@ -285,11 +347,11 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                 child: SmoothPageIndicator(
                   controller: _pageController,
                   count: imageUrls.length,
-                  effect: WormEffect(
+                  effect: const WormEffect(
                     dotHeight: 10,
                     dotWidth: 10,
                     activeDotColor: kPrimaryAccentColor,
-                    dotColor: Colors.white.withOpacity(0.5),
+                    dotColor: Colors.white54,
                   ),
                 ),
               ),
@@ -299,21 +361,21 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     );
   }
 
-  // --- 👇 CHANGES ARE HERE ---
   Widget _buildAdoptMeButton() {
     return Positioned(
       bottom: 0,
       left: 0,
       right: 0,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16), // Adjusted padding
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         decoration: BoxDecoration(
-            color: kBackgroundColor,
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [kBackgroundColor, kBackgroundColor.withOpacity(0.8)],
-            )),
+          color: kBackgroundColor,
+          gradient: LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [kBackgroundColor, kBackgroundColor.withOpacity(0.8)],
+          ),
+        ),
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -329,21 +391,20 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimaryAccentColor,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 14), // Reduced padding
+              padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
             ),
             child: const Text(
               'Adopt Me',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold), // Reduced font size
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
         ),
       ),
     );
   }
-  // -------------------------
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
@@ -360,14 +421,17 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                   TextSpan(
                     text: '$label ',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: kPrimaryTextColor),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor,
+                    ),
                   ),
                   TextSpan(
                     text: value,
                     style: const TextStyle(
-                        fontSize: 16, color: kSecondaryTextColor),
+                      fontSize: 16,
+                      color: kSecondaryTextColor,
+                    ),
                   ),
                 ],
               ),
