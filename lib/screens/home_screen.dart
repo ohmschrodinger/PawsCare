@@ -43,13 +43,6 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
             const SizedBox(height: 24),
             _buildAnimalSection(
-              title: "Adopt these Animals",
-              subtitle: "Look at these cuties and adopt them",
-              statusFilter: 'Available',
-              emptyMessage: "No animals available right now",
-            ),
-            const SizedBox(height: 16),
-            _buildAnimalSection(
               title: "Previously Adopted",
               subtitle: "Happy pets who found their forever homes",
               statusFilter: 'Adopted',
