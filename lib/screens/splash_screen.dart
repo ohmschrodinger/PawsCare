@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -59,57 +60,78 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated pet icon
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Colors.blueAccent.shade200, Colors.blueAccent.shade700],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              padding: const EdgeInsets.all(24),
-              child: const Icon(
-                Icons.pets,
-                size: 100,
-                color: Colors.white,
-              ),
+            // PawsCare Logo
+            SvgPicture.asset(
+              'assets/images/pawscarelogo.svg',
+              width: 150,
+              height: 150,
             ),
             const SizedBox(height: 20),
-            // App Name
-            const Text(
-              "PAWS CARE",
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            // Tagline
-            const Text(
-              "Connecting Pets to Forever Homes",
-              style: TextStyle(
-                fontSize: 18,
-                fontStyle: FontStyle.italic,
-                color: Colors.white70,
-              ),
-            ),
-            const SizedBox(height: 30),
-            // Progress Indicator
-            SizedBox(
-              height: 30,
-              width: 30,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent.shade200),
-              ),
+            // Animated App Name with Borel font
+            _AnimatedWriteText(
+              text: 'PawsCare',
+              duration: const Duration(seconds: 2),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// Widget to animate text as if being written
+class _AnimatedWriteText extends StatefulWidget {
+  final String text;
+  final Duration duration;
+  const _AnimatedWriteText({
+    required this.text,
+    required this.duration,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_AnimatedWriteText> createState() => _AnimatedWriteTextState();
+}
+
+class _AnimatedWriteTextState extends State<_AnimatedWriteText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _charCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(duration: widget.duration, vsync: this);
+    _charCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _charCount,
+      builder: (context, child) {
+        String visibleText = widget.text.substring(0, _charCount.value);
+        return Text(
+          visibleText,
+          style: const TextStyle(
+            fontFamily: 'Borel',
+            fontSize: 40,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.5,
+          ),
+        );
+      },
     );
   }
 }
