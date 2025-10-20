@@ -1,10 +1,10 @@
+import 'dart:ui'; // Added for ImageFilter
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/cupertino.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
@@ -13,7 +13,9 @@ const Color kCardColor = Color(0xFF1E1E1E);
 const Color kPrimaryAccentColor = Color.fromARGB(255, 255, 193, 7);
 const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+// --- NEW COLORS ---
+const Color kSuccessGreenColor = Color(0xFF6E8C6A); // Muted green from image
+const Color kAvatarAccentColor = Colors.blueAccent; // For avatar fallback
 
 class PostComposer extends StatefulWidget {
   const PostComposer({super.key});
@@ -36,7 +38,7 @@ class _PostComposerState extends State<PostComposer> {
     'Success Story',
     'Concern',
     'Question',
-    'General'
+    'General',
   ];
 
   String _userName = 'User';
@@ -73,7 +75,10 @@ class _PostComposerState extends State<PostComposer> {
     }
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final data = doc.data();
       final candidate = data == null
           ? null
@@ -119,8 +124,9 @@ class _PostComposerState extends State<PostComposer> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Error picking image: $e'),
-            backgroundColor: Colors.redAccent),
+          content: Text('Error picking image: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -130,14 +136,14 @@ class _PostComposerState extends State<PostComposer> {
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Please write something to post.'),
-            backgroundColor: Colors.redAccent),
+          content: Text('Please write something to post.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
     setState(() => _isUploading = true);
 
-    // Re-resolve name immediately before posting (ensures we have best value)
     await _fetchUserName();
 
     try {
@@ -176,8 +182,9 @@ class _PostComposerState extends State<PostComposer> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Error posting: $e'),
-            backgroundColor: Colors.redAccent),
+          content: Text('Error posting: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -192,35 +199,59 @@ class _PostComposerState extends State<PostComposer> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: bottomInset),
-      child: Card(
-        color: kCardColor,
-        margin: const EdgeInsets.all(0),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: InkWell(
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            onTap: () {
-              if (!_isExpanded) setState(() => _isExpanded = true);
-            },
-            child: _isExpanded ? _buildExpandedView() : _buildCollapsedView(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: kCardColor.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(16.0),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 1.5,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: InkWell(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                onTap: () {
+                  if (!_isExpanded) setState(() => _isExpanded = true);
+                },
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: _isExpanded
+                      ? _buildExpandedView()
+                      : _buildCollapsedView(),
+                ),
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCollapsedView() {
+
+
+
+
+
+
+ Widget _buildCollapsedView() {
     return Row(
       children: [
         CircleAvatar(
-          backgroundColor: const Color.fromARGB(82, 7, 85, 255).withOpacity(0.2),
+          backgroundColor: kAvatarAccentColor.withOpacity(0.2),
           child: Text(
             _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
             style: const TextStyle(
-                color: Color.fromARGB(149, 7, 168, 255), fontWeight: FontWeight.bold),
+              color: kAvatarAccentColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -230,7 +261,6 @@ class _PostComposerState extends State<PostComposer> {
             style: const TextStyle(color: kSecondaryTextColor),
           ),
         ),
-        // small logo icon instead of generic icon:
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
@@ -248,17 +278,29 @@ class _PostComposerState extends State<PostComposer> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // --- MODIFICATION: Header with Profile Picture and Name ---
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: kAvatarAccentColor.withOpacity(0.2),
               child: Text(
-                "Posting as $_userName",
-                overflow: TextOverflow.ellipsis,
+                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
                 style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: kSecondaryTextColor),
+                  color: kAvatarAccentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _userName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryTextColor,
+                ),
               ),
             ),
             IconButton(
@@ -268,8 +310,7 @@ class _PostComposerState extends State<PostComposer> {
             ),
           ],
         ),
-        const Divider(color: kBackgroundColor),
-        // === UPDATED TEXTFIELD: dark filled appearance ===
+        const SizedBox(height: 8),
         TextField(
           controller: _storyController,
           autofocus: true,
@@ -278,22 +319,23 @@ class _PostComposerState extends State<PostComposer> {
           maxLength: 3000,
           style: const TextStyle(color: kPrimaryTextColor),
           keyboardType: TextInputType.multiline,
-          cursorColor: kPrimaryAccentColor,
+          cursorColor: kSuccessGreenColor, // Match the new theme color
           decoration: InputDecoration(
             hintText: 'What’s on your mind?',
             hintStyle: const TextStyle(color: kSecondaryTextColor),
             filled: true,
-            fillColor: kCardColor, // matches card and dark theme
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            fillColor: Colors.black.withOpacity(0.2),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             counterText: "",
-            enabledBorder: OutlineInputBorder(
+            border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.transparent),
+              borderSide: BorderSide.none,
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: const Color.fromARGB(172, 255, 193, 7).withOpacity(0.6), width: 1.2),
-            ),
+
+            // --- MODIFICATION: Removed yellow border for a neutral one ---
           ),
         ),
         if (_selectedImage != null)
@@ -317,7 +359,11 @@ class _PostComposerState extends State<PostComposer> {
                     radius: 14,
                     backgroundColor: Colors.black54,
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 14),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                       onPressed: () => setState(() => _selectedImage = null),
                       padding: EdgeInsets.zero,
                     ),
@@ -327,29 +373,44 @@ class _PostComposerState extends State<PostComposer> {
             ),
           ),
         const SizedBox(height: 14),
-        Wrap(
-          spacing: 8.0,
-          runSpacing: 4.0,
-          children: _categories.map((category) {
-            final selected = _selectedCategory == category;
-            return ChoiceChip(
-              label: Text(category),
-              labelStyle: TextStyle(
-                color: selected ? Colors.black : kPrimaryTextColor,
-                fontWeight: FontWeight.w600,
-              ),
-              selected: selected,
-              onSelected: (s) {
-                if (s) setState(() => _selectedCategory = category);
-              },
-              selectedColor: kPrimaryAccentColor,
-              backgroundColor: Colors.grey.shade800,
-              showCheckmark: false,
-              side: BorderSide.none,
-            );
-          }).toList(),
+        // --- MODIFICATION: Smaller, Green Glassmorphic Chips ---
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _categories.map((category) {
+              final selected = _selectedCategory == category;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10.0,
+                    vertical: 6.0,
+                  ),
+                  label: Text(category),
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: selected ? Colors.white : kSecondaryTextColor,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                  selected: selected,
+                  onSelected: (s) {
+                    if (s) setState(() => _selectedCategory = category);
+                  },
+                  selectedColor: kSuccessGreenColor.withOpacity(0.7),
+                  backgroundColor: Colors.black.withOpacity(0.2),
+                  showCheckmark: false,
+                  side: BorderSide(
+                    color: selected
+                        ? kSuccessGreenColor
+                        : Colors.white.withOpacity(0.15),
+                    width: 1.5,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
-        const Divider(height: 24, color: kBackgroundColor),
+        Divider(height: 24, color: Colors.white.withOpacity(0.1)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -369,38 +430,39 @@ class _PostComposerState extends State<PostComposer> {
                 ),
               ],
             ),
-
-            // === POST LOGO BUTTON (replace text button) ===
-            // OPTION A: Simple built-in icon (no extra dependency)
-// === POST LOGO BUTTON (Cupertino style) ===
-GestureDetector(
-  onTap: _isUploading ? null : _postStory,
-  child: Container(
-    width: 35,
-    height: 35,
-    decoration: BoxDecoration(
-      color: kCardColor, // dark background, same as cards
-      shape: BoxShape.circle,
-      border: Border.all(color: kPrimaryAccentColor.withOpacity(0.8), width: 1.2),
-    ),
-    child: _isUploading
-        ? const Center(
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Color.fromARGB(181, 255, 193, 7),
+            GestureDetector(
+              onTap: _isUploading ? null : _postStory,
+              child: Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  color: kCardColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: kSuccessGreenColor.withOpacity(
+                      0.8,
+                    ), // Green border for post button
+                    width: 1.2,
+                  ),
+                ),
+                child: _isUploading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: kSuccessGreenColor,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        CupertinoIcons.paperplane_fill,
+                        color: kSuccessGreenColor,
+                        size: 18,
+                      ),
               ),
             ),
-          )
-        : const Icon(
-            CupertinoIcons.paperplane_fill,
-            color: Color.fromARGB(188, 255, 193, 7),
-            size: 18,
-          ),
-  ),
-),
           ],
         ),
       ],

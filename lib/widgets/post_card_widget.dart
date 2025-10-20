@@ -1,3 +1,4 @@
+import 'dart:ui'; // Added for ImageFilter
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -287,135 +288,154 @@ class _PostCardWidgetState extends State<PostCardWidget> {
 
     final displayAuthor = _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
 
-    return Card(
-      color: kCardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPostHeader(displayAuthor, timeAgo),
-            const SizedBox(height: 12),
-            if (storyText.isNotEmpty)
-              Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: kCardColor.withOpacity(0.5), // Semi-transparent color
+              borderRadius: BorderRadius.circular(16.0),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15), // Subtle border
+                width: 1.5,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    storyText,
-                    style: const TextStyle(fontSize: 15, height: 1.4, color: kPrimaryTextColor),
-                    maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                    overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                  ),
-                  if (isLongText)
-                    GestureDetector(
-                      onTap: () => setState(() => _isExpanded = !_isExpanded),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          _isExpanded ? 'Read less' : 'Read more...',
-                          style: const TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+                  _buildPostHeader(displayAuthor, timeAgo),
+                  const SizedBox(height: 12),
+                  if (storyText.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          storyText,
+                          style: const TextStyle(fontSize: 15, height: 1.4, color: kPrimaryTextColor),
+                          maxLines: _isExpanded ? null : _maxLinesCollapsed,
+                          overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
                         ),
-                      ),
+                        if (isLongText)
+                          GestureDetector(
+                            onTap: () => setState(() => _isExpanded = !_isExpanded),
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                _isExpanded ? 'Read less' : 'Read more...',
+                                style: const TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty) _buildPostImage(widget.postData['imageUrl']),
+                  const SizedBox(height: 8),
+                  _buildActionButtons(isLiked, likes.length, commentCount),
+                  if (_isCommentSectionVisible) _buildCommentSection(),
                 ],
               ),
-            if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty) _buildPostImage(widget.postData['imageUrl']),
-            const SizedBox(height: 8),
-            _buildActionButtons(isLiked, likes.length, commentCount),
-            if (_isCommentSectionVisible) _buildCommentSection(),
-          ],
+            ),
+          ),
         ),
       ),
     );
   }
 
- Widget _buildPostHeader(String displayAuthor, String timeAgo) {
-  final bool isAuthor = currentUser?.uid == widget.postData['userId'];
+  Widget _buildPostHeader(String displayAuthor, String timeAgo) {
+    final bool isAuthor = currentUser?.uid == widget.postData['userId'];
+    final String? profileImageUrl = widget.postData['profilePicUrl'] as String?;
 
-  // Get the profile image URL if available
-  final String? profileImageUrl = widget.postData['profilePicUrl'] as String?;
-
-  return Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      CircleAvatar(
-        radius: 22,
-        backgroundColor: kAvatarAccentColor.withOpacity(0.2),
-        backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
-            ? NetworkImage(profileImageUrl)
-            : null,
-        child: (profileImageUrl == null || profileImageUrl.isEmpty)
-            ? Text(
-                displayAuthor.isNotEmpty ? displayAuthor[0].toUpperCase() : 'U',
-                style: TextStyle(
-                    color: kAvatarAccentColor, fontWeight: FontWeight.bold),
-              )
-            : null,
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    displayAuthor,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: kPrimaryTextColor),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text('· $timeAgo',
-                    style: const TextStyle(
-                        color: kSecondaryTextColor, fontSize: 14)),
-              ],
-            ),
-            if ((widget.postData['category'] ?? '').toString().isNotEmpty)
-              Text(widget.postData['category'],
-                  style:
-                      const TextStyle(color: kSecondaryTextColor, fontSize: 12)),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: kAvatarAccentColor.withOpacity(0.2),
+          backgroundImage: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+              ? NetworkImage(profileImageUrl)
+              : null,
+          child: (profileImageUrl == null || profileImageUrl.isEmpty)
+              ? Text(
+                  displayAuthor.isNotEmpty ? displayAuthor[0].toUpperCase() : 'U',
+                  style: TextStyle(
+                      color: kAvatarAccentColor, fontWeight: FontWeight.bold),
+                )
+              : null,
         ),
-      ),
-      if (_roleLoaded && (isAuthor || _isAdmin))
-        Theme(
-          data: Theme.of(context).copyWith(
-            popupMenuTheme: const PopupMenuThemeData(color: kCardColor),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      displayAuthor,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: kPrimaryTextColor),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('· $timeAgo',
+                      style: const TextStyle(
+                          color: kSecondaryTextColor, fontSize: 14)),
+                ],
+              ),
+              if ((widget.postData['category'] ?? '').toString().isNotEmpty)
+                Text(widget.postData['category'],
+                    style:
+                        const TextStyle(color: kSecondaryTextColor, fontSize: 12)),
+            ],
           ),
-          child: PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'delete') {
-                _deletePost();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: Colors.redAccent),
-                    SizedBox(width: 8),
-                    Text('Delete', style: TextStyle(color: Colors.redAccent)),
-                  ],
+        ),
+        if (_roleLoaded && (isAuthor || _isAdmin))
+          PopupMenuTheme(
+            data: PopupMenuThemeData(
+              color: kCardColor.withOpacity(0.75),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                side: BorderSide(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
                 ),
               ),
-            ],
-            icon: const Icon(Icons.more_horiz, color: kSecondaryTextColor),
-          ),
-        )
-      else
-        const SizedBox(width: 48),
-    ],
-  );
-}
+            ),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _deletePost();
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.redAccent),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                    ],
+                  ),
+                ),
+              ],
+              icon: const Icon(Icons.more_horiz, color: kSecondaryTextColor),
+            ),
+          )
+        else
+          const SizedBox(width: 48), // Keep alignment consistent
+      ],
+    );
+  }
 
   Widget _buildPostImage(String url) {
     return Padding(

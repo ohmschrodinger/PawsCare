@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -100,12 +101,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const TabBar(
                   labelColor: kPrimaryAccentColor,
                   unselectedLabelColor: kSecondaryTextColor,
-                  // --- 👇 THIS IS THE CHANGE ---
-                  // Yellow indicator line is now visible
                   indicatorColor: kPrimaryAccentColor,
-                  // Grey divider line remains hidden
                   dividerColor: Colors.transparent,
-                  // -----------------------------
                   tabs: [
                     Tab(text: 'My Posts'),
                     Tab(text: 'Liked'),
@@ -176,7 +173,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAndUploadAvatar(String uid) async {
-    // Logic remains the same
     try {
       final picked = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -207,6 +203,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+// In profile_screen.dart...
+
   Future<void> _showEditProfileSheet({
     required BuildContext context,
     required String uid,
@@ -219,115 +217,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final addressController = TextEditingController(text: initialAddress);
 
     darkInputDecoration(String label) => InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: kSecondaryTextColor),
-      filled: true,
-      fillColor: kCardColor,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-        vertical: 12.0,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide(color: Colors.grey.shade800),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
-      ),
-      disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide.none,
-      ),
-      errorStyle: const TextStyle(color: Colors.redAccent),
-    );
+          labelText: label,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          filled: true,
+          fillColor: Colors.black.withOpacity(0.3),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 12.0,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+          ),
+          errorStyle: const TextStyle(color: Colors.redAccent),
+        );
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: kCardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Edit Profile',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: kPrimaryTextColor,
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E).withOpacity(0.75),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1.5,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: fullNameController,
-                style: const TextStyle(color: kPrimaryTextColor),
-                decoration: darkInputDecoration('Full Name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: phoneController,
-                style: const TextStyle(color: kPrimaryTextColor),
-                decoration: darkInputDecoration('Phone Number'),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: addressController,
-                style: const TextStyle(color: kPrimaryTextColor),
-                decoration: darkInputDecoration('Address'),
-                keyboardType: TextInputType.streetAddress,
-                maxLines: 2,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryAccentColor,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                  left: 20,
+                  right: 20,
+                  top: 20,
                 ),
-                onPressed: () async {
-                  try {
-                    await UserService.updateUserProfile(
-                      uid: uid,
-                      data: {
-                        'fullName': fullNameController.text.trim(),
-                        'phoneNumber': phoneController.text.trim(),
-                        'address': addressController.text.trim(),
-                        'profileCompleted': true,
-                      },
-                    );
-                    if (!mounted) return;
-                    Navigator.of(ctx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profile updated')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update: $e')),
-                    );
-                  }
-                },
-                child: const Text('Save Changes'),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Edit Profile',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: kPrimaryTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: fullNameController,
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration: darkInputDecoration('Full Name'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phoneController,
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration: darkInputDecoration('Phone Number'),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: addressController,
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration: darkInputDecoration('Address'),
+                      keyboardType: TextInputType.streetAddress,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // --- MODIFICATION START: Replaced ElevatedButton with a glassmorphic button ---
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                        child: InkWell(
+                          onTap: () async {
+                            try {
+                              await UserService.updateUserProfile(
+                                uid: uid,
+                                data: {
+                                  'fullName': fullNameController.text.trim(),
+                                  'phoneNumber': phoneController.text.trim(),
+                                  'address': addressController.text.trim(),
+                                  'profileCompleted': true,
+                                },
+                              );
+                              if (!mounted) return;
+                              Navigator.of(ctx).pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Profile updated')),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to update: $e')),
+                              );
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: kPrimaryAccentColor.withOpacity(0.65), // Translucent yellow
+                              borderRadius: BorderRadius.circular(60.0),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  color: kPrimaryTextColor, // White text for better contrast
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // --- MODIFICATION END ---
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         );
       },
     );
   }
 }
+
+
 
 class _ProfileHeader extends StatelessWidget {
   final String displayName;
@@ -338,7 +373,6 @@ class _ProfileHeader extends StatelessWidget {
   final VoidCallback onEditProfile;
 
   const _ProfileHeader({
-    super.key,
     required this.displayName,
     required this.email,
     this.photoUrl,
@@ -447,7 +481,6 @@ class _AnimalGridView extends StatelessWidget {
   final String emptyMessage;
 
   const _AnimalGridView({
-    super.key,
     required this.stream,
     required this.emptyMessage,
   });
@@ -517,7 +550,7 @@ class _AnimalGridView extends StatelessWidget {
 class _AnimalGridCard extends StatelessWidget {
   final Map<String, dynamic> pet;
 
-  const _AnimalGridCard({super.key, required this.pet});
+  const _AnimalGridCard({required this.pet});
 
   @override
   Widget build(BuildContext context) {
@@ -533,61 +566,77 @@ class _AnimalGridCard extends StatelessWidget {
       child: Card(
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 2,
-        color: kCardColor,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        elevation: 4,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Expanded(
-              child: pet['image'] != null
-                  ? Image.network(
-                      pet['image'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.grey.shade900,
-                        child: const Icon(
-                          Icons.pets,
-                          color: kSecondaryTextColor,
-                          size: 40,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.grey.shade900,
+            pet['image'] != null
+                ? Image.network(
+                    pet['image'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.black.withOpacity(0.5),
                       child: const Icon(
                         Icons.pets,
                         color: kSecondaryTextColor,
                         size: 40,
                       ),
                     ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    pet['name'] ?? 'Unknown',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: kPrimaryTextColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                    style: const TextStyle(
-                      fontSize: 12,
+                  )
+                : Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Icon(
+                      Icons.pets,
                       color: kSecondaryTextColor,
+                      size: 40,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ClipRRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    child: Container(
+                      width: double.infinity,
+                      color: Colors.black.withOpacity(0.55),
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            pet['name'] ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: kPrimaryTextColor,
+                              shadows: [
+                                Shadow(color: Colors.black87, blurRadius: 4),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: kPrimaryTextColor,
+                              shadows: [
+                                Shadow(color: Colors.black87, blurRadius: 4),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

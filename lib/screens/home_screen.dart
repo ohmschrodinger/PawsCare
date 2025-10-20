@@ -58,41 +58,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // -------------------- Quick Actions Section --------------------
-  Widget _buildQuickActionsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        children: [
-          // Header with title and menu (OUTSIDE the card)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Quick Actions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryTextColor,
-                    ),
+  // lib/screens/home_screen.dart
+
+  // ... (keep all the existing code before this method)
+
+  // -------------------- Quick Actions Section --------------------
+Widget _buildQuickActionsSection() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    child: Column(
+      children: [
+        // Header with title and menu
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryTextColor,
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Small ways to help pets',
-                    style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Small ways to help pets',
+                  style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
+                ),
+              ],
+            ),
+            PopupMenuTheme(
+              data: PopupMenuThemeData(
+                color: kCardColor.withOpacity(0.75),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                  side: BorderSide(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
                   ),
-                ],
+                ),
               ),
-              PopupMenuButton<String>(
+              child: PopupMenuButton<String>(
                 icon: const Icon(Icons.more_horiz, color: kPrimaryTextColor),
+                tooltip: "More actions",
                 onSelected: (value) {
                   if (value == 'post') {
                     Navigator.pushNamed(context, '/post-pet');
                   } else if (value == 'adopt') {
-                    mainNavKey.currentState?.selectTab(1); // Adopt tab
+                    mainNavKey.currentState?.selectTab(1);
                   }
                 },
                 itemBuilder: (BuildContext context) => [
@@ -100,9 +118,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: 'post',
                     child: Row(
                       children: [
-                        Icon(Icons.pets, size: 20),
-                        SizedBox(width: 8),
-                        Text('Post New Pet'),
+                        Icon(Icons.add, size: 22, color: kPrimaryTextColor),
+                        SizedBox(width: 12),
+                        Text(
+                          'Post New Pet',
+                          style: TextStyle(color: kPrimaryTextColor),
+                        ),
                       ],
                     ),
                   ),
@@ -110,175 +131,240 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: 'adopt',
                     child: Row(
                       children: [
-                        Icon(Icons.favorite, size: 20),
-                        SizedBox(width: 8),
-                        Text('Adopt Pet'),
+                        Icon(Icons.favorite, size: 20, color: kPrimaryTextColor),
+                        SizedBox(width: 12),
+                        Text(
+                          'Adopt Pet',
+                          style: TextStyle(color: kPrimaryTextColor),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Card containing the stats
-          Card(
-            clipBehavior: Clip.antiAlias,
-            color: kCardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: StreamBuilder<Map<String, int>>(
-                stream: StatsService.getAdoptionStatsStream(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Center(
-                      child: Text(
-                        'Error loading stats',
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    );
-                  }
+          ],
+        ),
+        const SizedBox(height: 12),
 
-                  if (snapshot.connectionState == ConnectionState.waiting &&
-                      !snapshot.hasData) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: kPrimaryAccentColor,
-                      ),
-                    );
-                  }
-
-                  final stats =
-                      snapshot.data ??
-                      {'adoptedThisMonth': 0, 'activeRescues': 0};
-
-                  // HORIZONTAL layout for the original stats
-                  return Row(
-                    children: [
-                      // Pets Adopted
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${stats['adoptedThisMonth']}',
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: kPrimaryAccentColor,
-                                ),
-                              ),
-                              const Text(
-                                'Pets\nAdopted so Far',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: kSecondaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Active Rescues
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${stats['activeRescues']}',
-                                style: const TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: kPrimaryAccentColor,
-                                ),
-                              ),
-                              const Text(
-                                'Active\nRescues so Far',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: kSecondaryTextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // -------------------- Pet of the Day Section --------------------
-  Widget _buildPetOfTheDay() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        children: [
-          // Header with "Pet of the Day" and "See More"
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+        // Glassmorphic section
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
             children: [
-              const Text(
-                'Pet of the Day',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700, // HIG: Bold for section headers
-                  color: kPrimaryTextColor,
-                  letterSpacing: 0.35,
+              // Bottom layer: background image
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/statsbg.png',
+                  fit: BoxFit.cover,
                 ),
               ),
-              // Rounded "See More" button with lighter yellow color
+
+              // Middle layer: outer glassmorphic card
               Container(
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 255, 204, 0), // Lighter, more iOS-like yellow
-                  borderRadius: BorderRadius.circular(60),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                    width: 1.5,
+                  ),
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      mainNavKey.currentState?.selectTab(
-                        1,
-                      ); // Navigate to Adopt tab
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    height: 200, // Adjust outer card height
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Top layer: two inner stats cards
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: StreamBuilder<Map<String, int>>(
+                    stream: StatsService.getAdoptionStatsStream(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return const Center(
+                          child: Text(
+                            'Error loading stats',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        );
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: kPrimaryAccentColor,
+                          ),
+                        );
+                      }
+
+                      final stats = snapshot.data ??
+                          {'adoptedThisMonth': 0, 'activeRescues': 0};
+
+                      return Row(
+                        children: [
+                          // First stats card
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.08),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${stats['adoptedThisMonth']}',
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: kPrimaryAccentColor,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Pets\nAdopted so Far',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: kSecondaryTextColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Second stats card
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.08),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${stats['activeRescues']}',
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: kPrimaryAccentColor,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Active\nRescues so Far',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: kSecondaryTextColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
                     },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+
+  // -------------------- Pet of the Day Section --------------------
+ Widget _buildPetOfTheDay() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+    child: Column(
+      children: [
+        // Header with "Pet of the Day" and "See More"
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text(
+              'Pet of the Day',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: kPrimaryTextColor,
+                letterSpacing: 0.35,
+              ),
+            ),
+            // Rounded black glassmorphic "See More" button
+            ClipRRect(
+              borderRadius: BorderRadius.circular(60),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55), // black glass tint
+                    borderRadius: BorderRadius.circular(60),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.12), // subtle glass outline
+                      width: 1.25,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.4),
+                        offset: const Offset(0, 6),
+                        blurRadius: 12,
                       ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        mainNavKey.currentState?.selectTab(1);
+                      },
+                      borderRadius: BorderRadius.circular(60),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: const [
                           Text(
                             'See More',
                             style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 13, // HIG: Smaller button text
+                              color: kPrimaryTextColor,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                               letterSpacing: -0.08,
                             ),
@@ -290,126 +376,148 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Card containing pet content
-          Card(
-            clipBehavior: Clip.antiAlias,
-            color: kCardColor,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
             ),
-            child: SizedBox(
-              height: 190, // Increased height for the card
-              child: Row(
-                children: [
-                  // Left Side: Image
-                  Expanded(
-                    flex: 2,
-                    child: Image.network(
-                      // Using a cat image to match the provided UI
-                      'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1964&q=80',
-                      fit: BoxFit.cover,
-                      height: double.infinity,
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Stack: Bottom image + Glassmorphic Card
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              // Bottom-most layer: Pet image
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/postbg.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+
+              // Glassmorphic Card on top
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  height: 190,
+                  decoration: BoxDecoration(
+                    color: kCardColor.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
                     ),
                   ),
-                  // Right Side: Text and Button
-                  Expanded(
-                    flex: 3,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Top part with Title and Description
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'Meet Rocky!',
-                                style: TextStyle(
-                                  fontSize: 20, // HIG: Title 2
-                                  fontWeight: FontWeight.w700,
-                                  color: kPrimaryTextColor,
-                                  letterSpacing: 0.38,
-                                ),
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                'This playful pup loves belly rubs.',
-                                style: TextStyle(
-                                  fontSize: 15, // HIG: Body
-                                  fontWeight: FontWeight.w400,
-                                  color: kSecondaryTextColor,
-                                  letterSpacing: -0.24,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
+                  child: Row(
+                    children: [
+                      // Left Side: Image (already visible through the blur, still keep for shape & overlay)
+                      Expanded(
+                        flex: 2,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            bottomLeft: Radius.circular(16),
                           ),
-                          // Bottom part with Centered Rounded Button
-                          Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFFFCC00,
-                                ), // Lighter yellow
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => PetDetailScreen(
-                                          petData: {
-                                            'name': 'Rocky',
-                                            'species': 'Cat',
-                                            'age': '2 years',
-                                            'image':
-                                                'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(60),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 15,
-                                      vertical: 7.5,
+                          child: Image.network(
+                            'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1964&q=80',
+                            fit: BoxFit.cover,
+                            height: double.infinity,
+                          ),
+                        ),
+                      ),
+                      // Right Side: Text and Button
+                      Expanded(
+                        flex: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Meet Billi',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: kPrimaryTextColor,
+                                      letterSpacing: 0.38,
                                     ),
-                                    child: const Text(
-                                      'Learn More',
-                                      style: TextStyle(
-                                        fontSize: 10, // HIG: Body/Button text
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black,
-                                        letterSpacing: -0.24,
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    'This playful cutie loves belly rubs and what not.',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w400,
+                                      color: kSecondaryTextColor,
+                                      letterSpacing: -0.24,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFCC00),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => PetDetailScreen(
+                                              petData: {
+                                                'name': 'Rocky',
+                                                'species': 'Cat',
+                                                'age': '2 years',
+                                                'image':
+                                                    'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(60),
+                                      child: const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 15,
+                                          vertical: 7.5,
+                                        ),
+                                        child: Text(
+                                          'Learn More',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black,
+                                            letterSpacing: -0.24,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   // -------------------- Animal Section --------------------
   Widget _buildAnimalSection({
@@ -787,15 +895,13 @@ class HorizontalPetCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // TOP: A transparent spacer that reveals the crisp image behind it.
-                  const Expanded(
-                    flex: 3,
-                    child: SizedBox.expand(),
-                  ),
+                  const Expanded(flex: 3, child: SizedBox.expand()),
 
                   // BOTTOM: The blurred info panel.
                   Expanded(
                     flex: 2,
-                    child: ClipRRect( // BackdropFilter needs a clipping boundary
+                    child: ClipRRect(
+                      // BackdropFilter needs a clipping boundary
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                         child: Container(
@@ -814,7 +920,12 @@ class HorizontalPetCard extends StatelessWidget {
                                     fontSize: 20,
                                     color: kPrimaryTextColor,
                                     // Add shadow for better readability on varied backgrounds
-                                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black87,
+                                        blurRadius: 4,
+                                      ),
+                                    ],
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
@@ -825,7 +936,12 @@ class HorizontalPetCard extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: kPrimaryTextColor,
-                                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black87,
+                                        blurRadius: 4,
+                                      ),
+                                    ],
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
