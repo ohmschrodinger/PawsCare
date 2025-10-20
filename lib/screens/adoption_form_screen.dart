@@ -8,7 +8,7 @@ import '../services/logging_service.dart';
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryAccentColor = Color.fromARGB(255, 255, 255, 255);
 const Color kPrimaryTextColor = Colors.white;
 const Color kSecondaryTextColor = Color(0xFFB0B0B0);
 // -----------------------------------------
@@ -788,86 +788,84 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     );
   }
 
-  Widget _buildYesNoQuestion(
-    String question,
-    bool? currentValue,
-    ValueChanged<bool?> onChanged,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          question,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: kPrimaryTextColor,
+ Widget _buildYesNoQuestion(
+  String question,
+  bool? currentValue,
+  ValueChanged<bool?> onChanged,
+) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        question,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: kPrimaryTextColor, // This is already Colors.white
+        ),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end, // This aligns the buttons to the right
+        children: [
+          // The Expanded widget was removed from here
+          OutlinedButton(
+            onPressed: () => onChanged(true),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: currentValue == true
+                  ? kPrimaryAccentColor
+                  : Colors.transparent,
+              side: BorderSide(
+                color: currentValue == true
+                    ? kPrimaryAccentColor
+                    : kSecondaryTextColor,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'Yes',
+              style: TextStyle(
+                color: currentValue == true
+                    ? Colors.black  // Black text on yellow background for contrast
+                    : kPrimaryTextColor, // White text for unselected state
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => onChanged(true),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: currentValue == true
-                      ? kPrimaryAccentColor
-                      : Colors.transparent,
-                  side: BorderSide(
-                    color: currentValue == true
-                        ? kPrimaryAccentColor
-                        : kSecondaryTextColor,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'Yes',
-                  style: TextStyle(
-                    color: currentValue == true
-                        ? Colors.black
-                        : kPrimaryTextColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+          const SizedBox(width: 16),
+          // The Expanded widget was also removed from here
+          OutlinedButton(
+            onPressed: () => onChanged(false),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: currentValue == false
+                  ? kPrimaryAccentColor
+                  : Colors.transparent,
+              side: BorderSide(
+                color: currentValue == false
+                    ? kPrimaryAccentColor
+                    : kSecondaryTextColor,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => onChanged(false),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: currentValue == false
-                      ? kPrimaryAccentColor
-                      : Colors.transparent,
-                  side: BorderSide(
-                    color: currentValue == false
-                        ? kPrimaryAccentColor
-                        : kSecondaryTextColor,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'No',
-                  style: TextStyle(
-                    color: currentValue == false
-                        ? Colors.black
-                        : kPrimaryTextColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            child: Text(
+              'No',
+              style: TextStyle(
+                color: currentValue == false
+                    ? Colors.black // Black text on yellow background for contrast
+                    : kPrimaryTextColor, // White text for unselected state
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
+          ),
+        ],
+      ),
+    ],
+  );
+}
   Widget _buildDropdownQuestion({
     required String label,
     required String? value,
