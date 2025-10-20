@@ -87,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
+                icon: const Icon(Icons.more_horiz, color: kPrimaryTextColor),
                 onSelected: (value) {
                   if (value == 'post') {
                     Navigator.pushNamed(context, '/post-pet');
@@ -254,12 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Rounded "See More" button with lighter yellow color
               Container(
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(
-                    192,
-                    255,
-                    204,
-                    0,
-                  ), // Lighter, more iOS-like yellow
+                  color: const Color.fromARGB(255, 255, 204, 0), // Lighter, more iOS-like yellow
                   borderRadius: BorderRadius.circular(60),
                 ),
                 child: Material(
@@ -356,22 +351,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           // Bottom part with Centered Rounded Button
                           Align(
-                            alignment: Alignment.centerLeft,
+                            alignment: Alignment.center,
                             child: Container(
                               decoration: BoxDecoration(
                                 color: const Color(
                                   0xFFFFCC00,
                                 ), // Lighter yellow
                                 borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFFFFCC00,
-                                    ).withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
                               ),
                               child: Material(
                                 color: Colors.transparent,
@@ -401,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: const Text(
                                       'Learn More',
                                       style: TextStyle(
-                                        fontSize: 15, // HIG: Body/Button text
+                                        fontSize: 10, // HIG: Body/Button text
                                         fontWeight: FontWeight.w600,
                                         color: Colors.black,
                                         letterSpacing: -0.24,
@@ -750,6 +736,9 @@ class _WelcomeSectionState extends State<WelcomeSection> {
 }
 
 // -------------------- Horizontal Pet Card --------------------
+// lib/screens/home_screen.dart -> Replace the existing HorizontalPetCard
+
+// -------------------- Horizontal Pet Card (UPDATED) --------------------
 class HorizontalPetCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onTap;
@@ -766,62 +755,89 @@ class HorizontalPetCard extends StatelessWidget {
         onTap: onTap,
         child: Card(
           clipBehavior: Clip.antiAlias,
-          color: kCardColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
           elevation: 4,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Use a Stack to layer the blur effect correctly
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Expanded(
-                flex: 3,
-                child: Image.network(
-                  pet['image'],
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.black.withOpacity(0.5),
-                    child: const Icon(
-                      Icons.pets,
-                      color: kSecondaryTextColor,
-                      size: 50,
-                    ),
+              // --- LAYER 1: THE FULL BACKGROUND IMAGE ---
+              // This image fills the entire card space and is what the
+              // BackdropFilter will blur.
+              Image.network(
+                pet['image'],
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Icon(
+                    Icons.pets,
+                    color: kSecondaryTextColor,
+                    size: 50,
                   ),
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        pet['name'] ?? 'Unknown',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: kPrimaryTextColor,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: kSecondaryTextColor,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ],
+
+              // --- LAYER 2: LAYOUT AND BLUR ---
+              // This Column defines the visual structure: a clear top part
+              // and a blurred bottom part.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TOP: A transparent spacer that reveals the crisp image behind it.
+                  const Expanded(
+                    flex: 3,
+                    child: SizedBox.expand(),
                   ),
-                ),
+
+                  // BOTTOM: The blurred info panel.
+                  Expanded(
+                    flex: 2,
+                    child: ClipRRect( // BackdropFilter needs a clipping boundary
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                        child: Container(
+                          width: double.infinity,
+                          color: Colors.black.withOpacity(0.55), // Glass tint
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  pet['name'] ?? 'Unknown',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: kPrimaryTextColor,
+                                    // Add shadow for better readability on varied backgrounds
+                                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: kPrimaryTextColor,
+                                    shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
