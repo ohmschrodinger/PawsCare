@@ -235,13 +235,7 @@ class _PostComposerState extends State<PostComposer> {
     );
   }
 
-
-
-
-
-
-
- Widget _buildCollapsedView() {
+  Widget _buildCollapsedView() {
     return Row(
       children: [
         CircleAvatar(
@@ -373,7 +367,7 @@ class _PostComposerState extends State<PostComposer> {
             ),
           ),
         const SizedBox(height: 14),
-        // --- MODIFICATION: Smaller, Green Glassmorphic Chips ---
+        // --- MODIFICATION: Green Glassmorphic Chips ---
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -381,29 +375,50 @@ class _PostComposerState extends State<PostComposer> {
               final selected = _selectedCategory == category;
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
-                child: ChoiceChip(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10.0,
-                    vertical: 6.0,
-                  ),
-                  label: Text(category),
-                  labelStyle: TextStyle(
-                    fontSize: 13,
-                    color: selected ? Colors.white : kSecondaryTextColor,
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                  selected: selected,
-                  onSelected: (s) {
-                    if (s) setState(() => _selectedCategory = category);
-                  },
-                  selectedColor: kSuccessGreenColor.withOpacity(0.7),
-                  backgroundColor: Colors.black.withOpacity(0.2),
-                  showCheckmark: false,
-                  side: BorderSide(
-                    color: selected
-                        ? kSuccessGreenColor
-                        : Colors.white.withOpacity(0.15),
-                    width: 1.5,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20.0),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Colors.green.withOpacity(0.2)
+                            : Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(20.0),
+                        border: Border.all(
+                          color: selected
+                              ? Colors.green.withOpacity(0.4)
+                              : Colors.white.withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () =>
+                              setState(() => _selectedCategory = category),
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: selected
+                                    ? Colors.white
+                                    : kSecondaryTextColor,
+                                fontWeight: selected
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -430,37 +445,73 @@ class _PostComposerState extends State<PostComposer> {
                 ),
               ],
             ),
-            GestureDetector(
-              onTap: _isUploading ? null : _postStory,
-              child: Container(
-                width: 35,
-                height: 35,
-                decoration: BoxDecoration(
-                  color: kCardColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: kSuccessGreenColor.withOpacity(
-                      0.8,
-                    ), // Green border for post button
-                    width: 1.2,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.2),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isUploading ? null : _postStory,
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: _isUploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    CupertinoIcons.paperplane_fill,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Post',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
                   ),
                 ),
-                child: _isUploading
-                    ? const Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: kSuccessGreenColor,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        CupertinoIcons.paperplane_fill,
-                        color: kSuccessGreenColor,
-                        size: 18,
-                      ),
               ),
             ),
           ],

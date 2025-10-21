@@ -1,5 +1,6 @@
 // community_feed_screen.dart
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/post_composer.dart';
@@ -30,6 +31,14 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
     'General',
   ];
 
+  late Stream<QuerySnapshot<Map<String, dynamic>>> _postsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _postsStream = _getPostsStream();
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> _getPostsStream() {
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
         .collection('community_posts')
@@ -39,6 +48,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
       query = query.where('category', isEqualTo: _selectedFilter);
     }
     return query.snapshots();
+  }
+
+  void _updateFilter(String filter) {
+    if (_selectedFilter != filter) {
+      setState(() {
+        _selectedFilter = filter;
+        _postsStream = _getPostsStream();
+      });
+    }
   }
 
   @override
@@ -63,15 +81,15 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
         body: Column(
           children: [
             // NOTE: Ensure your `PostComposer` widget is updated with the dark theme colors.
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: PostComposer(),
-            ),
+            Padding(padding: const EdgeInsets.all(8.0), child: PostComposer()),
 
             // Filter chips row
             Container(
               color: kBackgroundColor, // Seamless with the background
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 4.0,
+              ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -79,34 +97,51 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     final selected = _selectedFilter == filter;
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: FilterChip(
-  label: Text(filter),
-  selected: selected,
-  onSelected: (bool s) {
-    if (s) setState(() => _selectedFilter = filter);
-  },
-  showCheckmark: false,
-  visualDensity: VisualDensity.compact,
-  labelStyle: TextStyle(
-    color: selected ? kPrimaryTextColor : kSecondaryTextColor,
-    fontWeight: FontWeight.w600,
-  ),
-  backgroundColor: kCardColor, // Unselected chip color
-
-  // --- THE FIX ---
-  // Use a solid, darker shade of amber instead of a transparent one.
-  selectedColor: const Color.fromARGB(255, 255, 162, 0), 
-  // ---------------
-
-  side: BorderSide(
-    // Keep the border a bright amber for a nice highlight effect.
-    color: selected ? const Color.fromARGB(255, 255, 193, 7) : Colors.grey.shade800,
-  ),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(20),
-  ),
-)
-
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20.0),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? Colors.blue.withOpacity(0.2)
+                                  : Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(20.0),
+                              border: Border.all(
+                                color: selected
+                                    ? Colors.blue.withOpacity(0.4)
+                                    : Colors.white.withOpacity(0.15),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () => _updateFilter(filter),
+                                borderRadius: BorderRadius.circular(20.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  child: Text(
+                                    filter,
+                                    style: TextStyle(
+                                      color: selected
+                                          ? Colors.white
+                                          : kSecondaryTextColor,
+                                      fontWeight: selected
+                                          ? FontWeight.bold
+                                          : FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
@@ -116,13 +151,22 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             // Post list
             Expanded(
               child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: _getPostsStream(),
+                stream: _postsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: kPrimaryAccentColor));
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: kPrimaryAccentColor,
+                      ),
+                    );
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    );
                   }
 
                   final posts = snapshot.data?.docs ?? [];
@@ -130,13 +174,17 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     return const Center(
                       child: Text(
                         'No posts found for this category.',
-                        style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: kSecondaryTextColor,
+                        ),
                       ),
                     );
                   }
 
                   return ListView.builder(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 4, bottom: 90),
+                    physics: const BouncingScrollPhysics(),
                     itemCount: posts.length,
                     itemBuilder: (context, index) {
                       final data = posts[index].data();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
+import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/services/logging_service.dart';
@@ -312,30 +313,62 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitForm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryAccentColor,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: const StadiumBorder(), // fully rounded
-              ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.black,
-                        strokeWidth: 3,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.2),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
                       ),
-                    )
-                  : const Text(
-                      'Submit for Review',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isSubmitting ? null : _submitForm,
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        alignment: Alignment.center,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Submit for Review',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
                     ),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 100), // increased page height by 100px
             const SizedBox(height: 32),
@@ -439,29 +472,49 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           final isSelected = selectedValue == option;
           return Padding(
             padding: const EdgeInsets.only(left: 8.0),
-            child: ChoiceChip(
-              label: Text(option),
-              selected: isSelected,
-              onSelected: (_) => onSelected(option),
-              selectedColor: kPrimaryAccentColor,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.black : kPrimaryTextColor,
-                fontWeight: FontWeight.w600,
-              ),
-              backgroundColor: Colors.grey.shade800,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(
-                  color: isSelected
-                      ? kPrimaryAccentColor
-                      : Colors.grey.shade700,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.amber.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20.0),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.amber.withOpacity(0.4)
+                          : Colors.white.withOpacity(0.15),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onSelected(option),
+                      borderRadius: BorderRadius.circular(20.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : kPrimaryTextColor,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              showCheckmark: false,
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 6.0,
               ),
             ),
           );
@@ -703,25 +756,99 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         const SizedBox(height: 12),
         Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: () => _pickImage(ImageSource.camera),
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Camera'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: kPrimaryTextColor,
-                side: const BorderSide(color: kSecondaryTextColor),
-                shape: const StadiumBorder(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickImage(ImageSource.camera),
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Camera',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () => _pickImage(ImageSource.gallery),
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Gallery'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: kPrimaryTextColor,
-                side: const BorderSide(color: kSecondaryTextColor),
-                shape: const StadiumBorder(),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickImage(ImageSource.gallery),
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.photo_library,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Gallery',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
             const Spacer(),
@@ -957,22 +1084,60 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ViewDetailsScreen(animalData: widget.animalData),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(50.0),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(50.0),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.4),
+                          width: 1.5,
+                        ),
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.info_outline),
-                  label: const Text('View Details'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: kPrimaryTextColor,
-                    side: const BorderSide(color: kSecondaryTextColor),
-                    shape: const StadiumBorder(),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewDetailsScreen(
+                                  animalData: widget.animalData,
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'View Details',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 if (widget.isAdmin) ...[
@@ -980,29 +1145,113 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _showRejectDialog(context, widget.animalId),
-                          icon: const Icon(Icons.close),
-                          label: const Text('Reject'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade900,
-                            foregroundColor: kPrimaryTextColor,
-                            shape: const StadiumBorder(),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showRejectDialog(
+                                    context,
+                                    widget.animalId,
+                                  ),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Reject',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _showApproveDialog(context, widget.animalId),
-                          icon: const Icon(Icons.check),
-                          label: const Text('Approve'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade800,
-                            foregroundColor: kPrimaryTextColor,
-                            shape: const StadiumBorder(),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.green.withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showApproveDialog(
+                                    context,
+                                    widget.animalId,
+                                  ),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Approve',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
