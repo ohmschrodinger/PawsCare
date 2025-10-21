@@ -8,8 +8,6 @@ import 'package:pawscare/services/logging_service.dart';
 import 'package:pawscare/services/storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../widgets/paws_care_app_bar.dart';
-import '../main_navigation_screen.dart';
 import 'package:pawscare/screens/view_details_screen.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
@@ -119,17 +117,17 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: buildPawsCareAppBar(
-        context: context,
-        onMenuSelected: (value) {
-          if (value == 'profile') {
-            mainNavKey.currentState?.selectTab(4);
-          } else if (value == 'all_applications') {
-            Navigator.of(context).pushNamed('/all-applications');
-          } else if (value == 'my_applications') {
-            Navigator.of(context).pushNamed('/my-applications');
-          }
-        },
+      appBar: AppBar(
+        title: const Text(
+          'New Post',
+          style: TextStyle(
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
       ),
       body: Column(
         children: [

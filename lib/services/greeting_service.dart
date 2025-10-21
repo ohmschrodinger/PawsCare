@@ -16,6 +16,17 @@ class GreetingService {
     }
   }
 
+  static String getTimeBasedSubtext() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Bet even the cats smiled thinking of you.';
+    } else if (hour < 17) {
+      return "How's it going?";
+    } else {
+      return "Stars are out, but you're still brighter.";
+    }
+  }
+
   static Future<String?> getUserFirstName() async {
     final user = _auth.currentUser;
     if (user == null) return null;

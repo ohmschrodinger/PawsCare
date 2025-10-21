@@ -311,28 +311,62 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                   ),
                 ),
 
-              // PAGE INDICATORS
-              if (imageUrls.length > 1)
-                Positioned(
-                  top: 10.0,
-                  child: Row(
-                    children: List.generate(
-                      imageUrls.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(horizontal: 3.0),
-                        height: 8.0,
-                        width: _currentPage == index ? 24.0 : 8.0,
-                        decoration: BoxDecoration(
-                          color: _currentPage == index
-                              ? kPrimaryAccentColor
-                              : kSecondaryTextColor.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+          // LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES
+// LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES (no outer circle, dynamic)
+if (imageUrls.length > 1) ...[
+  // Left arrow: only when previous page exists
+  if (_currentPage > 0)
+    Positioned(
+      left: 8,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: () {
+            _pageController.previousPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+          child: const Padding(
+            padding: EdgeInsets.all(8.0), // increases touch target
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+      ),
+    ),
+
+  // Right arrow: only when next page exists
+  if (_currentPage < imageUrls.length - 1)
+    Positioned(
+      right: 8,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: () {
+            _pageController.nextPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+          child: const Padding(
+            padding: EdgeInsets.all(8.0), // increases touch target
+            child: Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+        ),
+      ),
+    ),
+],
+
 
               // GLASSMORPHIC INFO PANEL
               Positioned(

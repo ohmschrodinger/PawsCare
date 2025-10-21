@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 // --- THEME CONSTANTS ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -20,7 +20,8 @@ class PetDetailScreen extends StatefulWidget {
 }
 
 class _PetDetailScreenState extends State<PetDetailScreen> {
-  final _pageController = PageController();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
   @override
   void dispose() {
@@ -42,93 +43,100 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
-// --- MODIFICATION: Updated for glassmorphism effect ---
-Widget _getStatusChip(String status) {
-  Color tintColor;
-  Color foregroundColor;
-  Color borderColor;
+  // --- MODIFICATION: Updated for glassmorphism effect ---
+  Widget _getStatusChip(String status) {
+    Color tintColor;
+    Color foregroundColor;
+    Color borderColor;
 
-  switch (status.toLowerCase()) {
-    case 'pending':
-      tintColor = Colors.orange.withOpacity(0.25);
-      foregroundColor = Colors.orange.shade300;
-      borderColor = Colors.orange.shade700.withOpacity(0.5);
-      break;
-    case 'adopted':
-      tintColor = Colors.red.withOpacity(0.25);
-      foregroundColor = Colors.red.shade300;
-      borderColor = Colors.red.shade700.withOpacity(0.5);
-      break;
-    case 'available':
-    default:
-      tintColor = Colors.green.withOpacity(0.25);
-      foregroundColor = Colors.green.shade300;
-      borderColor = Colors.green.shade700.withOpacity(0.5);
-  }
+    switch (status.toLowerCase()) {
+      case 'pending':
+        tintColor = Colors.orange.withOpacity(0.25);
+        foregroundColor = Colors.orange.shade300;
+        borderColor = Colors.orange.shade700.withOpacity(0.5);
+        break;
+      case 'adopted':
+        tintColor = Colors.red.withOpacity(0.25);
+        foregroundColor = Colors.red.shade300;
+        borderColor = Colors.red.shade700.withOpacity(0.5);
+        break;
+      case 'available':
+      default:
+        tintColor = Colors.green.withOpacity(0.25);
+        foregroundColor = Colors.green.shade300;
+        borderColor = Colors.green.shade700.withOpacity(0.5);
+    }
 
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(15),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: tintColor,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: borderColor),
-        ),
-        child: Text(
-          status,
-          style: TextStyle(
-            color: foregroundColor,
-            fontWeight: FontWeight.bold,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: tintColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: borderColor),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(
+              color: foregroundColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
-// --- MODIFICATION: Updated for glassmorphism effect ---
-Widget _buildPositiveChip(String label, String? rawValue) {
-  final value = (rawValue ?? '').toLowerCase();
-  final isYes = value == 'yes' || value == 'true' || value == 'y' || value == 'done' || value == 'completed';
-
-  // If the value is not 'yes', return an empty widget.
-  if (!isYes) {
-    return const SizedBox.shrink();
+    );
   }
 
-  // Return the new glassmorphic chip widget if the value is 'yes'.
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(12.0),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.2), // Green glass tint
-          borderRadius: BorderRadius.circular(12.0),
-          border: Border.all(color: Colors.green.withOpacity(0.4)), // Subtle green border
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle, color: Colors.green.shade400, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: Colors.green.shade200,
+  // --- MODIFICATION: Updated for glassmorphism effect ---
+  Widget _buildPositiveChip(String label, String? rawValue) {
+    final value = (rawValue ?? '').toLowerCase();
+    final isYes =
+        value == 'yes' ||
+        value == 'true' ||
+        value == 'y' ||
+        value == 'done' ||
+        value == 'completed';
+
+    // If the value is not 'yes', return an empty widget.
+    if (!isYes) {
+      return const SizedBox.shrink();
+    }
+
+    // Return the new glassmorphic chip widget if the value is 'yes'.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12.0),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.2), // Green glass tint
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(color: Colors.green.withOpacity(0.4)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade400, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: Colors.green.shade200,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     List<String> imageUrls = [];
@@ -137,7 +145,8 @@ Widget _buildPositiveChip(String label, String? rawValue) {
       imageUrls = raw.whereType<String>().toList();
     } else if (raw is String && raw.isNotEmpty) {
       imageUrls = [raw];
-    } else if (widget.petData['image'] is String && widget.petData['image'] != null) {
+    } else if (widget.petData['image'] is String &&
+        widget.petData['image'] != null) {
       imageUrls = [widget.petData['image']];
     }
 
@@ -216,16 +225,27 @@ Widget _buildPositiveChip(String label, String? rawValue) {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          _buildPositiveChip('Sterilized', widget.petData['sterilization']?.toString()),
-                          _buildPositiveChip('Vaccinated', widget.petData['vaccination']?.toString()),
-                          _buildPositiveChip('Dewormed', widget.petData['deworming']?.toString()),
+                          _buildPositiveChip(
+                            'Sterilized',
+                            widget.petData['sterilization']?.toString(),
+                          ),
+                          _buildPositiveChip(
+                            'Vaccinated',
+                            widget.petData['vaccination']?.toString(),
+                          ),
+                          _buildPositiveChip(
+                            'Dewormed',
+                            widget.petData['deworming']?.toString(),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
                       _buildSectionHeader('About ${getField('name')}'),
                       const SizedBox(height: 8),
                       Text(
-                        getField('rescueStory').isNotEmpty ? getField('rescueStory') : 'No story available.',
+                        getField('rescueStory').isNotEmpty
+                            ? getField('rescueStory')
+                            : 'No story available.',
                         style: const TextStyle(
                           fontSize: 16,
                           height: 1.5,
@@ -236,31 +256,79 @@ Widget _buildPositiveChip(String label, String? rawValue) {
                       _buildDetailCard(
                         title: 'Pet Information',
                         children: [
-                          _buildInfoRow(Icons.pets, 'Breed Type:', getField('breedType')),
-                          _buildInfoRow(Icons.label, 'Breed:', getField('breed')),
+                          _buildInfoRow(
+                            Icons.pets,
+                            'Breed Type:',
+                            getField('breedType'),
+                          ),
+                          _buildInfoRow(
+                            Icons.label,
+                            'Breed:',
+                            getField('breed'),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       _buildDetailCard(
                         title: 'Health Status',
                         children: [
-                          _buildInfoRow(Icons.health_and_safety, 'Sterilized:', widget.petData['sterilization']?.toString() ?? 'No'),
-                          _buildInfoRow(Icons.vaccines, 'Vaccinated:', widget.petData['vaccination']?.toString() ?? 'No'),
-                          _buildInfoRow(Icons.waves, 'Dewormed:', widget.petData['deworming']?.toString() ?? 'No'),
-                          _buildInfoRow(Icons.family_restroom, 'Mother Status:', getField('motherStatus')),
-                          _buildInfoRow(Icons.medical_information, 'Medical Issues:', getField('medicalIssues')),
+                          _buildInfoRow(
+                            Icons.health_and_safety,
+                            'Sterilized:',
+                            widget.petData['sterilization']?.toString() ?? 'No',
+                          ),
+                          _buildInfoRow(
+                            Icons.vaccines,
+                            'Vaccinated:',
+                            widget.petData['vaccination']?.toString() ?? 'No',
+                          ),
+                          _buildInfoRow(
+                            Icons.waves,
+                            'Dewormed:',
+                            widget.petData['deworming']?.toString() ?? 'No',
+                          ),
+                          _buildInfoRow(
+                            Icons.family_restroom,
+                            'Mother Status:',
+                            getField('motherStatus'),
+                          ),
+                          _buildInfoRow(
+                            Icons.medical_information,
+                            'Medical Issues:',
+                            getField('medicalIssues'),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       _buildDetailCard(
                         title: 'Contact & Location',
                         children: [
-                          _buildInfoRow(Icons.location_on, 'Location:', getField('location')),
-                          _buildInfoRow(Icons.phone, 'Contact:', getField('contactPhone')),
-                          _buildInfoRow(Icons.email, 'Posted By:', getField('postedByEmail')),
-                          _buildInfoRow(Icons.access_time, 'Posted On:', _formatDate(widget.petData['postedAt'])),
+                          _buildInfoRow(
+                            Icons.location_on,
+                            'Location:',
+                            getField('location'),
+                          ),
+                          _buildInfoRow(
+                            Icons.phone,
+                            'Contact:',
+                            getField('contactPhone'),
+                          ),
+                          _buildInfoRow(
+                            Icons.email,
+                            'Posted By:',
+                            getField('postedByEmail'),
+                          ),
+                          _buildInfoRow(
+                            Icons.access_time,
+                            'Posted On:',
+                            _formatDate(widget.petData['postedAt']),
+                          ),
                           if (isAdopted)
-                            _buildInfoRow(Icons.event_available, 'Adopted On:', _formatDate(widget.petData['adoptedAt'])),
+                            _buildInfoRow(
+                              Icons.event_available,
+                              'Adopted On:',
+                              _formatDate(widget.petData['adoptedAt']),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 120),
@@ -275,41 +343,46 @@ Widget _buildPositiveChip(String label, String? rawValue) {
     );
   }
 
- // --- MODIFICATION ---: Updated this widget for the glassmorphism effect.
-Widget _buildDetailCard({required String title, required List<Widget> children}) {
-  return ClipRRect( // Use ClipRRect to contain the blur effect within rounded corners
-    borderRadius: BorderRadius.circular(16),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0), // The blur effect
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          // A subtle white tint for the "glass"
-          color: Colors.white.withOpacity(0.08), 
-          borderRadius: BorderRadius.circular(16),
-          // A faint border to define the edge of the glass
-          border: Border.all(color: Colors.white.withOpacity(0.2)), 
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: kPrimaryTextColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+  // --- MODIFICATION ---: Updated this widget for the glassmorphism effect.
+  Widget _buildDetailCard({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return ClipRRect(
+      // Use ClipRRect to contain the blur effect within rounded corners
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0), // The blur effect
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            // A subtle white tint for the "glass"
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            // A faint border to define the edge of the glass
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: kPrimaryTextColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const Divider(height: 20, color: Colors.white24),
-            ...children,
-          ],
+              const Divider(height: 20, color: Colors.white24),
+              ...children,
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Widget _buildImageGallery(List<String> imageUrls) {
     if (imageUrls.isEmpty) {
       return Container(
@@ -328,21 +401,39 @@ Widget _buildDetailCard({required String title, required List<Widget> children})
           PageView.builder(
             controller: _pageController,
             itemCount: imageUrls.length,
+            onPageChanged: (index) => setState(() => _currentPage = index),
             itemBuilder: (context, index) {
-              return Image.network(
-                imageUrls[index],
+              return CachedNetworkImage(
+                imageUrl: imageUrls[index],
                 height: 400,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+                placeholder: (context, url) => Container(
                   height: 400,
                   width: double.infinity,
                   color: Colors.grey.shade900,
-                  child: const Icon(Icons.pets, size: 80, color: kSecondaryTextColor),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: kPrimaryAccentColor,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 400,
+                  width: double.infinity,
+                  color: Colors.grey.shade900,
+                  child: const Icon(
+                    Icons.pets,
+                    size: 80,
+                    color: kSecondaryTextColor,
+                  ),
                 ),
               );
             },
           ),
+
+          // top gradient (unchanged)
           Container(
             height: 120,
             decoration: BoxDecoration(
@@ -353,77 +444,143 @@ Widget _buildDetailCard({required String title, required List<Widget> children})
               ),
             ),
           ),
-          if (imageUrls.length > 1)
-            Positioned(
-              bottom: 16,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SmoothPageIndicator(
-                  controller: _pageController,
-                  count: imageUrls.length,
-                  effect: const WormEffect(
-                    dotHeight: 10,
-                    dotWidth: 10,
-                    activeDotColor: kPrimaryAccentColor,
-                    dotColor: Colors.white54,
+
+          // LEFT & RIGHT ARROWS (dynamic, no outer circle)
+          if (imageUrls.length > 1) ...[
+            // Left arrow: only show if there is a previous page
+            if (_currentPage > 0)
+              Positioned(
+                left: 8,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (_currentPage > 0) {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0), // increases touch target
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+
+            // Right arrow: only show if there is a next page
+            if (_currentPage < imageUrls.length - 1)
+              Positioned(
+                right: 8,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (_currentPage < imageUrls.length - 1) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0), // increases touch target
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
 
-// --- MODIFICATION: Updated for a simple, round, dark yellow glass button ---
-Widget _buildAdoptMeButton() {
-  return Positioned(
-    bottom: 0,
-    left: 0,
-    right: 0,
-    child: Container(
-      // This container provides padding from the screen edges
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: ClipRRect(
-        // Use a large circular radius to create the stadium/pill shape
-        borderRadius: BorderRadius.circular(50.0),
-        child: BackdropFilter(
-          // The blur effect for the glass
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AdoptionFormScreen(petData: widget.petData),
+  // --- MODIFICATION: Updated for a subtle glassmorphic button with blue shade ---
+  Widget _buildAdoptMeButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        // This container provides padding from the screen edges
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: ClipRRect(
+          // Use a large circular radius to create the stadium/pill shape
+          borderRadius: BorderRadius.circular(50.0),
+          child: BackdropFilter(
+            // The blur effect for the glass
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+            child: Container(
+              decoration: BoxDecoration(
+                // Subtle blue tint for dark theme glassmorphism
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(50.0),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.4),
+                  width: 1.5,
                 ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              // The button's own color is a transparent dark yellow for the glass tint
-              backgroundColor: kPrimaryAccentColor.withOpacity(0.4),
-              // No shadow from the button itself; the glass effect is enough
-              elevation: 10,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              // Ensure the button's shape matches the ClipRRect shape
-              shape: const StadiumBorder(),
-            ),
-            child: Text(
-              'Adopt Me',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                // A brighter yellow text for readability on the dark glass
-                color: kPrimaryAccentColor,
+                // Subtle shadow with blue tint for depth
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.2),
+                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            AdoptionFormScreen(petData: widget.petData),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(50.0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Adopt Me',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String value) {
     if (value.isEmpty) return const SizedBox.shrink();
     return Padding(
