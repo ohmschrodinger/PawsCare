@@ -398,112 +398,110 @@ class _PostCardWidgetState extends State<PostCardWidget>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final timestamp =
-        (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    final timeAgo = _getTimeAgo(timestamp);
-    final likes = List<String>.from(widget.postData['likes'] ?? []);
-    final isLiked = currentUser != null && likes.contains(currentUser!.uid);
-    final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
-    final String storyText = widget.postData['story'] ?? '';
-    final bool isLongText = storyText.length > _minCharsForReadMore;
+ @override
+Widget build(BuildContext context) {
+  final timestamp =
+      (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+  final timeAgo = _getTimeAgo(timestamp);
+  final likes = List<String>.from(widget.postData['likes'] ?? []);
+  final isLiked = currentUser != null && likes.contains(currentUser!.uid);
+  final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
+  final String storyText = widget.postData['story'] ?? '';
+  final bool isLongText = storyText.length > _minCharsForReadMore;
 
-    final displayAuthor =
-        _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
+  final displayAuthor =
+      _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.0),
-        child: Stack(
-          children: [
-            // Background image
-            Positioned.fill(
-              child: Image.asset('assets/images/temp.png', fit: BoxFit.cover),
-            ),
-            // Glassmorphism effect on top
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: kCardColor.withOpacity(0.5), // Semi-transparent color
-                  borderRadius: BorderRadius.circular(16.0),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.15), // Subtle border
-                    width: 1.5,
-                  ),
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(16.0),
+      child: Stack(
+        children: [
+          // NOTE: Background image removed as requested.
+          // Keep only the glassmorphism layer (blur + semi-transparent black card)
+
+          // Glassmorphism effect layer (with requested blur and color)
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+            child: Container(
+              decoration: BoxDecoration(
+                // Use black with 25% opacity as requested
+                color: Colors.black.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(16.0),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.15), // subtle border
+                  width: 1.5,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPostHeader(displayAuthor, timeAgo),
-                      const SizedBox(height: 12),
-                      if (storyText.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              storyText,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.4,
-                                color: kPrimaryTextColor,
-                              ),
-                              maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                              overflow: _isExpanded
-                                  ? TextOverflow.visible
-                                  : TextOverflow.ellipsis,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPostHeader(displayAuthor, timeAgo),
+                    const SizedBox(height: 12),
+                    if (storyText.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            storyText,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.4,
+                              color: kPrimaryTextColor,
                             ),
-                            if (isLongText)
-                              GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isExpanded = !_isExpanded),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text(
-                                    _isExpanded ? 'Read less' : 'Read more...',
-                                    style: const TextStyle(
-                                      color: kPrimaryTextColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                            maxLines: _isExpanded ? null : _maxLinesCollapsed,
+                            overflow: _isExpanded
+                                ? TextOverflow.visible
+                                : TextOverflow.ellipsis,
+                          ),
+                          if (isLongText)
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _isExpanded = !_isExpanded),
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  _isExpanded ? 'Read less' : 'Read more...',
+                                  style: const TextStyle(
+                                    color: kPrimaryTextColor,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                      if ((widget.postData['imageUrl'] ?? '')
-                          .toString()
-                          .isNotEmpty)
-                        _buildPostImage(widget.postData['imageUrl']),
-                      const SizedBox(height: 8),
-                      _buildActionButtons(isLiked, likes.length, commentCount),
-                      // Animated comment section: cross-fade + size animation
-                      AnimatedCrossFade(
-                        firstChild: const SizedBox.shrink(),
-                        secondChild: Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: _buildCommentSection(),
-                        ),
-                        crossFadeState: _isCommentSectionVisible
-                            ? CrossFadeState.showSecond
-                            : CrossFadeState.showFirst,
-                        duration: const Duration(milliseconds: 300),
-                        firstCurve: Curves.easeOut,
-                        secondCurve: Curves.easeIn,
-                        sizeCurve: Curves.easeInOut,
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
+                    if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty)
+                      _buildPostImage(widget.postData['imageUrl']),
+                    const SizedBox(height: 8),
+                    _buildActionButtons(isLiked, likes.length, commentCount),
+                    AnimatedCrossFade(
+                      firstChild: const SizedBox.shrink(),
+                      secondChild: Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: _buildCommentSection(),
+                      ),
+                      crossFadeState: _isCommentSectionVisible
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      duration: const Duration(milliseconds: 300),
+                      firstCurve: Curves.easeOut,
+                      secondCurve: Curves.easeIn,
+                      sizeCurve: Curves.easeInOut,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPostHeader(String displayAuthor, String timeAgo) {
     final bool isAuthor = currentUser?.uid == widget.postData['userId'];

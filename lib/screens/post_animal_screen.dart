@@ -40,10 +40,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
   final _breedController = TextEditingController();
-  // replaced single age controller with two controllers for years and months
   final _ageYearsController = TextEditingController();
   final _ageMonthsController = TextEditingController();
-  // dropdown selected values to drive UI while keeping controllers for existing logic
   int? _selectedAgeYears;
   int? _selectedAgeMonths;
   final _rescueStoryController = TextEditingController();
@@ -112,12 +110,14 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     });
   }
 
-  // --- 👇 UI CHANGES START HERE ---
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      // --- CHANGE 1: Set background to transparent and extend body ---
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+
+      // --- CHANGE 2: Make AppBar transparent ---
       appBar: AppBar(
         title: const Text(
           'New Post',
@@ -127,16 +127,47 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           ),
         ),
         centerTitle: false,
-        backgroundColor: kBackgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Column(
+      // --- CHANGE 3: Use a Stack for the layered background ---
+      body: Stack(
         children: [
-          _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildPendingRequestsTab(), _buildAddNewAnimalTab()],
+          // --- LAYER 1: The background image ---
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.png',
+              fit: BoxFit.cover,
+              color: Colors.black.withOpacity(0.2),
+              colorBlendMode: BlendMode.darken,
+            ),
+          ),
+
+          // --- LAYER 2: The blur overlay ---
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+              ),
+            ),
+          ),
+
+          // --- LAYER 3: Your original screen content inside a SafeArea ---
+          SafeArea(
+            child: Column(
+              children: [
+                _buildTabBar(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildPendingRequestsTab(),
+                      _buildAddNewAnimalTab()
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -146,12 +177,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildTabBar() {
     return Material(
-      color: kBackgroundColor,
+      // --- CHANGE 4: Make TabBar background transparent ---
+      color: Colors.transparent,
       child: TabBar(
         controller: _tabController,
         indicatorColor: kPrimaryAccentColor,
-        labelColor: kPrimaryTextColor, // ensure labels are white
-        unselectedLabelColor: kPrimaryTextColor,
+        labelColor: kPrimaryTextColor,
+        unselectedLabelColor: kSecondaryTextColor, // Differentiate unselected tabs
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
           Tab(icon: Icon(Icons.add_circle_outline), text: 'Post New Animal'),
@@ -162,6 +194,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
+      physics:
+          const BouncingScrollPhysics(), // Added for a better scroll feel
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Form(
         key: _formKey,
@@ -172,7 +206,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             const Text(
               'Post a new pet',
               style: TextStyle(
-                fontSize: 22, // changed from 28 to 22
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: kPrimaryTextColor,
               ),
@@ -180,7 +214,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             const SizedBox(height: 8),
             const Text(
               'Your submission will be reviewed by an admin before going live.',
-              style: TextStyle(fontSize: 14, color: kPrimaryTextColor),
+              style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
             ),
             const SizedBox(height: 16),
 
@@ -225,10 +259,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               ),
             ],
             const Divider(color: Colors.white12, height: 1),
-
-            // --- Age field (custom) ---
             _buildAgeField(),
-
             const Divider(color: Colors.white12, height: 1),
             _buildChoiceChipQuestion(
               question: 'Gender*',
@@ -370,7 +401,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ),
             ),
-            const SizedBox(height: 100), // increased page height by 100px
+            const SizedBox(height: 100),
             const SizedBox(height: 32),
           ],
         ),
@@ -386,7 +417,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         style: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: kPrimaryTextColor, // turned to white
+          color: kPrimaryTextColor,
         ),
       ),
     );
@@ -416,10 +447,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          labelStyle: const TextStyle(color: kPrimaryTextColor), // label white
-          hintStyle: TextStyle(color: kPrimaryTextColor.withOpacity(0.7)),
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
           filled: true,
-          fillColor: kCardColor,
+          fillColor: Colors.black.withOpacity(0.3),
           prefixIcon: isPhoneNumber
               ? const Padding(
                   padding: EdgeInsets.all(15.0),
@@ -431,11 +462,11 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               : null,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide(color: Colors.grey.shade800),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide(color: Colors.grey.shade800),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
@@ -504,7 +535,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                           style: TextStyle(
                             color: isSelected
                                 ? Colors.white
-                                : kPrimaryTextColor,
+                                : kPrimaryTextColor.withOpacity(0.8),
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.w600,
@@ -536,7 +567,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  // custom age input widget
   Widget _buildAgeField() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -551,15 +581,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 style: TextStyle(fontSize: 16, color: kPrimaryTextColor),
               ),
               SizedBox(
-                width: 80,
+                width: 100, // Increased width for better spacing
                 child: DropdownButtonFormField<int>(
-                  value:
-                      _selectedAgeYears ??
+                  value: _selectedAgeYears ??
                       int.tryParse(_ageYearsController.text) ??
                       0,
                   isExpanded: true,
                   itemHeight: 48,
-                  // show 5 items then allow scrolling
                   menuMaxHeight: 48 * 5 + 8,
                   items: List.generate(
                     16,
@@ -573,12 +601,20 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                     });
                   },
                   decoration: InputDecoration(
-                    labelText: 'Year',
-                    labelStyle: const TextStyle(color: kPrimaryTextColor),
+                    labelText: 'Years',
+                    labelStyle: const TextStyle(color: kSecondaryTextColor),
                     filled: true,
-                    fillColor: kCardColor,
+                    fillColor: Colors.black.withOpacity(0.3),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: const BorderSide(
+                        color: kPrimaryAccentColor,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   validator: (v) {
@@ -592,14 +628,13 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                   style: const TextStyle(color: kPrimaryTextColor),
                 ),
               ),
-              const SizedBox(width: 8),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               SizedBox(
-                width: 80,
+                width: 100, // Increased width
                 child: DropdownButtonFormField<int>(
-                  value:
-                      _selectedAgeMonths ??
-                      int.tryParse(_ageMonthsController.text),
+                  value: _selectedAgeMonths ??
+                      int.tryParse(_ageMonthsController.text) ??
+                      0,
                   isExpanded: true,
                   itemHeight: 48,
                   menuMaxHeight: 48 * 5 + 8,
@@ -615,12 +650,20 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                     });
                   },
                   decoration: InputDecoration(
-                    labelText: 'Month',
-                    labelStyle: const TextStyle(color: kPrimaryTextColor),
+                    labelText: 'Months',
+                    labelStyle: const TextStyle(color: kSecondaryTextColor),
                     filled: true,
-                    fillColor: kCardColor,
+                    fillColor: Colors.black.withOpacity(0.3),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: const BorderSide(
+                        color: kPrimaryAccentColor,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                   validator: (v) {
@@ -642,10 +685,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  // --- 👆 UI CHANGES END HERE ---
-
-  // All other methods (_buildImagePicker, _submitForm, _buildPendingRequestsTab, etc.) remain unchanged.
-  // ... (Paste the rest of your unchanged code here)
   Widget _buildPendingRequestsTab() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -692,14 +731,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               return const Center(
                 child: Text(
                   'No pending requests for now',
-                  style: TextStyle(fontSize: 18, color: kPrimaryTextColor),
+                  style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
                 ),
               );
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 16),
+              padding: const EdgeInsets.only(top: 8, bottom: 90),
               itemCount: animals.length,
+              physics: const BouncingScrollPhysics(),
               itemBuilder: (context, index) {
                 final animalData =
                     animals[index].data() as Map<String, dynamic>;
@@ -869,6 +909,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -878,7 +919,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 
   Future<void> _submitForm() async {
-    // Logic unchanged
     setState(() {});
     if (!_formKey.currentState!.validate() || _images.isEmpty) {
       _showSnackBar(
@@ -921,7 +961,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         imageUrls.add(url);
       }
       await animalDoc.update({'imageUrls': imageUrls});
-      // Log that the user posted an animal
       await LoggingService.logEvent(
         'animal_posted_client',
         data: {'animalId': animalId, 'name': _nameController.text.trim()},
@@ -959,8 +998,6 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 }
 
-// The _PendingAnimalCard and its state remain unchanged.
-// ... (Paste the _PendingAnimalCard widget code here)
 class _PendingAnimalCard extends StatefulWidget {
   final Map<String, dynamic> animalData;
   final String animalId;
@@ -997,9 +1034,13 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         : 'N/A';
 
     return Card(
-      color: kCardColor,
+      color: kCardColor.withOpacity(0.8), // Made card semi-transparent
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+            color: Colors.white.withOpacity(0.1)), // Added subtle border
+      ),
       elevation: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1080,7 +1121,7 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: kPrimaryTextColor,
+                    color: kSecondaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1314,7 +1355,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Logic Unchanged
               try {
                 await AnimalService.approveAnimal(
                   animalId: animalId,
@@ -1400,7 +1440,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Logic Unchanged
               if (messageController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -1447,10 +1486,3 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     );
   }
 }
-
-// -------------------------
-// File completion note:
-// I reviewed the file and appended the remaining widget implementations and ensured
-// all classes and braces are properly closed. If you still see a specific missing
-// section, tell me which line or function name and I'll edit that exact part.
-// -------------------------

@@ -35,20 +35,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = AuthService.getCurrentUser();
 
     if (user == null) {
+      // --- MODIFICATION: Applying glassmorphic background to logged-out view ---
       return Scaffold(
-        backgroundColor: kBackgroundColor,
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
           title: const Text(
             'Account',
             style: TextStyle(color: kPrimaryTextColor),
           ),
-          backgroundColor: kBackgroundColor,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        body: const Center(
-          child: Text(
-            'Please log in to view your account.',
-            style: TextStyle(color: kSecondaryTextColor),
-          ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/background.png',
+                fit: BoxFit.cover,
+                color: Colors.black.withOpacity(0.2),
+                colorBlendMode: BlendMode.darken,
+              ),
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                ),
+              ),
+            ),
+            const Center(
+              child: Text(
+                'Please log in to view your account.',
+                style: TextStyle(color: kSecondaryTextColor),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -56,88 +78,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: kBackgroundColor,
+        // --- CHANGE 1: Set background to transparent and extend body ---
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
         appBar: _buildAppBar(context, user),
-        body: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: kPrimaryAccentColor),
-              );
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-
-            final data = snapshot.data?.data() as Map<String, dynamic>?;
-            final fullName = data?['fullName']?.toString().trim() ?? '';
-            final email = user.email ?? data?['email']?.toString() ?? '';
-            final phone = data?['phoneNumber']?.toString() ?? '';
-            final address = data?['address']?.toString() ?? '';
-            final photoUrl = data?['photoUrl']?.toString();
-
-            return Column(
-              children: [
-                const SizedBox(height: 20),
-                _ProfileHeader(
-                  displayName: fullName.isNotEmpty ? fullName : email,
-                  email: email,
-                  photoUrl: photoUrl,
-                  isUploading: _isUploading,
-                  onChangePhoto: () => _pickAndUploadAvatar(user.uid),
-                  onEditProfile: () => _showEditProfileSheet(
-                    context: context,
-                    uid: user.uid,
-                    initialFullName: fullName,
-                    initialPhone: phone,
-                    initialAddress: address,
-                  ),
+        // --- CHANGE 2: Use a Stack for the layered background ---
+        body: Stack(
+          children: [
+            // --- LAYER 1: The background image ---
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/background.png',
+                fit: BoxFit.cover,
+                color: Colors.black.withOpacity(0.2),
+                colorBlendMode: BlendMode.darken,
+              ),
+            ),
+            // --- LAYER 2: The blur overlay ---
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
                 ),
-                const SizedBox(height: 20),
-                const TabBar(
-                  labelColor: kPrimaryAccentColor,
-                  unselectedLabelColor: kSecondaryTextColor,
-                  indicatorColor: kPrimaryAccentColor,
-                  dividerColor: Colors.transparent,
-                  tabs: [
-                    Tab(text: 'My Posts'),
-                    Tab(text: 'Liked'),
-                    Tab(text: 'Saved'),
-                  ],
-                ),
-                Expanded(
-                  child: TabBarView(
+              ),
+            ),
+            // --- LAYER 3: Your original screen content inside a SafeArea ---
+            SafeArea(
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child:
+                          CircularProgressIndicator(color: kPrimaryAccentColor),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  final data = snapshot.data?.data() as Map<String, dynamic>?;
+                  final fullName = data?['fullName']?.toString().trim() ?? '';
+                  final email = user.email ?? data?['email']?.toString() ?? '';
+                  final phone = data?['phoneNumber']?.toString() ?? '';
+                  final address = data?['address']?.toString() ?? '';
+                  final photoUrl = data?['photoUrl']?.toString();
+
+                  return Column(
                     children: [
-                      _AnimalGridView(
-                        stream: _getMyPostsStream(user.uid),
-                        emptyMessage: "You haven't posted any animals yet.",
+                      const SizedBox(height: 20),
+                      _ProfileHeader(
+                        displayName: fullName.isNotEmpty ? fullName : email,
+                        email: email,
+                        photoUrl: photoUrl,
+                        isUploading: _isUploading,
+                        onChangePhoto: () => _pickAndUploadAvatar(user.uid),
+                        onEditProfile: () => _showEditProfileSheet(
+                          context: context,
+                          uid: user.uid,
+                          initialFullName: fullName,
+                          initialPhone: phone,
+                          initialAddress: address,
+                        ),
                       ),
-                      _AnimalGridView(
-                        stream: _getLikedAnimalsStream(user.uid),
-                        emptyMessage: "You haven't liked any animals yet.",
+                      const SizedBox(height: 20),
+                      const TabBar(
+                        labelColor: kPrimaryAccentColor,
+                        unselectedLabelColor: kSecondaryTextColor,
+                        indicatorColor: kPrimaryAccentColor,
+                        dividerColor: Colors.transparent,
+                        tabs: [
+                          Tab(text: 'My Posts'),
+                          Tab(text: 'Liked'),
+                          Tab(text: 'Saved'),
+                        ],
                       ),
-                      _AnimalGridView(
-                        stream: _getSavedAnimalsStream(user.uid),
-                        emptyMessage: "You haven't saved any animals yet.",
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _AnimalGridView(
+                              stream: _getMyPostsStream(user.uid),
+                              emptyMessage:
+                                  "You haven't posted any animals yet.",
+                            ),
+                            _AnimalGridView(
+                              stream: _getLikedAnimalsStream(user.uid),
+                              emptyMessage:
+                                  "You haven't liked any animals yet.",
+                            ),
+                            _AnimalGridView(
+                              stream: _getSavedAnimalsStream(user.uid),
+                              emptyMessage:
+                                  "You haven't saved any animals yet.",
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-            );
-          },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // --- CHANGE 3: Make AppBar transparent ---
   AppBar _buildAppBar(BuildContext context, User user) {
     return AppBar(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: Colors.transparent, // Set to transparent
       elevation: 0,
       title: const Text(
         'Account',
@@ -183,8 +238,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _isUploading = true);
       final file = File(picked.path);
       final storageRef = FirebaseStorage.instance.ref().child(
-        'user_avatars/$uid.jpg',
-      );
+            'user_avatars/$uid.jpg',
+          );
       await storageRef.putFile(file);
       final url = await storageRef.getDownloadURL();
       await UserService.updateUserProfile(uid: uid, data: {'photoUrl': url});
@@ -202,8 +257,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _isUploading = false);
     }
   }
-
-// In profile_screen.dart...
 
   Future<void> _showEditProfileSheet({
     required BuildContext context,
@@ -301,8 +354,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 24),
-                    
-                    // --- MODIFICATION START: Replaced ElevatedButton with a glassmorphic button ---
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12.0),
                       child: BackdropFilter(
@@ -322,18 +373,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               if (!mounted) return;
                               Navigator.of(ctx).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Profile updated')),
+                                const SnackBar(
+                                    content: Text('Profile updated')),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to update: $e')),
+                                SnackBar(
+                                    content: Text('Failed to update: $e')),
                               );
                             }
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
-                              color: kPrimaryAccentColor.withOpacity(0.65), // Translucent yellow
+                              color: kPrimaryAccentColor.withOpacity(
+                                  0.65), // Translucent yellow
                               borderRadius: BorderRadius.circular(60.0),
                             ),
                             child: const Center(
@@ -350,7 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
-                    // --- MODIFICATION END ---
                   ],
                 ),
               ),
@@ -361,8 +414,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-
-
 
 class _ProfileHeader extends StatelessWidget {
   final String displayName;

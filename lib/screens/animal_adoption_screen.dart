@@ -320,138 +320,168 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      // --- CHANGE 1: Allow the body to extend behind the AppBar ---
+      extendBodyBehindAppBar: true,
+
+      // --- CHANGE 2: Make the AppBar transparent ---
       appBar: AppBar(
         title: const Text(
           'Adopt Love',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
-        backgroundColor:
-            kBackgroundColor, // Changed to kCardColor for a seamless look
-        elevation: 0,
+        backgroundColor: Colors.transparent, // Set to transparent
+        elevation: 0, // Remove shadow
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: AnimalService.getAvailableAnimals(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text(
-                'Something went wrong',
-                style: TextStyle(color: Colors.redAccent),
+
+      // --- CHANGE 3: Use a Stack for the layered background effect ---
+      body: Stack(
+        children: [
+          // --- LAYER 1: The background image ---
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.png',
+              fit: BoxFit.cover,
+              color: Colors.black.withOpacity(0.2),
+              colorBlendMode: BlendMode.darken,
+            ),
+          ),
+
+          // --- LAYER 2: The blur overlay ---
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
               ),
-            );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: kPrimaryAccentColor),
-            );
-          }
+            ),
+          ),
 
-          List<QueryDocumentSnapshot> animals = snapshot.data?.docs ?? [];
-          final List<Map<String, dynamic>> animalList = animals.map((doc) {
-            return {'id': doc.id, ...(doc.data() as Map<String, dynamic>)};
-          }).toList();
+          // --- LAYER 3: Your original screen content, now inside a SafeArea ---
+          SafeArea(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: AnimalService.getAvailableAnimals(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Something went wrong',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  );
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: kPrimaryAccentColor),
+                  );
+                }
 
-          // Apply filters
-          List<Map<String, dynamic>> filtered = animalList.where((a) {
-            final speciesMatch =
-                _speciesFilter == 'All' ||
-                (a['species'] ?? '').toString().toLowerCase() ==
-                    _speciesFilter.toLowerCase();
-            final genderMatch =
-                _genderFilter == 'All' ||
-                (a['gender'] ?? '').toString().toLowerCase() ==
-                    _genderFilter.toLowerCase();
-            return speciesMatch && genderMatch;
-          }).toList();
+                List<QueryDocumentSnapshot> animals = snapshot.data?.docs ?? [];
+                final List<Map<String, dynamic>> animalList = animals.map((doc) {
+                  return {'id': doc.id, ...(doc.data() as Map<String, dynamic>)};
+                }).toList();
 
-          // Apply sorting
-          if (_sortBy == 'name') {
-            filtered.sort(
-              (a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo(
-                (b['name'] ?? '').toString().toLowerCase(),
-              ),
-            );
-          } else {
-            filtered.sort((a, b) {
-              final aTime = a['postedAt'] as Timestamp?;
-              final bTime = b['postedAt'] as Timestamp?;
-              if (aTime == null && bTime == null) return 0;
-              if (aTime == null) return 1;
-              if (bTime == null) return -1;
-              return bTime.compareTo(aTime); // Descending
-            });
-          }
+                // Apply filters
+                List<Map<String, dynamic>> filtered = animalList.where((a) {
+                  final speciesMatch =
+                      _speciesFilter == 'All' ||
+                      (a['species'] ?? '').toString().toLowerCase() ==
+                          _speciesFilter.toLowerCase();
+                  final genderMatch =
+                      _genderFilter == 'All' ||
+                      (a['gender'] ?? '').toString().toLowerCase() ==
+                          _genderFilter.toLowerCase();
+                  return speciesMatch && genderMatch;
+                }).toList();
 
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            // ⭐️ REMOVED: Unnecessary top padding
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 12.0),
-                  child: Row(
+                // Apply sorting
+                if (_sortBy == 'name') {
+                  filtered.sort(
+                    (a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo(
+                          (b['name'] ?? '').toString().toLowerCase(),
+                        ),
+                  );
+                } else {
+                  filtered.sort((a, b) {
+                    final aTime = a['postedAt'] as Timestamp?;
+                    final bTime = b['postedAt'] as Timestamp?;
+                    if (aTime == null && bTime == null) return 0;
+                    if (aTime == null) return 1;
+                    if (bTime == null) return -1;
+                    return bTime.compareTo(aTime); // Descending
+                  });
+                }
+
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Expanded(
-                        child: Text(
-                          'Waiting For a Home',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 12.0),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Waiting For a Home',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _openFilterSheet,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: Colors.white.withOpacity(0.12),
+                                ),
+                                backgroundColor: Colors.black.withOpacity(0.25),
+                              ),
+                              icon: const Icon(Icons.filter_list, size: 20),
+                              label: const Text('Filter'),
+                            ),
+                          ],
                         ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: _openFilterSheet,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: BorderSide(
-                            color: Colors.white.withOpacity(0.12),
+                      if (filtered.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 48.0),
+                          child: Center(
+                            child: Text(
+                              'No animals match your filters.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: kSecondaryTextColor,
+                              ),
+                            ),
                           ),
-                          backgroundColor: Colors.black.withOpacity(0.25),
-                        ),
-                        icon: const Icon(Icons.filter_list, size: 20),
-                        label: const Text('Filter'),
-                      ),
+                        )
+                      else
+                        ...filtered.map((animalData) {
+                          return AnimalCard(
+                            animal: animalData,
+                            isLiked:
+                                false, // You'll likely connect this to a state management solution
+                            isSaved:
+                                false, // You'll likely connect this to a state management solution
+                            likeCount: (animalData['likeCount'] as int?) ?? 0,
+                            onLike: () {},
+                            onSave: () {},
+                          );
+                        }).toList(),
+                      const SizedBox(
+                        height: 90,
+                      ), // Padding for floating navigation bar if any
                     ],
                   ),
-                ),
-                if (filtered.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 48.0),
-                    child: Center(
-                      child: Text(
-                        'No animals match your filters.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: kSecondaryTextColor,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  ...filtered.map((animalData) {
-                    return AnimalCard(
-                      animal: animalData,
-                      isLiked:
-                          false, // You'll likely connect this to a state management solution
-                      isSaved:
-                          false, // You'll likely connect this to a state management solution
-                      likeCount: (animalData['likeCount'] as int?) ?? 0,
-                      onLike: () {},
-                      onSave: () {},
-                    );
-                  }).toList(),
-                const SizedBox(
-                  height: 90,
-                ), // Padding for floating navigation bar if any
-              ],
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }

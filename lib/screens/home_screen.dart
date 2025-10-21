@@ -11,6 +11,8 @@ import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 // -------------------- Color Palette --------------------
+// Note: kBackgroundColor is no longer used for the Scaffold background
+// but might be used by other components.
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
 const Color kPrimaryAccentColor = Colors.amber;
@@ -27,47 +29,88 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: buildPawsCareAppBar(context: context),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const WelcomeSection(),
-            const SizedBox(height: 24),
-            _buildPetOfTheDay(),
-            const SizedBox(height: 24),
-            _buildQuickActionsSection(),
-            const SizedBox(height: 24),
+// lib/screens/home_screen.dart -> inside _HomeScreenState
 
-            // --- SECTION FOR AVAILABLE PETS ---
-            _buildAnimalSection(
-              title: "Available for Adoption",
-              subtitle: "Pets waiting for a loving home",
-              statusFilter: 'Available',
-              emptyMessage: "No pets available for adoption right now",
-            ),
-            const SizedBox(height: 24),
+@override
+Widget build(BuildContext context) {
+  // --- FIX ---
+  // 1. Get the original AppBar instance from your helper function.
+  final originalAppBar = buildPawsCareAppBar(context: context) as AppBar;
 
-            // --- SECTION FOR ADOPTED PETS ---
-            _buildAnimalSection(
-              title: "Previously Adopted",
-              subtitle: "Happy pets who found their forever homes",
-              statusFilter: 'Adopted',
-              emptyMessage: "No animals adopted yet",
-            ),
-            const SizedBox(height: 24),
+  return Scaffold(
+    // Make the body content extend behind the app bar
+    extendBodyBehindAppBar: true,
 
-            // Extra padding at bottom to account for floating navbar
-            const SizedBox(height: 90),
-          ],
+    // 2. Create a NEW AppBar, reusing the title and actions from the original.
+    //    Then, override the background color and elevation to make it transparent.
+    appBar: AppBar(
+      title: originalAppBar.title,
+      actions: originalAppBar.actions,
+      leading: originalAppBar.leading,
+      automaticallyImplyLeading: originalAppBar.automaticallyImplyLeading,
+      backgroundColor: Colors.transparent, // Make it transparent
+      elevation: 0, // Remove shadow
+    ),
+
+    // The rest of the Stack implementation remains the same.
+    body: Stack(
+      children: [
+        // --- LAYER 1: The background image ---
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/background.png',
+            fit: BoxFit.cover,
+            color: Colors.black.withOpacity(0.2),
+            colorBlendMode: BlendMode.darken,
+          ),
         ),
-      ),
-    );
-  }
+
+        // --- LAYER 2: The glassmorphic blur effect ---
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+            ),
+          ),
+        ),
+
+        // --- LAYER 3: The original screen content ---
+        SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const WelcomeSection(),
+                const SizedBox(height: 24),
+                _buildPetOfTheDay(),
+                const SizedBox(height: 24),
+                _buildQuickActionsSection(),
+                const SizedBox(height: 24),
+                _buildAnimalSection(
+                  title: "Available for Adoption",
+                  subtitle: "Pets waiting for a loving home",
+                  statusFilter: 'Available',
+                  emptyMessage: "No pets available for adoption right now",
+                ),
+                const SizedBox(height: 24),
+                _buildAnimalSection(
+                  title: "Previously Adopted",
+                  subtitle: "Happy pets who found their forever homes",
+                  statusFilter: 'Adopted',
+                  emptyMessage: "No animals adopted yet",
+                ),
+                const SizedBox(height: 24),
+                const SizedBox(height: 90),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   // -------------------- Quick Actions Section --------------------
   Widget _buildQuickActionsSection() {
@@ -219,8 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
 
                         final stats =
-                            snapshot.data ??
-                            {'adoptedThisMonth': 0, 'activeRescues': 0};
+                            snapshot.data ?? {'adoptedThisMonth': 0, 'activeRescues': 0};
 
                         return Row(
                           children: [
@@ -360,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Bottom-most layer: Pet image
                 Positioned.fill(
                   child: Image.asset(
-                    'assets/images/postbg.png',
+                    'assets/images/downloadd.png',
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -457,14 +499,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 MaterialPageRoute(
                                                   builder: (context) =>
                                                       PetDetailScreen(
-                                                        petData: {
-                                                          'name': 'Rocky',
-                                                          'species': 'Cat',
-                                                          'age': '2 years',
-                                                          'image':
-                                                              'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
-                                                        },
-                                                      ),
+                                                    petData: {
+                                                      'name': 'Rocky',
+                                                      'species': 'Cat',
+                                                      'age': '2 years',
+                                                      'image':
+                                                          'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
+                                                    },
+                                                  ),
                                                 ),
                                               );
                                             },
@@ -692,7 +734,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   double _currentPageValue = 0.0;
 
   _WelcomeSectionState()
-    : _pageController = PageController(viewportFraction: 1.00);
+      : _pageController = PageController(viewportFraction: 1.00);
 
   final List<Map<String, dynamic>> _infoPages = [
     {
