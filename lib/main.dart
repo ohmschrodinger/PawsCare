@@ -10,6 +10,7 @@ import 'screens/firestore_recovery_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
+import 'screens/cat_facts_screen.dart';
 import 'main_navigation_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/notification_service.dart';
@@ -113,6 +114,7 @@ class PawsCareApp extends StatelessWidget {
             const AdminAnimalApprovalScreen(),
         '/password-reset': (context) => const PasswordResetScreen(),
         '/email-verification': (context) => const EmailVerificationScreen(),
+        '/cat-facts': (context) => const CatFactsScreen(),
       },
     );
   }

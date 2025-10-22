@@ -71,11 +71,21 @@ Widget _buildDefaultTitle(BuildContext context) {
 
 /// Helper function to build the action icons to keep the main function clean
 List<Widget> _buildAppBarActions(
-    BuildContext context, void Function(String)? onMenuSelected) {
+  BuildContext context,
+  void Function(String)? onMenuSelected,
+) {
   const popupTextStyle = TextStyle(color: kPrimaryTextColor);
   const popupIconColor = kSecondaryTextColor;
 
   return [
+    // Cat Facts Icon
+    IconButton(
+      icon: const Icon(Icons.lightbulb_outline, color: kPrimaryTextColor),
+      tooltip: 'Cat Facts',
+      onPressed: () {
+        Navigator.of(context).pushNamed('/cat-facts');
+      },
+    ),
     IconButton(
       icon: const Icon(Icons.chat_bubble_outline, color: kPrimaryTextColor),
       onPressed: () async {
@@ -90,8 +100,10 @@ List<Widget> _buildAppBarActions(
 
         try {
           if (await canLaunchUrl(whatsappAppUri)) {
-            await launchUrl(whatsappAppUri,
-                mode: LaunchMode.externalApplication);
+            await launchUrl(
+              whatsappAppUri,
+              mode: LaunchMode.externalApplication,
+            );
           } else if (await canLaunchUrl(webUri)) {
             await launchUrl(webUri, mode: LaunchMode.externalApplication);
           } else {
@@ -127,9 +139,7 @@ List<Widget> _buildAppBarActions(
           onItemSelected: (value) {
             if (value == 'my_applications') {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const MyApplicationsScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const MyApplicationsScreen()),
               );
             } else if (value == 'all_applications') {
               Navigator.of(context).push(
