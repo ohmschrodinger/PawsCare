@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Import your screen files
 import 'screens/splash_screen.dart';
@@ -10,6 +10,7 @@ import 'screens/firestore_recovery_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
+import 'screens/cat_facts_screen.dart';
 import 'main_navigation_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/notification_service.dart';
@@ -22,11 +23,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables from .env file
-  // await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: "assets/.env");
 
   try {
     await Firebase.initializeApp();
-    
+
     // Initialize notification service
     await NotificationService.initialize();
   } catch (e) {
@@ -113,6 +114,7 @@ class PawsCareApp extends StatelessWidget {
             const AdminAnimalApprovalScreen(),
         '/password-reset': (context) => const PasswordResetScreen(),
         '/email-verification': (context) => const EmailVerificationScreen(),
+        '/cat-facts': (context) => const CatFactsScreen(),
       },
     );
   }

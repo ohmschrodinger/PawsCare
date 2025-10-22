@@ -10,6 +10,11 @@ import 'package:pawscare/services/storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pawscare/screens/view_details_screen.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:pawscare/models/animal_location.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -48,6 +53,15 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   final _locationController = TextEditingController();
   final _contactPhoneController = TextEditingController();
   final _medicalIssuesController = TextEditingController();
+
+  // Location data for Places API
+  AnimalLocation? _selectedLocation;
+  String? _locationPlaceId;
+  double? _locationLatitude;
+  double? _locationLongitude;
+
+  // Google Places API Key from environment variables
+  String get _googleApiKey => dotenv.env['GOOGLE_PLACES_API_KEY'] ?? '';
 
   // --- FORM STATE VARIABLES ---
   String? _species;
@@ -147,9 +161,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-              ),
+              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
 
@@ -163,7 +175,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                     controller: _tabController,
                     children: [
                       _buildPendingRequestsTab(),
-                      _buildAddNewAnimalTab()
+                      _buildAddNewAnimalTab(),
                     ],
                   ),
                 ),
@@ -183,7 +195,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         controller: _tabController,
         indicatorColor: kPrimaryAccentColor,
         labelColor: kPrimaryTextColor,
-        unselectedLabelColor: kSecondaryTextColor, // Differentiate unselected tabs
+        unselectedLabelColor:
+            kSecondaryTextColor, // Differentiate unselected tabs
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
           Tab(icon: Icon(Icons.add_circle_outline), text: 'Post New Animal'),
@@ -194,8 +207,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
-      physics:
-          const BouncingScrollPhysics(), // Added for a better scroll feel
+      physics: const BouncingScrollPhysics(), // Added for a better scroll feel
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Form(
         key: _formKey,
@@ -303,12 +315,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
             // --- Location, Contact & Story Section ---
             _buildSectionHeader('Location, Contact & Story'),
-            _buildTextField(
-              _locationController,
-              'Location of Animal*',
-              'e.g., Koregaon Park, Pune',
-              validator: (v) => v!.isEmpty ? "Location is required" : null,
-            ),
+            _buildPlacesAutocompleteField(),
             const Divider(color: Colors.white12, height: 1),
             _buildTextField(
               _contactPhoneController,
@@ -567,6 +574,159 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
+  Widget _buildPlacesAutocompleteField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GooglePlaceAutoCompleteTextField(
+            textEditingController: _locationController,
+            googleAPIKey: _googleApiKey,
+            inputDecoration: InputDecoration(
+              labelText: 'Location of Animal*',
+              hintText: 'Search for a location...',
+              labelStyle: const TextStyle(color: kSecondaryTextColor),
+              hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
+              filled: true,
+              fillColor: Colors.black.withOpacity(0.3),
+              prefixIcon: const Icon(
+                Icons.location_on,
+                color: kSecondaryTextColor,
+              ),
+              suffixIcon: _locationController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: kSecondaryTextColor),
+                      onPressed: () {
+                        setState(() {
+                          _locationController.clear();
+                          _selectedLocation = null;
+                          _locationPlaceId = null;
+                          _locationLatitude = null;
+                          _locationLongitude = null;
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(
+                  color: kPrimaryAccentColor,
+                  width: 1.5,
+                ),
+              ),
+              errorStyle: const TextStyle(color: Colors.redAccent),
+            ),
+            debounceTime: 800,
+            countries: const ["in"], // Restrict to India
+            isLatLngRequired: true,
+            getPlaceDetailWithLatLng: (Prediction prediction) async {
+              // This callback is triggered when user selects a place
+              print('Selected place: ${prediction.description}');
+              print('Lat: ${prediction.lat}, Lng: ${prediction.lng}');
+
+              setState(() {
+                _locationPlaceId = prediction.placeId;
+                _locationLatitude = double.tryParse(prediction.lat ?? '0');
+                _locationLongitude = double.tryParse(prediction.lng ?? '0');
+
+                _selectedLocation = AnimalLocation(
+                  address: prediction.description ?? '',
+                  latitude: _locationLatitude ?? 0.0,
+                  longitude: _locationLongitude ?? 0.0,
+                  placeId: _locationPlaceId,
+                  formattedAddress: prediction.description,
+                );
+              });
+            },
+            itemClick: (Prediction prediction) {
+              _locationController.text = prediction.description ?? '';
+              _locationController.selection = TextSelection.fromPosition(
+                TextPosition(offset: prediction.description?.length ?? 0),
+              );
+            },
+            itemBuilder: (context, index, Prediction prediction) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kCardColor.withOpacity(0.9),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: kPrimaryAccentColor,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        prediction.description ?? '',
+                        style: const TextStyle(
+                          color: kPrimaryTextColor,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            seperatedBuilder: const Divider(
+              height: 0,
+              color: Colors.transparent,
+            ),
+            isCrossBtnShown: false,
+            containerHorizontalPadding: 0,
+            textStyle: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+          ),
+          if (_selectedLocation == null && _isSubmitting)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Text(
+                'Please select a location from the suggestions.',
+                style: TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ),
+          if (_selectedLocation != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Location selected: ${_selectedLocation!.formattedAddress}',
+                      style: const TextStyle(color: Colors.green, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAgeField() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -583,7 +743,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               SizedBox(
                 width: 100, // Increased width for better spacing
                 child: DropdownButtonFormField<int>(
-                  value: _selectedAgeYears ??
+                  value:
+                      _selectedAgeYears ??
                       int.tryParse(_ageYearsController.text) ??
                       0,
                   isExpanded: true,
@@ -632,7 +793,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               SizedBox(
                 width: 100, // Increased width
                 child: DropdownButtonFormField<int>(
-                  value: _selectedAgeMonths ??
+                  value:
+                      _selectedAgeMonths ??
                       int.tryParse(_ageMonthsController.text) ??
                       0,
                   isExpanded: true,
@@ -920,13 +1082,20 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Future<void> _submitForm() async {
     setState(() {});
-    if (!_formKey.currentState!.validate() || _images.isEmpty) {
-      _showSnackBar(
-        'Please fill all required fields (*) and add at least one photo.',
-        isError: true,
-      );
+
+    // Validate form and check for images and location
+    if (!_formKey.currentState!.validate() ||
+        _images.isEmpty ||
+        _selectedLocation == null) {
+      String errorMsg =
+          'Please fill all required fields (*) and add at least one photo.';
+      if (_selectedLocation == null) {
+        errorMsg = 'Please select a location from the dropdown suggestions.';
+      }
+      _showSnackBar(errorMsg, isError: true);
       return;
     }
+
     setState(() => _isSubmitting = true);
     try {
       final years = _ageYearsController.text.trim();
@@ -946,7 +1115,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         deworming: _isDewormed! ? 'Yes' : 'No',
         motherStatus: _motherStatus ?? 'Unknown',
         medicalIssues: _medicalIssuesController.text.trim(),
-        location: _locationController.text.trim(),
+        location:
+            _selectedLocation!.formattedAddress ??
+            _locationController.text.trim(),
+        locationData: _selectedLocation,
         contactPhone: '+91${_contactPhoneController.text.trim()}',
         rescueStory: _rescueStoryController.text.trim(),
       );
@@ -987,6 +1159,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _isDewormed = null;
           _selectedAgeYears = null;
           _selectedAgeMonths = null;
+          _selectedLocation = null;
+          _locationPlaceId = null;
+          _locationLatitude = null;
+          _locationLongitude = null;
           _tabController.animateTo(0);
         });
       }
@@ -1039,7 +1215,8 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-            color: Colors.white.withOpacity(0.1)), // Added subtle border
+          color: Colors.white.withOpacity(0.1),
+        ), // Added subtle border
       ),
       elevation: 0,
       child: Column(
