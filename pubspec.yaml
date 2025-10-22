@@ -34,6 +34,9 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.10
+  google_places_flutter: ^2.0.9
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
   # glass_kit: ^2.0.1
 
 dev_dependencies:
@@ -53,6 +56,7 @@ flutter:
     - assets/images/welcome5.png
     - assets/images/pawscarelogo.svg   # ✅ added SVG logo
     - lib/assets/pawscare_logo.png     # ✅ kept your existing logo
+    - assets/.env                       # ✅ Environment variables
 
   fonts:
     - family: Borel

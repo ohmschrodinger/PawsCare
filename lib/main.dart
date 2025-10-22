@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-// import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add this import
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Import your screen files
 import 'screens/splash_screen.dart';
@@ -22,11 +22,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Load environment variables from .env file
-  // await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: "assets/.env");
 
   try {
     await Firebase.initializeApp();
-    
+
     // Initialize notification service
     await NotificationService.initialize();
   } catch (e) {

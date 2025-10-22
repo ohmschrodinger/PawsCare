@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/widgets/animal_card.dart';
+import 'package:pawscare/services/location_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:pawscare/models/animal_location.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -25,6 +28,8 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
   String _sortBy = 'postedAt';
   String _speciesFilter = 'All';
   String _genderFilter = 'All';
+  Position? _currentPosition;
+  bool _loadingLocation = false;
 
   void _openFilterSheet() async {
     final result = await showModalBottomSheet<Map<String, String>>(
@@ -88,6 +93,10 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                                   DropdownMenuItem(
                                     value: 'name',
                                     child: Text('Name (A-Z)'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'nearMe',
+                                    child: Text('Near Me'),
                                   ),
                                 ],
                                 onChanged: (v) => setModalState(
@@ -314,6 +323,67 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
         _speciesFilter = result['species'] ?? _speciesFilter;
         _genderFilter = result['gender'] ?? _genderFilter;
       });
+
+      // If "Near Me" is selected, get current location
+      if (_sortBy == 'nearMe' && _currentPosition == null) {
+        _getCurrentLocation();
+      }
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _loadingLocation = true);
+
+    try {
+      final hasPermission = await LocationService.hasLocationPermission();
+
+      if (!hasPermission) {
+        final permission = await LocationService.requestPermission();
+
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Location permission is required for "Near Me" sorting',
+                ),
+                action: SnackBarAction(
+                  label: 'Settings',
+                  onPressed: () => LocationService.openAppSettings(),
+                ),
+              ),
+            );
+          }
+          setState(() => _sortBy = 'postedAt'); // Fallback to default
+          return;
+        }
+      }
+
+      final position = await LocationService.getCurrentLocation();
+
+      if (position != null) {
+        setState(() => _currentPosition = position);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not get your location. Please try again.'),
+            ),
+          );
+        }
+        setState(() => _sortBy = 'postedAt'); // Fallback to default
+      }
+    } catch (e) {
+      print('Error getting location: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+      setState(() => _sortBy = 'postedAt'); // Fallback to default
+    } finally {
+      setState(() => _loadingLocation = false);
     }
   }
 
@@ -351,9 +421,7 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-              child: Container(
-                color: Colors.black.withOpacity(0.5),
-              ),
+              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
 
@@ -372,13 +440,20 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                 }
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: kPrimaryAccentColor),
+                    child: CircularProgressIndicator(
+                      color: kPrimaryAccentColor,
+                    ),
                   );
                 }
 
                 List<QueryDocumentSnapshot> animals = snapshot.data?.docs ?? [];
-                final List<Map<String, dynamic>> animalList = animals.map((doc) {
-                  return {'id': doc.id, ...(doc.data() as Map<String, dynamic>)};
+                final List<Map<String, dynamic>> animalList = animals.map((
+                  doc,
+                ) {
+                  return {
+                    'id': doc.id,
+                    ...(doc.data() as Map<String, dynamic>),
+                  };
                 }).toList();
 
                 // Apply filters
@@ -397,10 +472,50 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                 // Apply sorting
                 if (_sortBy == 'name') {
                   filtered.sort(
-                    (a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo(
-                          (b['name'] ?? '').toString().toLowerCase(),
-                        ),
+                    (a, b) => (a['name'] ?? '')
+                        .toString()
+                        .toLowerCase()
+                        .compareTo((b['name'] ?? '').toString().toLowerCase()),
                   );
+                } else if (_sortBy == 'nearMe') {
+                  // Sort by distance from current location
+                  if (_currentPosition != null) {
+                    filtered.sort((a, b) {
+                      final aLat = a['latitude'] as double?;
+                      final aLng = a['longitude'] as double?;
+                      final bLat = b['latitude'] as double?;
+                      final bLng = b['longitude'] as double?;
+
+                      if (aLat == null || aLng == null) return 1;
+                      if (bLat == null || bLng == null) return -1;
+
+                      final distanceA = LocationService.calculateDistance(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                        aLat,
+                        aLng,
+                      );
+
+                      final distanceB = LocationService.calculateDistance(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                        bLat,
+                        bLng,
+                      );
+
+                      return distanceA.compareTo(distanceB);
+                    });
+                  } else {
+                    // If location not available, fall back to recent
+                    filtered.sort((a, b) {
+                      final aTime = a['postedAt'] as Timestamp?;
+                      final bTime = b['postedAt'] as Timestamp?;
+                      if (aTime == null && bTime == null) return 0;
+                      if (aTime == null) return 1;
+                      if (bTime == null) return -1;
+                      return bTime.compareTo(aTime);
+                    });
+                  }
                 } else {
                   filtered.sort((a, b) {
                     final aTime = a['postedAt'] as Timestamp?;
@@ -418,7 +533,12 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 12.0),
+                        padding: const EdgeInsets.fromLTRB(
+                          16.0,
+                          12.0,
+                          16.0,
+                          12.0,
+                        ),
                         child: Row(
                           children: [
                             const Expanded(

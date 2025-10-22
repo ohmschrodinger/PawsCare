@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/animal_status.dart';
 import 'logging_service.dart';
+import '../models/animal_location.dart';
 
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -21,6 +22,7 @@ class AnimalService {
     required String motherStatus,
     String? medicalIssues,
     required String location,
+    AnimalLocation? locationData,
     required String contactPhone,
     String? rescueStory,
   }) async {
@@ -48,6 +50,12 @@ class AnimalService {
       const isActive = false;
       print('DEBUG: Setting approval status to: pending');
 
+      // Prepare location data for Firestore
+      Map<String, dynamic> locationMap = {};
+      if (locationData != null && locationData.hasCoordinates) {
+        locationMap = locationData.toMap();
+      }
+
       final animalData = {
         'name': name,
         'species': species,
@@ -62,6 +70,7 @@ class AnimalService {
         'motherStatus': motherStatus,
         'medicalIssues': medicalIssues ?? '',
         'location': location,
+        ...locationMap, // Spread location data (includes latitude, longitude, geopoint, etc.)
         'contactPhone': contactPhone,
         'rescueStory': rescueStory ?? '',
         'postedBy': user.uid,
