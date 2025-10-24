@@ -94,7 +94,8 @@ class AuthService {
   static Future<UserCredential?> signInWithGoogle() async {
     try {
       // Create a single client and ensure we disconnect/sign out first so the chooser appears
-      final googleSignIn = GoogleSignIn();
+      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+
       try {
         // Best effort: disconnect clears the current account selection on some platforms
         await googleSignIn.disconnect();
@@ -108,11 +109,20 @@ class AuthService {
         // User cancelled the sign-in
         return null;
       }
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Check if we got the required tokens
+      if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        throw Exception('Failed to get authentication tokens from Google');
+      }
+
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
       final userCredential = await _auth.signInWithCredential(credential);
 
       // Ensure Firestore user document exists/created for Google sign-in
@@ -132,10 +142,12 @@ class AuthService {
       }
 
       return userCredential;
-    } on FirebaseAuthException {
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthException: ${e.code} - ${e.message}');
       rethrow;
     } catch (e) {
-      throw Exception('signInWithGoogle_generic');
+      print('Google Sign-In Error: $e');
+      throw Exception('signInWithGoogle_generic: $e');
     }
   }
 

@@ -85,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
         if (!mounted) return;
         Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -109,12 +108,23 @@ class _LoginScreenState extends State<LoginScreen> {
       final userCredential = await AuthService.signInWithGoogle();
       if (userCredential != null && mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-
+      } else if (mounted) {
+        // User cancelled
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Google sign-in failed: ${e.message ?? e.code}';
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Google sign-in failed. Please try again.';
+          _errorMessage =
+              'Google sign-in failed. Please ensure you have configured the Android OAuth client in Firebase Console with your app\'s SHA-1 certificate fingerprint.';
         });
       }
     } finally {
@@ -127,20 +137,28 @@ class _LoginScreenState extends State<LoginScreen> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: kCardColor,
-            title: const Text('Exit App?',
-                style: TextStyle(color: kPrimaryTextColor)),
-            content: const Text('Are you sure you want to exit the app?',
-                style: TextStyle(color: kSecondaryTextColor)),
+            title: const Text(
+              'Exit App?',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
+            content: const Text(
+              'Are you sure you want to exit the app?',
+              style: TextStyle(color: kSecondaryTextColor),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel',
-                    style: TextStyle(color: kPrimaryTextColor)),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: kPrimaryTextColor),
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Exit',
-                    style: TextStyle(color: kPrimaryAccentColor)),
+                child: const Text(
+                  'Exit',
+                  style: TextStyle(color: kPrimaryAccentColor),
+                ),
               ),
             ],
           ),
@@ -155,8 +173,10 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Scaffold(
         backgroundColor: kBackgroundColor,
         appBar: AppBar(
-          title:
-              const Text('Sign in', style: TextStyle(color: kPrimaryTextColor)),
+          title: const Text(
+            'Sign in',
+            style: TextStyle(color: kPrimaryTextColor),
+          ),
           automaticallyImplyLeading: true,
           iconTheme: const IconThemeData(color: kPrimaryTextColor),
           backgroundColor: Colors.transparent,
@@ -172,8 +192,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.pets,
-                        color: kPrimaryAccentColor, size: 60),
+                    const Icon(
+                      Icons.pets,
+                      color: kPrimaryAccentColor,
+                      size: 60,
+                    ),
                     const SizedBox(height: 16),
                     const Text(
                       'PawsCare',
@@ -188,15 +211,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Welcome back!',
                       textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 18, color: kSecondaryTextColor),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: kSecondaryTextColor,
+                      ),
                     ),
                     const SizedBox(height: 48),
                     TextFormField(
                       controller: _emailController,
                       style: const TextStyle(color: kPrimaryTextColor),
                       decoration: _buildInputDecoration(
-                          'Email Address', Icons.email_outlined),
+                        'Email Address',
+                        Icons.email_outlined,
+                      ),
                       validator: _validateEmail,
                       keyboardType: TextInputType.emailAddress,
                     ),
@@ -205,8 +232,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _passwordController,
                       obscureText: true,
                       style: const TextStyle(color: kPrimaryTextColor),
-                      decoration:
-                          _buildInputDecoration('Password', Icons.lock_outline),
+                      decoration: _buildInputDecoration(
+                        'Password',
+                        Icons.lock_outline,
+                      ),
                       validator: _validatePassword,
                     ),
                     if (_errorMessage != null) ...[
@@ -214,8 +243,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         _errorMessage!,
                         style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontWeight: FontWeight.w500),
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w500,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -225,29 +255,36 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.pushNamed(context, '/password-reset');
                         },
-                        child: const Text('Forgot Password?',
-                            style: TextStyle(color: kPrimaryAccentColor)),
+                        child: const Text(
+                          'Forgot Password?',
+                          style: TextStyle(color: kPrimaryAccentColor),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     _isLoading
                         ? const Center(
                             child: CircularProgressIndicator(
-                                color: kPrimaryAccentColor))
+                              color: kPrimaryAccentColor,
+                            ),
+                          )
                         : ElevatedButton(
                             onPressed: _login,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: kPrimaryAccentColor,
                               foregroundColor: Colors.black,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                            child: const Text('Login',
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                     const SizedBox(height: 24),
                     Row(
@@ -255,8 +292,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(child: Divider(color: Colors.grey.shade800)),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text('Or Login with',
-                              style: TextStyle(color: kSecondaryTextColor)),
+                          child: Text(
+                            'Or Login with',
+                            style: TextStyle(color: kSecondaryTextColor),
+                          ),
                         ),
                         Expanded(child: Divider(color: Colors.grey.shade800)),
                       ],
@@ -278,7 +317,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         foregroundColor: kPrimaryTextColor,
                         backgroundColor: kCardColor,
                         textStyle: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w600),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       onPressed: _isLoading ? null : _loginWithGoogle,
                     ),
@@ -286,14 +327,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Don't have an account?",
-                            style: TextStyle(color: kSecondaryTextColor)),
+                        const Text(
+                          "Don't have an account?",
+                          style: TextStyle(color: kSecondaryTextColor),
+                        ),
                         TextButton(
                           onPressed: () {
                             Navigator.pushReplacementNamed(context, '/signup');
                           },
-                          child: const Text('Register Now',
-                              style: TextStyle(color: kPrimaryAccentColor)),
+                          child: const Text(
+                            'Register Now',
+                            style: TextStyle(color: kPrimaryAccentColor),
+                          ),
                         ),
                       ],
                     ),
