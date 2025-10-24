@@ -74,7 +74,7 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
           // Background image layer
           Positioned.fill(
             child: Image.asset(
-              'assets/images/background.png',
+              'assets/images/catfacts.jpeg',
               fit: BoxFit.cover,
               color: Colors.black.withOpacity(0.2),
               colorBlendMode: BlendMode.darken,

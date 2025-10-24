@@ -527,76 +527,111 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                   });
                 }
 
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          16.0,
-                          12.0,
-                          16.0,
-                          12.0,
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
                         ),
-                        child: Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Waiting For a Home',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                        child: IntrinsicHeight(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16.0,
+                                  12.0,
+                                  16.0,
+                                  12.0,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Expanded(
+                                      child: Text(
+                                        'Waiting For a Home',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: _openFilterSheet,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.white,
+                                        side: BorderSide(
+                                          color: Colors.white.withOpacity(0.12),
+                                        ),
+                                        backgroundColor: Colors.black
+                                            .withOpacity(0.25),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.filter_list,
+                                        size: 20,
+                                      ),
+                                      label: const Text('Filter'),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _openFilterSheet,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: BorderSide(
-                                  color: Colors.white.withOpacity(0.12),
-                                ),
-                                backgroundColor: Colors.black.withOpacity(0.25),
-                              ),
-                              icon: const Icon(Icons.filter_list, size: 20),
-                              label: const Text('Filter'),
-                            ),
-                          ],
+                              if (filtered.isEmpty)
+                                Expanded(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 48.0,
+                                        bottom: 90.0,
+                                      ),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.pets_outlined,
+                                            size: 64,
+                                            color: kSecondaryTextColor
+                                                .withOpacity(0.5),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                            'No animals match your filters.',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: kSecondaryTextColor,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...filtered.map((animalData) {
+                                  return AnimalCard(
+                                    animal: animalData,
+                                    isLiked:
+                                        false, // You'll likely connect this to a state management solution
+                                    isSaved:
+                                        false, // You'll likely connect this to a state management solution
+                                    likeCount:
+                                        (animalData['likeCount'] as int?) ?? 0,
+                                    onLike: () {},
+                                    onSave: () {},
+                                  );
+                                }).toList(),
+                              if (filtered.isNotEmpty)
+                                const SizedBox(
+                                  height: 90,
+                                ), // Padding for floating navigation bar if any
+                            ],
+                          ),
                         ),
                       ),
-                      if (filtered.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 48.0),
-                          child: Center(
-                            child: Text(
-                              'No animals match your filters.',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: kSecondaryTextColor,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ...filtered.map((animalData) {
-                          return AnimalCard(
-                            animal: animalData,
-                            isLiked:
-                                false, // You'll likely connect this to a state management solution
-                            isSaved:
-                                false, // You'll likely connect this to a state management solution
-                            likeCount: (animalData['likeCount'] as int?) ?? 0,
-                            onLike: () {},
-                            onSave: () {},
-                          );
-                        }).toList(),
-                      const SizedBox(
-                        height: 90,
-                      ), // Padding for floating navigation bar if any
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             ),

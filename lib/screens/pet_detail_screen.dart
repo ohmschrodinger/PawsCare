@@ -179,6 +179,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     final bool isAdopted = status.toLowerCase() == 'adopted';
 
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
           const SizedBox(height: 360),

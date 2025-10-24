@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: "More actions",
                   onSelected: (value) {
                     if (value == 'post') {
-                      Navigator.pushNamed(context, '/post-pet');
+                      mainNavKey.currentState?.selectTab(2);
                     } else if (value == 'adopt') {
                       mainNavKey.currentState?.selectTab(1);
                     }
@@ -299,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                         const Text(
-                                          'Active\nRescues so Far',
+                                          'Pets\nposted so far',
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: kSecondaryTextColor,
@@ -355,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Bottom-most layer: Pet image
                 Positioned.fill(
                   child: Image.asset(
-                    'assets/images/downloadd.png',
+                    'assets/images/petoftheday.jpeg',
                     fit: BoxFit.cover,
                   ),
                 ),
