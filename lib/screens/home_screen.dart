@@ -6,6 +6,7 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/services/greeting_service.dart';
 import 'package:pawscare/services/stats_service.dart';
+import 'package:pawscare/theme/typography.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -29,88 +30,85 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   @override
-// lib/screens/home_screen.dart -> inside _HomeScreenState
+  // lib/screens/home_screen.dart -> inside _HomeScreenState
+  @override
+  Widget build(BuildContext context) {
+    // --- FIX ---
+    // 1. Get the original AppBar instance from your helper function.
+    final originalAppBar = buildPawsCareAppBar(context: context) as AppBar;
 
-@override
-Widget build(BuildContext context) {
-  // --- FIX ---
-  // 1. Get the original AppBar instance from your helper function.
-  final originalAppBar = buildPawsCareAppBar(context: context) as AppBar;
+    return Scaffold(
+      // Make the body content extend behind the app bar
+      extendBodyBehindAppBar: true,
 
-  return Scaffold(
-    // Make the body content extend behind the app bar
-    extendBodyBehindAppBar: true,
+      // 2. Create a NEW AppBar, reusing the title and actions from the original.
+      //    Then, override the background color and elevation to make it transparent.
+      appBar: AppBar(
+        title: originalAppBar.title,
+        actions: originalAppBar.actions,
+        leading: originalAppBar.leading,
+        automaticallyImplyLeading: originalAppBar.automaticallyImplyLeading,
+        backgroundColor: Colors.transparent, // Make it transparent
+        elevation: 0, // Remove shadow
+      ),
 
-    // 2. Create a NEW AppBar, reusing the title and actions from the original.
-    //    Then, override the background color and elevation to make it transparent.
-    appBar: AppBar(
-      title: originalAppBar.title,
-      actions: originalAppBar.actions,
-      leading: originalAppBar.leading,
-      automaticallyImplyLeading: originalAppBar.automaticallyImplyLeading,
-      backgroundColor: Colors.transparent, // Make it transparent
-      elevation: 0, // Remove shadow
-    ),
-
-    // The rest of the Stack implementation remains the same.
-    body: Stack(
-      children: [
-        // --- LAYER 1: The background image ---
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/background.png',
-            fit: BoxFit.cover,
-            color: Colors.black.withOpacity(0.2),
-            colorBlendMode: BlendMode.darken,
-          ),
-        ),
-
-        // --- LAYER 2: The glassmorphic blur effect ---
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-            child: Container(
-              color: Colors.black.withOpacity(0.5),
+      // The rest of the Stack implementation remains the same.
+      body: Stack(
+        children: [
+          // --- LAYER 1: The background image ---
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.png',
+              fit: BoxFit.cover,
+              color: Colors.black.withOpacity(0.2),
+              colorBlendMode: BlendMode.darken,
             ),
           ),
-        ),
 
-        // --- LAYER 3: The original screen content ---
-        SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const WelcomeSection(),
-                const SizedBox(height: 24),
-                _buildPetOfTheDay(),
-                const SizedBox(height: 24),
-                _buildQuickActionsSection(),
-                const SizedBox(height: 24),
-                _buildAnimalSection(
-                  title: "Available for Adoption",
-                  subtitle: "Pets waiting for a loving home",
-                  statusFilter: 'Available',
-                  emptyMessage: "No pets available for adoption right now",
-                ),
-                const SizedBox(height: 24),
-                _buildAnimalSection(
-                  title: "Previously Adopted",
-                  subtitle: "Happy pets who found their forever homes",
-                  statusFilter: 'Adopted',
-                  emptyMessage: "No animals adopted yet",
-                ),
-                const SizedBox(height: 24),
-                const SizedBox(height: 90),
-              ],
+          // --- LAYER 2: The glassmorphic blur effect ---
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+
+          // --- LAYER 3: The original screen content ---
+          SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const WelcomeSection(),
+                  const SizedBox(height: 24),
+                  _buildPetOfTheDay(),
+                  const SizedBox(height: 24),
+                  _buildQuickActionsSection(),
+                  const SizedBox(height: 24),
+                  _buildAnimalSection(
+                    title: "Available for Adoption",
+                    subtitle: "Pets waiting for a loving home",
+                    statusFilter: 'Available',
+                    emptyMessage: "No pets available for adoption right now",
+                  ),
+                  const SizedBox(height: 24),
+                  _buildAnimalSection(
+                    title: "Previously Adopted",
+                    subtitle: "Happy pets who found their forever homes",
+                    statusFilter: 'Adopted',
+                    emptyMessage: "No animals adopted yet",
+                  ),
+                  const SizedBox(height: 24),
+                  const SizedBox(height: 90),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // -------------------- Quick Actions Section --------------------
   Widget _buildQuickActionsSection() {
@@ -125,19 +123,19 @@ Widget build(BuildContext context) {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Quick Actions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    style: AppTypography.title3.copyWith(
                       color: kPrimaryTextColor,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     'Small ways to help pets',
-                    style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
+                    style: AppTypography.subhead.copyWith(
+                      color: kSecondaryTextColor,
+                    ),
                   ),
                 ],
               ),
@@ -262,7 +260,8 @@ Widget build(BuildContext context) {
                         }
 
                         final stats =
-                            snapshot.data ?? {'adoptedThisMonth': 0, 'activeRescues': 0};
+                            snapshot.data ??
+                            {'adoptedThisMonth': 0, 'activeRescues': 0};
 
                         return Row(
                           children: [
@@ -381,13 +380,11 @@ Widget build(BuildContext context) {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Pet of the Day',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                style: AppTypography.title3.copyWith(
                   color: kPrimaryTextColor,
-                  letterSpacing: 0.35,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
@@ -445,24 +442,19 @@ Widget build(BuildContext context) {
                               children: [
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     Text(
                                       'Meet Billi',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
+                                      style: AppTypography.headline.copyWith(
                                         color: kPrimaryTextColor,
-                                        letterSpacing: 0.38,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    SizedBox(height: 6),
+                                    const SizedBox(height: 6),
                                     Text(
                                       'This playful cutie loves belly rubs and what not.',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w400,
+                                      style: AppTypography.subhead.copyWith(
                                         color: kSecondaryTextColor,
-                                        letterSpacing: -0.24,
                                         height: 1.3,
                                       ),
                                     ),
@@ -499,33 +491,33 @@ Widget build(BuildContext context) {
                                                 MaterialPageRoute(
                                                   builder: (context) =>
                                                       PetDetailScreen(
-                                                    petData: {
-                                                      'name': 'Rocky',
-                                                      'species': 'Cat',
-                                                      'age': '2 years',
-                                                      'image':
-                                                          'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
-                                                    },
-                                                  ),
+                                                        petData: {
+                                                          'name': 'Rocky',
+                                                          'species': 'Cat',
+                                                          'age': '2 years',
+                                                          'image':
+                                                              'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
+                                                        },
+                                                      ),
                                                 ),
                                               );
                                             },
                                             borderRadius: BorderRadius.circular(
                                               60,
                                             ),
-                                            child: const Padding(
+                                            child: Padding(
                                               padding: EdgeInsets.symmetric(
                                                 horizontal: 20,
                                                 vertical: 10,
                                               ),
                                               child: Text(
                                                 'See More',
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: kPrimaryTextColor,
-                                                  letterSpacing: -0.24,
-                                                ),
+                                                style: AppTypography.callout
+                                                    .copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: kPrimaryTextColor,
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -575,17 +567,14 @@ Widget build(BuildContext context) {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      style: AppTypography.title3.copyWith(
                         color: kPrimaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: AppTypography.subhead.copyWith(
                         color: kSecondaryTextColor,
                       ),
                     ),
@@ -625,17 +614,15 @@ Widget build(BuildContext context) {
                           borderRadius: BorderRadius.circular(60),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Text(
                                 'See More',
-                                style: TextStyle(
+                                style: AppTypography.callout.copyWith(
                                   color: kPrimaryTextColor,
-                                  fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.08,
                                 ),
                               ),
-                              SizedBox(width: 2),
+                              const SizedBox(width: 2),
                             ],
                           ),
                         ),
@@ -734,7 +721,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   double _currentPageValue = 0.0;
 
   _WelcomeSectionState()
-      : _pageController = PageController(viewportFraction: 1.00);
+    : _pageController = PageController(viewportFraction: 1.00);
 
   final List<Map<String, dynamic>> _infoPages = [
     {
@@ -800,17 +787,14 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                   children: [
                     Text(
                       snapshot.data ?? GreetingService.getTimeBasedGreeting(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      style: AppTypography.title2.copyWith(
                         color: kPrimaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       GreetingService.getTimeBasedSubtext(),
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: AppTypography.body.copyWith(
                         color: kPrimaryTextColor.withOpacity(0.7),
                       ),
                     ),
@@ -893,22 +877,23 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    style: AppTypography.title3.copyWith(
                       color: kPrimaryTextColor,
-                      shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                      shadows: const [
+                        Shadow(blurRadius: 4, color: Colors.black54),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     text,
                     textAlign: TextAlign.start,
-                    style: const TextStyle(
-                      fontSize: 15,
+                    style: AppTypography.subhead.copyWith(
                       color: kPrimaryTextColor,
                       height: 1.4,
-                      shadows: [Shadow(blurRadius: 4, color: Colors.black54)],
+                      shadows: const [
+                        Shadow(blurRadius: 4, color: Colors.black54),
+                      ],
                     ),
                   ),
                 ],
@@ -1008,11 +993,10 @@ class HorizontalPetCard extends StatelessWidget {
                               children: [
                                 Text(
                                   pet['name'] ?? 'Unknown',
-                                  style: const TextStyle(
+                                  style: AppTypography.headline.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
                                     color: kPrimaryTextColor,
-                                    shadows: [
+                                    shadows: const [
                                       Shadow(
                                         color: Colors.black87,
                                         blurRadius: 4,
@@ -1025,10 +1009,9 @@ class HorizontalPetCard extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
+                                  style: AppTypography.subhead.copyWith(
                                     color: kPrimaryTextColor,
-                                    shadows: [
+                                    shadows: const [
                                       Shadow(
                                         color: Colors.black87,
                                         blurRadius: 4,

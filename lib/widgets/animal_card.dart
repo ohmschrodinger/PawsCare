@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../services/user_favorites_service.dart';
-import '../screens/gallery_screen.dart';
 import '../screens/pet_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -55,19 +54,16 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   late final AnimationController _heartAnimationController;
   late final Animation<double> _heartAnimation;
   bool _isHeartAnimating = false;
-  late bool _isLiked;
-  late bool _isSaved;
-  late int _likeCount;
+  
+  // Optimistic UI state
+  bool? _optimisticIsLiked;
+  bool? _optimisticIsSaved;
+  int? _optimisticLikeCount;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _isLiked = widget.isLiked;
-    _isSaved = widget.isSaved;
-    _likeCount = widget.likeCount;
-
-    _initializeFavoriteStatus();
 
     _likeAnimationController = AnimationController(
       vsync: this,
@@ -82,7 +78,10 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 800),
     );
     _heartAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _heartAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+        parent: _heartAnimationController,
+        curve: Curves.easeInOut,
+      ),
     );
 
     _heartAnimationController.addStatusListener((status) {
@@ -90,29 +89,6 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
         setState(() => _isHeartAnimating = false);
       }
     });
-  }
-
-  @override
-  void didUpdateWidget(covariant AnimalCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isLiked != _isLiked) setState(() => _isLiked = widget.isLiked);
-    if (widget.isSaved != _isSaved) setState(() => _isSaved = widget.isSaved);
-    if (widget.likeCount != _likeCount) setState(() => _likeCount = widget.likeCount);
-  }
-
-  Future<void> _initializeFavoriteStatus() async {
-    try {
-      final isLiked = await UserFavoritesService.isLiked(widget.animal['id']);
-      final isSaved = await UserFavoritesService.isSaved(widget.animal['id']);
-      if (mounted) {
-        setState(() {
-          _isLiked = isLiked;
-          _isSaved = isSaved;
-        });
-      }
-    } catch (e) {
-      print('Error initializing favorite status: $e');
-    }
   }
 
   @override
@@ -124,65 +100,102 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   }
 
   // ================= LOGIC METHODS =================
-  void _handleDoubleTap() {
+  Future<void> _handleDoubleTap(bool currentIsLiked, int currentLikeCount) async {
     setState(() => _isHeartAnimating = true);
     _heartAnimationController.forward(from: 0);
 
-    // Optimistic UI update
-    if (!_isLiked) _toggleLike();
+    // Only like if not already liked (Instagram behavior)
+    if (!currentIsLiked) {
+      await _toggleLike(currentIsLiked, currentLikeCount);
+    }
   }
 
-  void _toggleLike() async {
-    // Optimistic UI: immediate update
+  Future<void> _toggleLike(bool currentIsLiked, int currentLikeCount) async {
+    // OPTIMISTIC UI UPDATE - Instant feedback like Instagram
+    final newIsLiked = !currentIsLiked;
+    final newLikeCount = currentIsLiked ? currentLikeCount - 1 : currentLikeCount + 1;
+    
     setState(() {
-      _isLiked = !_isLiked;
-      _likeCount += _isLiked ? 1 : -1;
+      _optimisticIsLiked = newIsLiked;
+      _optimisticLikeCount = newLikeCount;
     });
 
-    if (_isLiked) {
-      _likeAnimationController
-          .forward()
-          .then((_) => _likeAnimationController.reverse());
-    }
+    // Trigger animation
+    _likeAnimationController.forward().then(
+      (_) => _likeAnimationController.reverse(),
+    );
 
+    // Background sync with Firestore
     try {
       await UserFavoritesService.toggleLike(widget.animal['id']);
-    } catch (e) {
-      print('Error toggling like: $e');
-      // Revert UI if backend fails
+      widget.onLike?.call();
+      
+      // Clear optimistic state after successful sync
+      // The StreamBuilder will now show the real data
       if (mounted) {
         setState(() {
-          _isLiked = !_isLiked;
-          _likeCount += _isLiked ? 1 : -1;
+          _optimisticIsLiked = null;
+          _optimisticLikeCount = null;
         });
       }
+    } catch (e) {
+      print('Error toggling like: $e');
+      
+      // REVERT optimistic update on error
+      if (mounted) {
+        setState(() {
+          _optimisticIsLiked = null;
+          _optimisticLikeCount = null;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update like. Please try again.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
-
-    widget.onLike?.call();
   }
 
-  void _toggleSave() async {
-    // Optimistic UI: immediate update
-    setState(() => _isSaved = !_isSaved);
+  Future<void> _toggleSave(bool currentIsSaved) async {
+    // OPTIMISTIC UI UPDATE
+    final newIsSaved = !currentIsSaved;
+    
+    setState(() {
+      _optimisticIsSaved = newIsSaved;
+    });
 
+    // Background sync
     try {
       await UserFavoritesService.toggleSave(widget.animal['id']);
+      widget.onSave?.call();
+      
+      // Clear optimistic state after successful sync
+      if (mounted) {
+        setState(() {
+          _optimisticIsSaved = null;
+        });
+      }
     } catch (e) {
       print('Error toggling save: $e');
-      if (mounted) setState(() => _isSaved = !_isSaved);
+      
+      // REVERT on error
+      if (mounted) {
+        setState(() {
+          _optimisticIsSaved = null;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update bookmark. Please try again.'),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
-
-    widget.onSave?.call();
-  }
-
-  void _openGallery(BuildContext context, List<String> imageUrls) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            GalleryScreen(imageUrls: imageUrls, initialIndex: _currentPage),
-      ),
-    );
   }
 
   void _navigateToPetDetail(BuildContext context) {
@@ -207,35 +220,30 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     return 'just now';
   }
 
-  IconData _getGenderIcon(String? gender) =>
-      gender?.toLowerCase() == 'male' ? Icons.male : Icons.female;
+  // Helper to combine Firestore data with optimistic updates
+  Stream<Map<String, dynamic>> _getLikeStatusStream(String? animalId) async* {
+    if (animalId == null) {
+      yield {'isLiked': false, 'likeCount': 0, 'isSaved': false};
+      return;
+    }
 
-  Color _getGenderColor(String? gender) =>
-      gender?.toLowerCase() == 'male' ? Colors.blue : Colors.pink;
-
-  Widget _buildInfoChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
+    await for (final animalSnapshot in FirebaseFirestore.instance
+        .collection('animals')
+        .doc(animalId)
+        .snapshots()) {
+      
+      final animalData = animalSnapshot.data();
+      final firestoreLikeCount = animalData?['likeCount'] ?? 0;
+      
+      final isLiked = await UserFavoritesService.isLiked(animalId);
+      final isSaved = await UserFavoritesService.isSaved(animalId);
+      
+      yield {
+        'isLiked': _optimisticIsLiked ?? isLiked,
+        'likeCount': _optimisticLikeCount ?? firestoreLikeCount,
+        'isSaved': _optimisticIsSaved ?? isSaved,
+      };
+    }
   }
 
   // ================= BUILD METHOD =================
@@ -258,41 +266,58 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
               SizedBox(
                 height: 420,
                 width: double.infinity,
-                child: GestureDetector(
-                  onDoubleTap: _handleDoubleTap,
-                onTap: () => _navigateToPetDetail(context),
-                  child: hasImages
-                      ? PageView.builder(
-                          controller: _pageController,
-                          itemCount: imageUrls.length,
-                          onPageChanged: (index) =>
-                              setState(() => _currentPage = index),
-                          itemBuilder: (context, index) {
-                            return CachedNetworkImage(
-                              cacheManager: customCacheManager,
-                              imageUrl: imageUrls[index],
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey.shade900,
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: kPrimaryAccentColor),
-                                ),
+                child: StreamBuilder<Map<String, dynamic>>(
+                  // Get real-time data for double-tap
+                  stream: _getLikeStatusStream(widget.animal['id']),
+                  builder: (context, snapshot) {
+                    final data = snapshot.data ?? {};
+                    final isLiked = data['isLiked'] ?? false;
+                    final likeCount = data['likeCount'] ?? 0;
+                    
+                    return GestureDetector(
+                      onDoubleTap: () => _handleDoubleTap(isLiked as bool, likeCount as int),
+                      onTap: () => _navigateToPetDetail(context),
+                      child: hasImages
+                          ? PageView.builder(
+                              controller: _pageController,
+                              itemCount: imageUrls.length,
+                              onPageChanged: (index) =>
+                                  setState(() => _currentPage = index),
+                              itemBuilder: (context, index) {
+                                return CachedNetworkImage(
+                                  cacheManager: customCacheManager,
+                                  imageUrl: imageUrls[index],
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    color: Colors.grey.shade900,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: kPrimaryAccentColor,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: Colors.grey.shade900,
+                                    child: const Icon(
+                                      Icons.pets,
+                                      size: 60,
+                                      color: kSecondaryTextColor,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey.shade900,
+                              child: const Icon(
+                                Icons.pets,
+                                size: 60,
+                                color: kSecondaryTextColor,
                               ),
-                              errorWidget: (context, url, error) => Container(
-                                color: Colors.grey.shade900,
-                                child: const Icon(Icons.pets,
-                                    size: 60, color: kSecondaryTextColor),
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey.shade900,
-                          child: const Icon(Icons.pets,
-                              size: 60, color: kSecondaryTextColor),
-                        ),
+                            ),
+                    );
+                  },
                 ),
               ),
 
@@ -311,62 +336,65 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                   ),
                 ),
 
-          // LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES
-// LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES (no outer circle, dynamic)
-if (imageUrls.length > 1) ...[
-  // Left arrow: only when previous page exists
-  if (_currentPage > 0)
-    Positioned(
-      left: 8,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: GestureDetector(
-          onTap: () {
-            _pageController.previousPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          },
-          child: const Padding(
-            padding: EdgeInsets.all(8.0), // increases touch target
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-        ),
-      ),
-    ),
+              // LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES
+              // LEFT & RIGHT ARROWS FOR MULTIPLE IMAGES (no outer circle, dynamic)
+              if (imageUrls.length > 1) ...[
+                // Left arrow: only when previous page exists
+                if (_currentPage > 0)
+                  Positioned(
+                    left: 8,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(
+                            8.0,
+                          ), // increases touch target
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
 
-  // Right arrow: only when next page exists
-  if (_currentPage < imageUrls.length - 1)
-    Positioned(
-      right: 8,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: GestureDetector(
-          onTap: () {
-            _pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          },
-          child: const Padding(
-            padding: EdgeInsets.all(8.0), // increases touch target
-            child: Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-        ),
-      ),
-    ),
-],
-
+                // Right arrow: only when next page exists
+                if (_currentPage < imageUrls.length - 1)
+                  Positioned(
+                    right: 8,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(
+                            8.0,
+                          ), // increases touch target
+                          child: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
 
               // GLASSMORPHIC INFO PANEL
               Positioned(
@@ -401,89 +429,111 @@ if (imageUrls.length > 1) ...[
   }
 
   Widget _buildInfoContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final animalId = widget.animal['id'] as String?;
+    if (animalId == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _getLikeStatusStream(animalId),
+      builder: (context, snapshot) {
+        final data = snapshot.data ?? {'isLiked': false, 'likeCount': 0, 'isSaved': false};
+        final isLiked = data['isLiked'] as bool;
+        final likeCount = data['likeCount'] as int;
+        final isSaved = data['isSaved'] as bool;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      widget.animal['name'] as String? ?? 'Unknown Pet',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.animal['name'] as String? ?? 'Unknown Pet',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryTextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: IconButton(
+                        onPressed: () => _toggleLike(isLiked, likeCount),
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked
+                              ? const Color.fromARGB(255, 255, 7, 7)
+                              : kSecondaryTextColor,
+                          size: 24,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    Text(
+                      '$likeCount',
                       style: const TextStyle(
-                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                         color: kPrimaryTextColor,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _toggleSave(isSaved),
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: isSaved ? Colors.white : kSecondaryTextColor,
+                        size: 24,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text(
+              "${widget.animal['breed'] ?? 'Mixed Breed'} • ${widget.animal['age'] ?? 'Unknown age'}",
+              style: const TextStyle(fontSize: 15, color: kSecondaryTextColor),
+            ),
+            const SizedBox(height: 8),
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: IconButton(
-                    onPressed: _toggleLike,
-                    icon: Icon(
-                      _isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: _isLiked
-                          ? const Color.fromARGB(255, 255, 7, 7)
-                          : kSecondaryTextColor,
-                      size: 24,
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: kSecondaryTextColor,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "${widget.animal['location'] ?? 'Pune, Maharashtra'} • Posted ${_getTimeAgo()}",
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: kSecondaryTextColor,
                     ),
-                    visualDensity: VisualDensity.compact,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  '$_likeCount',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: kPrimaryTextColor),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _toggleSave,
-                  icon: Icon(
-                    _isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: _isSaved ? Colors.white : kSecondaryTextColor,
-                    size: 24,
-                  ),
-                  visualDensity: VisualDensity.compact,
                 ),
               ],
             ),
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "${widget.animal['breed'] ?? 'Mixed Breed'} • ${widget.animal['age'] ?? 'Unknown age'}",
-          style: const TextStyle(fontSize: 15, color: kSecondaryTextColor),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(Icons.location_on_outlined,
-                size: 16, color: kSecondaryTextColor),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                "${widget.animal['location'] ?? 'Pune, Maharashtra'} • Posted ${_getTimeAgo()}",
-                style: const TextStyle(fontSize: 14, color: kSecondaryTextColor),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
