@@ -54,7 +54,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   late final AnimationController _heartAnimationController;
   late final Animation<double> _heartAnimation;
   bool _isHeartAnimating = false;
-  
+
   // Optimistic UI state
   bool? _optimisticIsLiked;
   bool? _optimisticIsSaved;
@@ -100,7 +100,10 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   }
 
   // ================= LOGIC METHODS =================
-  Future<void> _handleDoubleTap(bool currentIsLiked, int currentLikeCount) async {
+  Future<void> _handleDoubleTap(
+    bool currentIsLiked,
+    int currentLikeCount,
+  ) async {
     setState(() => _isHeartAnimating = true);
     _heartAnimationController.forward(from: 0);
 
@@ -113,8 +116,10 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   Future<void> _toggleLike(bool currentIsLiked, int currentLikeCount) async {
     // OPTIMISTIC UI UPDATE - Instant feedback like Instagram
     final newIsLiked = !currentIsLiked;
-    final newLikeCount = currentIsLiked ? currentLikeCount - 1 : currentLikeCount + 1;
-    
+    final newLikeCount = currentIsLiked
+        ? currentLikeCount - 1
+        : currentLikeCount + 1;
+
     setState(() {
       _optimisticIsLiked = newIsLiked;
       _optimisticLikeCount = newLikeCount;
@@ -129,7 +134,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     try {
       await UserFavoritesService.toggleLike(widget.animal['id']);
       widget.onLike?.call();
-      
+
       // Clear optimistic state after successful sync
       // The StreamBuilder will now show the real data
       if (mounted) {
@@ -140,14 +145,14 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
       }
     } catch (e) {
       print('Error toggling like: $e');
-      
+
       // REVERT optimistic update on error
       if (mounted) {
         setState(() {
           _optimisticIsLiked = null;
           _optimisticLikeCount = null;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to update like. Please try again.'),
@@ -162,7 +167,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   Future<void> _toggleSave(bool currentIsSaved) async {
     // OPTIMISTIC UI UPDATE
     final newIsSaved = !currentIsSaved;
-    
+
     setState(() {
       _optimisticIsSaved = newIsSaved;
     });
@@ -171,7 +176,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     try {
       await UserFavoritesService.toggleSave(widget.animal['id']);
       widget.onSave?.call();
-      
+
       // Clear optimistic state after successful sync
       if (mounted) {
         setState(() {
@@ -180,13 +185,13 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
       }
     } catch (e) {
       print('Error toggling save: $e');
-      
+
       // REVERT on error
       if (mounted) {
         setState(() {
           _optimisticIsSaved = null;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to update bookmark. Please try again.'),
@@ -227,17 +232,17 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
       return;
     }
 
-    await for (final animalSnapshot in FirebaseFirestore.instance
-        .collection('animals')
-        .doc(animalId)
-        .snapshots()) {
-      
+    await for (final animalSnapshot
+        in FirebaseFirestore.instance
+            .collection('animals')
+            .doc(animalId)
+            .snapshots()) {
       final animalData = animalSnapshot.data();
       final firestoreLikeCount = animalData?['likeCount'] ?? 0;
-      
+
       final isLiked = await UserFavoritesService.isLiked(animalId);
       final isSaved = await UserFavoritesService.isSaved(animalId);
-      
+
       yield {
         'isLiked': _optimisticIsLiked ?? isLiked,
         'likeCount': _optimisticLikeCount ?? firestoreLikeCount,
@@ -273,9 +278,10 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                     final data = snapshot.data ?? {};
                     final isLiked = data['isLiked'] ?? false;
                     final likeCount = data['likeCount'] ?? 0;
-                    
+
                     return GestureDetector(
-                      onDoubleTap: () => _handleDoubleTap(isLiked as bool, likeCount as int),
+                      onDoubleTap: () =>
+                          _handleDoubleTap(isLiked as bool, likeCount as int),
                       onTap: () => _navigateToPetDetail(context),
                       child: hasImages
                           ? PageView.builder(
@@ -297,14 +303,15 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                                       ),
                                     ),
                                   ),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: Colors.grey.shade900,
-                                    child: const Icon(
-                                      Icons.pets,
-                                      size: 60,
-                                      color: kSecondaryTextColor,
-                                    ),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: Colors.grey.shade900,
+                                        child: const Icon(
+                                          Icons.pets,
+                                          size: 60,
+                                          color: kSecondaryTextColor,
+                                        ),
+                                      ),
                                 );
                               },
                             )
@@ -437,7 +444,9 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     return StreamBuilder<Map<String, dynamic>>(
       stream: _getLikeStatusStream(animalId),
       builder: (context, snapshot) {
-        final data = snapshot.data ?? {'isLiked': false, 'likeCount': 0, 'isSaved': false};
+        final data =
+            snapshot.data ??
+            {'isLiked': false, 'likeCount': 0, 'isSaved': false};
         final isLiked = data['isLiked'] as bool;
         final likeCount = data['likeCount'] as int;
         final isSaved = data['isSaved'] as bool;
