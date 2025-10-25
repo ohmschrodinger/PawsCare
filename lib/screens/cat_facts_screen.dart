@@ -181,7 +181,7 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
         ),
         SizedBox(height: 8),
         Text(
-          'Learn fascinating facts about our feline friends',
+          'Learn fascinating facts about these cuties',
           style: TextStyle(fontSize: 15, color: kSecondaryTextColor),
         ),
       ],
@@ -259,7 +259,7 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
                 children: const [
                   Icon(
                     Icons.lightbulb_outline,
-                    color: kPrimaryAccentColor,
+                    color: Color.fromARGB(255, 255, 255, 255),
                     size: 24,
                   ),
                   SizedBox(width: 12),

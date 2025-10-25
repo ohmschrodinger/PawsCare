@@ -97,6 +97,15 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   }
 
   @override
+  void didUpdateWidget(AnimalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload location if the animal data has changed
+    if (oldWidget.animal != widget.animal) {
+      _getCityFromLocation();
+    }
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     _likeAnimationController.dispose();

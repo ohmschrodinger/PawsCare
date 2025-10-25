@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- THEME CONSTANTS ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -41,6 +42,38 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     }
     if (date == null) return 'N/A';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _launchWhatsApp(String phoneNumber) async {
+    // Remove any non-digit characters from the phone number
+    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // WhatsApp URL scheme
+    final Uri whatsappUrl = Uri.parse('https://wa.me/$cleanNumber');
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening WhatsApp: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // --- MODIFICATION: Updated for glassmorphism effect ---
@@ -152,6 +185,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
 
     final String status = widget.petData['status']?.toString() ?? 'available';
     final bool isAdopted = status.toLowerCase() == 'adopted';
+    final bool hideAdoptButton = widget.petData['hideAdoptButton'] == true;
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
@@ -168,7 +202,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         children: [
           _buildImageGallery(imageUrls),
           _buildContentBody(status),
-          if (!isAdopted) _buildAdoptMeButton(),
+          if (!isAdopted && !hideAdoptButton) _buildAdoptMeButton(),
         ],
       ),
     );
@@ -258,11 +292,6 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                         title: 'Pet Information',
                         children: [
                           _buildInfoRow(
-                            Icons.pets,
-                            'Breed Type:',
-                            getField('breedType'),
-                          ),
-                          _buildInfoRow(
                             Icons.label,
                             'Breed:',
                             getField('breed'),
@@ -309,11 +338,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                             'Location:',
                             getField('location'),
                           ),
-                          _buildInfoRow(
-                            Icons.phone,
-                            'Contact:',
-                            getField('contactPhone'),
-                          ),
+                          _buildPhoneRow(getField('contactPhone')),
                           _buildInfoRow(
                             Icons.email,
                             'Posted By:',
@@ -399,39 +424,42 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
       width: double.infinity,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: imageUrls.length,
-            onPageChanged: (index) => setState(() => _currentPage = index),
-            itemBuilder: (context, index) {
-              return CachedNetworkImage(
-                imageUrl: imageUrls[index],
-                height: 400,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
+          GestureDetector(
+            onHorizontalDragUpdate: (_) {}, // Capture horizontal gestures
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: imageUrls.length,
+              onPageChanged: (index) => setState(() => _currentPage = index),
+              itemBuilder: (context, index) {
+                return CachedNetworkImage(
+                  imageUrl: imageUrls[index],
                   height: 400,
                   width: double.infinity,
-                  color: Colors.grey.shade900,
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: kPrimaryAccentColor,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    height: 400,
+                    width: double.infinity,
+                    color: Colors.grey.shade900,
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: kPrimaryAccentColor,
+                      ),
                     ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 400,
-                  width: double.infinity,
-                  color: Colors.grey.shade900,
-                  child: const Icon(
-                    Icons.pets,
-                    size: 80,
-                    color: kSecondaryTextColor,
+                  errorWidget: (context, url, error) => Container(
+                    height: 400,
+                    width: double.infinity,
+                    color: Colors.grey.shade900,
+                    child: const Icon(
+                      Icons.pets,
+                      size: 80,
+                      color: kSecondaryTextColor,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
 
           // top gradient (unchanged)
@@ -611,6 +639,56 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneRow(String phoneNumber) {
+    if (phoneNumber.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.phone, color: kSecondaryTextColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(
+                    text: 'Contact: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor,
+                    ),
+                  ),
+                  TextSpan(
+                    text: phoneNumber,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: kSecondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () => _launchWhatsApp(phoneNumber),
+            borderRadius: BorderRadius.circular(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4.0),
+              child: Icon(
+                Icons.open_in_new,
+                color: kSecondaryTextColor,
+                size: 20,
               ),
             ),
           ),

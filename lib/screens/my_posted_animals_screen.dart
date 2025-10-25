@@ -28,6 +28,7 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
     return FirebaseFirestore.instance
         .collection('animals')
         .where('postedBy', isEqualTo: user.uid)
+        .where('approvalStatus', isEqualTo: 'approved')
         .snapshots();
   }
 
@@ -41,7 +42,10 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
         elevation: 0,
         title: const Text(
           'My Posted Animals',
-          style: TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
@@ -53,7 +57,10 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Center(
-              child: Text('Something went wrong.', style: TextStyle(color: Colors.redAccent)),
+              child: Text(
+                'Something went wrong.',
+                style: TextStyle(color: Colors.redAccent),
+              ),
             );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -69,9 +76,16 @@ class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.pets_outlined, size: 64, color: kSecondaryTextColor),
+                  Icon(
+                    Icons.pets_outlined,
+                    size: 64,
+                    color: kSecondaryTextColor,
+                  ),
                   SizedBox(height: 16),
-                  Text("You haven't posted any animals yet.", style: TextStyle(fontSize: 18, color: kSecondaryTextColor)),
+                  Text(
+                    "You haven't posted any animals yet.",
+                    style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
+                  ),
                 ],
               ),
             );
@@ -115,7 +129,10 @@ class _AnimalGridCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PetDetailScreen(petData: pet)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PetDetailScreen(petData: pet)),
+        );
       },
       child: Card(
         clipBehavior: Clip.antiAlias,
@@ -132,12 +149,20 @@ class _AnimalGridCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey.shade900,
-                        child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                        child: const Icon(
+                          Icons.pets,
+                          color: kSecondaryTextColor,
+                          size: 40,
+                        ),
                       ),
                     )
                   : Container(
                       color: Colors.grey.shade900,
-                      child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                      child: const Icon(
+                        Icons.pets,
+                        color: kSecondaryTextColor,
+                        size: 40,
+                      ),
                     ),
             ),
             Padding(
@@ -147,14 +172,21 @@ class _AnimalGridCard extends StatelessWidget {
                 children: [
                   Text(
                     pet['name'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kPrimaryTextColor),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 12, color: kSecondaryTextColor),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: kSecondaryTextColor,
+                    ),
                   ),
                 ],
               ),

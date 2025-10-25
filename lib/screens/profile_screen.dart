@@ -59,9 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
             const Center(
@@ -98,9 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
             // --- LAYER 3: Your original screen content inside a SafeArea ---
@@ -113,8 +109,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child:
-                          CircularProgressIndicator(color: kPrimaryAccentColor),
+                      child: CircularProgressIndicator(
+                        color: kPrimaryAccentColor,
+                      ),
                     );
                   }
                   if (snapshot.hasError) {
@@ -216,6 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return FirebaseFirestore.instance
         .collection('animals')
         .where('postedBy', isEqualTo: uid)
+        .where('approvalStatus', isEqualTo: 'approved')
         .snapshots();
   }
 
@@ -238,8 +236,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => _isUploading = true);
       final file = File(picked.path);
       final storageRef = FirebaseStorage.instance.ref().child(
-            'user_avatars/$uid.jpg',
-          );
+        'user_avatars/$uid.jpg',
+      );
       await storageRef.putFile(file);
       final url = await storageRef.getDownloadURL();
       await UserService.updateUserProfile(uid: uid, data: {'photoUrl': url});
@@ -270,28 +268,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final addressController = TextEditingController(text: initialAddress);
 
     darkInputDecoration(String label) => InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: kSecondaryTextColor),
-          filled: true,
-          fillColor: Colors.black.withOpacity(0.3),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 12.0,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-            borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
-          ),
-          errorStyle: const TextStyle(color: Colors.redAccent),
-        );
+      labelText: label,
+      labelStyle: const TextStyle(color: kSecondaryTextColor),
+      filled: true,
+      fillColor: Colors.black.withOpacity(0.3),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 12.0,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.0),
+        borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+      ),
+      errorStyle: const TextStyle(color: Colors.redAccent),
+    );
 
     await showModalBottomSheet(
       context: context,
@@ -374,12 +372,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Navigator.of(ctx).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Profile updated')),
+                                  content: Text('Profile updated'),
+                                ),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Failed to update: $e')),
+                                SnackBar(content: Text('Failed to update: $e')),
                               );
                             }
                           },
@@ -387,14 +385,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             decoration: BoxDecoration(
                               color: kPrimaryAccentColor.withOpacity(
-                                  0.65), // Translucent yellow
+                                0.65,
+                              ), // Translucent yellow
                               borderRadius: BorderRadius.circular(60.0),
                             ),
                             child: const Center(
                               child: Text(
                                 'Save Changes',
                                 style: TextStyle(
-                                  color: kPrimaryTextColor, // White text for better contrast
+                                  color:
+                                      kPrimaryTextColor, // White text for better contrast
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
@@ -531,10 +531,7 @@ class _AnimalGridView extends StatelessWidget {
   final Stream<QuerySnapshot> stream;
   final String emptyMessage;
 
-  const _AnimalGridView({
-    required this.stream,
-    required this.emptyMessage,
-  });
+  const _AnimalGridView({required this.stream, required this.emptyMessage});
 
   @override
   Widget build(BuildContext context) {
@@ -642,52 +639,49 @@ class _AnimalGridCard extends StatelessWidget {
                       size: 40,
                     ),
                   ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ClipRRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                    child: Container(
-                      width: double.infinity,
-                      color: Colors.black.withOpacity(0.55),
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            pet['name'] ?? 'Unknown',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: kPrimaryTextColor,
-                              shadows: [
-                                Shadow(color: Colors.black87, blurRadius: 4),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: kPrimaryTextColor,
-                              shadows: [
-                                Shadow(color: Colors.black87, blurRadius: 4),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 10.0,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                   ),
                 ),
-              ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      pet['name'] ?? 'Unknown',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: kPrimaryTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: kPrimaryTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

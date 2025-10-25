@@ -8,6 +8,7 @@ import 'package:pawscare/screens/application_detail_screen.dart';
 import 'dart:ui'; // For ImageFilter
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/widgets/animal_card.dart'; // For customCacheManager if needed
+import 'package:pawscare/services/notification_badge_service.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -26,6 +27,16 @@ class MyApplicationsScreen extends StatefulWidget {
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   String? _statusFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    // Mark applications as seen when the screen is opened
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      NotificationBadgeService.markApplicationsAsSeen(userId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,60 +75,6 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          // FILTER DROPDOWN on the right
-          Theme(
-            data: Theme.of(
-              context,
-            ).copyWith(canvasColor: kCardColor.withOpacity(0.8)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _statusFilter,
-                hint: const Text(
-                  'Filter',
-                  style: TextStyle(color: kSecondaryTextColor),
-                ),
-                icon: const Icon(Icons.filter_list, color: kSecondaryTextColor),
-                items: const [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text(
-                      'All Status',
-                      style: TextStyle(color: kPrimaryTextColor),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Under Review',
-                    child: Text(
-                      'Under Review',
-                      style: TextStyle(color: kPrimaryTextColor),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Accepted',
-                    child: Text(
-                      'Accepted',
-                      style: TextStyle(color: kPrimaryTextColor),
-                    ),
-                  ),
-                  DropdownMenuItem(
-                    value: 'Rejected',
-                    child: Text(
-                      'Rejected',
-                      style: TextStyle(color: kPrimaryTextColor),
-                    ),
-                  ),
-                ],
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _statusFilter = newValue;
-                  });
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
       body: Stack(
         children: [
@@ -135,8 +92,100 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
-          SafeArea(child: _buildApplicationsList(userId: currentUser.uid)),
+          SafeArea(
+            child: Column(
+              children: [
+                // Filter buttons
+                Container(
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('All', null),
+                        _buildFilterChip('Under Review', 'Under Review'),
+                        _buildFilterChip('Accepted', 'Accepted'),
+                        _buildFilterChip('Rejected', 'Rejected'),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _buildApplicationsList(userId: currentUser.uid),
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String? filterValue) {
+    final selected = _statusFilter == filterValue;
+    Color selectedColor;
+
+    switch (filterValue) {
+      case 'Accepted':
+        selectedColor = Colors.green;
+        break;
+      case 'Rejected':
+        selectedColor = Colors.red;
+        break;
+      default:
+        selectedColor = Colors.blue;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20.0),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: selected
+                  ? selectedColor.withOpacity(0.2)
+                  : Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(20.0),
+              border: Border.all(
+                color: selected
+                    ? selectedColor.withOpacity(0.4)
+                    : Colors.white.withOpacity(0.1),
+                width: 1.0,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() => _statusFilter = filterValue);
+                },
+                borderRadius: BorderRadius.circular(20.0),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? selectedColor : kSecondaryTextColor,
+                      fontWeight: selected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -302,6 +351,7 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
           petData: {
             'id': widget.applicationData['petId'],
             ...widget.animalData,
+            'hideAdoptButton': true, // Add this flag
           },
         ),
       ),
@@ -473,15 +523,8 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                           const Divider(height: 24, color: Colors.white12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Status:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: kPrimaryTextColor,
-                                ),
-                              ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -500,33 +543,36 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ApplicationDetailScreen(
-                                    applicationData: widget.applicationData,
-                                    applicationId: widget.applicationId,
-                                    isAdmin: false,
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ApplicationDetailScreen(
+                                            applicationData:
+                                                widget.applicationData,
+                                            applicationId: widget.applicationId,
+                                            isAdmin: false,
+                                          ),
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text(
+                                  'View Details →',
+                                  style: TextStyle(
+                                    color: kPrimaryTextColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: const Text(
-                              'View Application Details',
-                              style: TextStyle(
-                                color: kPrimaryAccentColor,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),

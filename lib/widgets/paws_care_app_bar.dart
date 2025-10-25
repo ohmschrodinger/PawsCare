@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pawscare/widgets/glassmorphic_popup_menu.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 
 // Assuming these are in other files, keep their imports
@@ -12,6 +13,7 @@ import '../screens/my_applications_screen.dart';
 import '../screens/all_applications_screen.dart';
 import '../screens/admin_logs_screen.dart';
 import '../screens/contact_us_screen.dart';
+import '../services/notification_badge_service.dart';
 
 // --- THEME CONSTANTS ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -134,86 +136,155 @@ List<Widget> _buildAppBarActions(
         final role = snapshot.data ?? 'user';
         final isAdmin = role == 'admin';
 
-        return GlassmorphicPopupMenu(
-          icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
-          onItemSelected: (value) {
-            if (value == 'my_applications') {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const MyApplicationsScreen()),
-              );
-            } else if (value == 'all_applications') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllApplicationsScreen(),
+        return StreamBuilder<bool>(
+          stream: isAdmin
+              ? NotificationBadgeService.hasUnderReviewApplications()
+              : NotificationBadgeService.hasNewApplicationUpdates(
+                  FirebaseAuth.instance.currentUser?.uid ?? '',
                 ),
-              );
-            } else if (value == 'profile') {
-              mainNavKey.currentState?.selectTab(4);
-            } else if (value == 'activity_logs') {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdminLogsScreen()),
-              );
-            } else if (value == 'contact_us') {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ContactUsScreen()),
-              );
-            }
-            if (onMenuSelected != null) onMenuSelected(value);
+          builder: (context, badgeSnapshot) {
+            final showBadge = badgeSnapshot.data ?? false;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GlassmorphicPopupMenu(
+                  icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
+                  onItemSelected: (value) {
+                    if (value == 'my_applications') {
+                      // Mark applications as seen when user opens My Applications
+                      if (!isAdmin) {
+                        final userId = FirebaseAuth.instance.currentUser?.uid;
+                        if (userId != null) {
+                          NotificationBadgeService.markApplicationsAsSeen(
+                            userId,
+                          );
+                        }
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MyApplicationsScreen(),
+                        ),
+                      );
+                    } else if (value == 'all_applications') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AllApplicationsScreen(),
+                        ),
+                      );
+                    } else if (value == 'profile') {
+                      mainNavKey.currentState?.selectTab(4);
+                    } else if (value == 'activity_logs') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AdminLogsScreen(),
+                        ),
+                      );
+                    } else if (value == 'contact_us') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ContactUsScreen(),
+                        ),
+                      );
+                    }
+                    if (onMenuSelected != null) onMenuSelected(value);
+                  },
+                  items: [
+                    const GlassmorphicPopupMenuItem(
+                      value: 'profile',
+                      child: Row(
+                        children: [
+                          Icon(Icons.person, color: popupIconColor),
+                          SizedBox(width: 12),
+                          Text('Profile', style: popupTextStyle),
+                        ],
+                      ),
+                    ),
+                    if (isAdmin) ...[
+                      GlassmorphicPopupMenuItem(
+                        value: 'all_applications',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.list_alt, color: popupIconColor),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'All Applications',
+                              style: popupTextStyle,
+                            ),
+                            const SizedBox(width: 8),
+                            if (showBadge)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const GlassmorphicPopupMenuItem(
+                        value: 'activity_logs',
+                        child: Row(
+                          children: [
+                            Icon(Icons.history, color: popupIconColor),
+                            SizedBox(width: 12),
+                            Text('Activity Logs', style: popupTextStyle),
+                          ],
+                        ),
+                      ),
+                    ],
+                    GlassmorphicPopupMenuItem(
+                      value: 'my_applications',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.assignment, color: popupIconColor),
+                          const SizedBox(width: 12),
+                          const Text('My Applications', style: popupTextStyle),
+                          const SizedBox(width: 8),
+                          if (!isAdmin && showBadge)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const GlassmorphicPopupMenuItem(
+                      value: 'contact_us',
+                      child: Row(
+                        children: [
+                          Icon(Icons.contact_support, color: popupIconColor),
+                          SizedBox(width: 12),
+                          Text('Contact Us', style: popupTextStyle),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                // Red dot notification badge
+                if (showBadge)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: kBackgroundColor, width: 1.5),
+                      ),
+                    ),
+                  ),
+              ],
+            );
           },
-          items: [
-            const GlassmorphicPopupMenuItem(
-              value: 'profile',
-              child: Row(
-                children: [
-                  Icon(Icons.person, color: popupIconColor),
-                  SizedBox(width: 12),
-                  Text('Profile', style: popupTextStyle),
-                ],
-              ),
-            ),
-            if (isAdmin) ...[
-              const GlassmorphicPopupMenuItem(
-                value: 'all_applications',
-                child: Row(
-                  children: [
-                    Icon(Icons.list_alt, color: popupIconColor),
-                    SizedBox(width: 12),
-                    Text('All Applications', style: popupTextStyle),
-                  ],
-                ),
-              ),
-              const GlassmorphicPopupMenuItem(
-                value: 'activity_logs',
-                child: Row(
-                  children: [
-                    Icon(Icons.history, color: popupIconColor),
-                    SizedBox(width: 12),
-                    Text('Activity Logs', style: popupTextStyle),
-                  ],
-                ),
-              ),
-            ],
-            const GlassmorphicPopupMenuItem(
-              value: 'my_applications',
-              child: Row(
-                children: [
-                  Icon(Icons.assignment, color: popupIconColor),
-                  SizedBox(width: 12),
-                  Text('My Applications', style: popupTextStyle),
-                ],
-              ),
-            ),
-            const GlassmorphicPopupMenuItem(
-              value: 'contact_us',
-              child: Row(
-                children: [
-                  Icon(Icons.contact_support, color: popupIconColor),
-                  SizedBox(width: 12),
-                  Text('Contact Us', style: popupTextStyle),
-                ],
-              ),
-            ),
-          ],
         );
       },
     ),

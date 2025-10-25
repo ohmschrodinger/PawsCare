@@ -812,7 +812,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     {
       'title': 'About PawsCare Animal Resq',
       'text':
-          "PawsCare is a passionate NGO dedicated to rescuing, rehabilitating, and rehoming stray animals.",
+          "Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think  you would be a good fit? See our contact page for more information!",
     },
     {
       'title': 'What You Can Do in the App',
@@ -1040,75 +1040,53 @@ class HorizontalPetCard extends StatelessWidget {
                 ),
               ),
 
-              // --- LAYER 2: LAYOUT AND BLUR ---
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // TOP: A transparent spacer that reveals the crisp image.
-                  const Expanded(flex: 3, child: SizedBox.expand()),
-
-                  // BOTTOM: The blurred info panel with UNIFIED styling.
-                  Expanded(
-                    flex: 2,
-                    child: ClipRRect(
-                      // BackdropFilter needs a clipping boundary
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.25),
-                            border: Border(
-                              top: BorderSide(
-                                color: Colors.white.withOpacity(0.1),
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  pet['name'] ?? 'Unknown',
-                                  style: AppTypography.headline.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: kPrimaryTextColor,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.black87,
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
-                                  style: AppTypography.subhead.copyWith(
-                                    color: kPrimaryTextColor,
-                                    shadows: const [
-                                      Shadow(
-                                        color: Colors.black87,
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+              // --- LAYER 2: INFO OVERLAY AT BOTTOM ---
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.7),
+                      ],
                     ),
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        pet['name'] ?? 'Unknown',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: kPrimaryTextColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: kPrimaryTextColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
