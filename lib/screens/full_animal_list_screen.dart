@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/animal_card.dart';
-import 'package:pawscare/services/user_favorites_service.dart';
 import '../utils/constants.dart';
 
 // --- Re-using the color palette for consistency ---
@@ -34,9 +34,31 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
   String? _filterSterilization;
   String? _filterVaccination;
 
+  // Liked animals tracking
+  Set<String> _likedAnimals = {};
+
   @override
   void initState() {
     super.initState();
+    _loadUserPreferences();
+  }
+
+  void _loadUserPreferences() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favoritesSnapshot = await FirebaseFirestore.instance
+        .collection('favorites')
+        .where('userId', isEqualTo: user.uid)
+        .get();
+
+    if (mounted) {
+      setState(() {
+        _likedAnimals = favoritesSnapshot.docs
+            .map((doc) => doc.data()['animalId'] as String)
+            .toSet();
+      });
+    }
   }
 
   Stream<QuerySnapshot> _getAnimalsStream() {
@@ -44,28 +66,53 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
   }
 
   void _likeAnimal(BuildContext context, String animalId) async {
-    try {
-      await UserFavoritesService.toggleLike(animalId);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  void _saveAnimal(BuildContext context, String animalId) async {
     try {
-      await UserFavoritesService.toggleSave(animalId);
+      if (_likedAnimals.contains(animalId)) {
+        _likedAnimals.remove(animalId);
+
+        final favoritesSnapshot = await FirebaseFirestore.instance
+            .collection('favorites')
+            .where('userId', isEqualTo: user.uid)
+            .where('animalId', isEqualTo: animalId)
+            .get();
+
+        for (var doc in favoritesSnapshot.docs) {
+          await doc.reference.delete();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Removed from favorites!'),
+            backgroundColor: kSecondaryTextColor,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      } else {
+        _likedAnimals.add(animalId);
+
+        await FirebaseFirestore.instance.collection('favorites').add({
+          'userId': user.uid,
+          'animalId': animalId,
+          'likedAt': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Added to favorites!',
+                style: TextStyle(color: Colors.black)),
+            backgroundColor: kPrimaryAccentColor,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
+        const SnackBar(
+          content: Text('Error updating favorites. Please try again.'),
+          backgroundColor: Colors.redAccent,
         ),
       );
     }
@@ -313,6 +360,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
               // for example, by giving it a background color of `kCardColor`.
               return AnimalCard(
                 animal: animal,
+                isLiked: _likedAnimals.contains(animalId),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -322,7 +370,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                   );
                 },
                 onLike: () => _likeAnimal(context, animalId),
-                onSave: () => _saveAnimal(context, animalId),
+                onSave: () {},
               );
             },
           );

@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart';
-import 'package:pawscare/services/user_favorites_service.dart';
 
 // --- THEME CONSTANTS ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -23,88 +22,11 @@ class PetDetailScreen extends StatefulWidget {
 class _PetDetailScreenState extends State<PetDetailScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
-  // Like and bookmark state
-  bool _isLiked = false;
-  bool _isSaved = false;
-  int _likeCount = 0;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeFavoriteStatus();
-  }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  Future<void> _initializeFavoriteStatus() async {
-    try {
-      final animalId = widget.petData['id'] as String?;
-      if (animalId == null) return;
-
-      final isLiked = await UserFavoritesService.isLiked(animalId);
-      final isSaved = await UserFavoritesService.isSaved(animalId);
-      
-      if (mounted) {
-        setState(() {
-          _isLiked = isLiked;
-          _isSaved = isSaved;
-          _likeCount = widget.petData['likeCount'] ?? 0;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error initializing favorite status: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleLike() async {
-    final animalId = widget.petData['id'] as String?;
-    if (animalId == null) return;
-
-    // Optimistic UI update
-    setState(() {
-      _isLiked = !_isLiked;
-      _likeCount += _isLiked ? 1 : -1;
-    });
-
-    try {
-      await UserFavoritesService.toggleLike(animalId);
-    } catch (e) {
-      print('Error toggling like: $e');
-      // Revert UI if backend fails
-      if (mounted) {
-        setState(() {
-          _isLiked = !_isLiked;
-          _likeCount += _isLiked ? 1 : -1;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleSave() async {
-    final animalId = widget.petData['id'] as String?;
-    if (animalId == null) return;
-
-    // Optimistic UI update
-    setState(() => _isSaved = !_isSaved);
-
-    try {
-      await UserFavoritesService.toggleSave(animalId);
-    } catch (e) {
-      print('Error toggling save: $e');
-      if (mounted) setState(() => _isSaved = !_isSaved);
-    }
   }
 
   String _formatDate(dynamic timestamp) {
@@ -241,27 +163,6 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          // Like button
-          IconButton(
-            onPressed: _isLoading ? null : _toggleLike,
-            icon: Icon(
-              _isLiked ? Icons.favorite : Icons.favorite_border,
-              color: _isLiked ? Colors.red : Colors.white,
-              size: 28,
-            ),
-          ),
-          // Bookmark button
-          IconButton(
-            onPressed: _isLoading ? null : _toggleSave,
-            icon: Icon(
-              _isSaved ? Icons.bookmark : Icons.bookmark_border,
-              color: _isSaved ? Colors.amber : Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Stack(
         children: [
@@ -319,25 +220,6 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                           fontSize: 16,
                           color: kSecondaryTextColor,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Like count display
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$_likeCount likes',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: kSecondaryTextColor,
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 16),
                       Wrap(

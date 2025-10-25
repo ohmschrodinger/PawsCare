@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pawscare/services/user_favorites_service.dart';
 
 const Color kBackgroundColor = Color(0xFF121212);
 const Color kCardColor = Color(0xFF1E1E1E);
@@ -22,88 +21,11 @@ class ViewDetailsScreen extends StatefulWidget {
 class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
-  // Like and bookmark state
-  bool _isLiked = false;
-  bool _isSaved = false;
-  int _likeCount = 0;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeFavoriteStatus();
-  }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  Future<void> _initializeFavoriteStatus() async {
-    try {
-      final animalId = widget.animalData['id'] as String?;
-      if (animalId == null) return;
-
-      final isLiked = await UserFavoritesService.isLiked(animalId);
-      final isSaved = await UserFavoritesService.isSaved(animalId);
-      
-      if (mounted) {
-        setState(() {
-          _isLiked = isLiked;
-          _isSaved = isSaved;
-          _likeCount = widget.animalData['likeCount'] ?? 0;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error initializing favorite status: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleLike() async {
-    final animalId = widget.animalData['id'] as String?;
-    if (animalId == null) return;
-
-    // Optimistic UI update
-    setState(() {
-      _isLiked = !_isLiked;
-      _likeCount += _isLiked ? 1 : -1;
-    });
-
-    try {
-      await UserFavoritesService.toggleLike(animalId);
-    } catch (e) {
-      print('Error toggling like: $e');
-      // Revert UI if backend fails
-      if (mounted) {
-        setState(() {
-          _isLiked = !_isLiked;
-          _likeCount += _isLiked ? 1 : -1;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleSave() async {
-    final animalId = widget.animalData['id'] as String?;
-    if (animalId == null) return;
-
-    // Optimistic UI update
-    setState(() => _isSaved = !_isSaved);
-
-    try {
-      await UserFavoritesService.toggleSave(animalId);
-    } catch (e) {
-      print('Error toggling save: $e');
-      if (mounted) setState(() => _isSaved = !_isSaved);
-    }
   }
 
   @override
@@ -132,27 +54,6 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
           icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        actions: [
-          // Like button
-          IconButton(
-            onPressed: _isLoading ? null : _toggleLike,
-            icon: Icon(
-              _isLiked ? Icons.favorite : Icons.favorite_border,
-              color: _isLiked ? Colors.red : kPrimaryTextColor,
-              size: 28,
-            ),
-          ),
-          // Bookmark button
-          IconButton(
-            onPressed: _isLoading ? null : _toggleSave,
-            icon: Icon(
-              _isSaved ? Icons.bookmark : Icons.bookmark_border,
-              color: _isSaved ? Colors.amber : kPrimaryTextColor,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -240,25 +141,6 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
-            ),
-            const SizedBox(height: 8),
-            // Like count display
-            Row(
-              children: [
-                Icon(
-                  Icons.favorite,
-                  color: Colors.red,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '$_likeCount likes',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: kSecondaryTextColor,
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 8),
 
