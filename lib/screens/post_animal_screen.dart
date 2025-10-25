@@ -1,30 +1,37 @@
-// screens/post_animal_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
+import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'package:pawscare/services/animal_service.dart';
+import 'package:pawscare/services/logging_service.dart';
 import 'package:pawscare/services/storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../widgets/paws_care_app_bar.dart';
-import '../main_navigation_screen.dart';
+import 'package:pawscare/screens/view_details_screen.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:google_places_flutter/model/prediction.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:pawscare/models/animal_location.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// --- THEME CONSTANTS FOR A CLEAN UI ---
-const Color kPrimaryColor = Colors.black;
-const Color kSecondaryColor = Color(0xFF616161); // Dark grey
-const Color kBackgroundColor = Color(0xFFF5F5F5); // Light grey background
-const Color kCardColor = Colors.white;
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
 
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
   final int initialTab;
   const PostAnimalScreen({
-    Key? key,
+    super.key,
     this.initialTab = 0,
     this.showAppBar = true,
-  }) : super(key: key);
+  });
 
   @override
   State<PostAnimalScreen> createState() => _PostAnimalScreenState();
@@ -38,26 +45,37 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
   final _breedController = TextEditingController();
-  final _ageController = TextEditingController();
+  final _ageYearsController = TextEditingController();
+  final _ageMonthsController = TextEditingController();
+  int? _selectedAgeYears;
+  int? _selectedAgeMonths;
   final _rescueStoryController = TextEditingController();
   final _locationController = TextEditingController();
   final _contactPhoneController = TextEditingController();
   final _medicalIssuesController = TextEditingController();
 
+  // Location data for Places API
+  AnimalLocation? _selectedLocation;
+  String? _locationPlaceId;
+  double? _locationLatitude;
+  double? _locationLongitude;
+
+  // Google Places API Key from environment variables
+  String get _googleApiKey => dotenv.env['GOOGLE_PLACES_API_KEY'] ?? '';
+
   // --- FORM STATE VARIABLES ---
   String? _species;
   String? _gender;
-  String? _breedType; // "Indie" or "Specific Breed"
-  String? _motherStatus; // Added for mother status
+  String? _breedType;
+  String? _motherStatus;
   bool? _isSterilized;
   bool? _isVaccinated;
   bool? _isDewormed;
-  // REMOVED: Behavior and temperament state variables are no longer needed.
 
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _images = [];
+  final List<XFile> _images = [];
 
   @override
   void initState() {
@@ -74,7 +92,8 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     _tabController.dispose();
     _nameController.dispose();
     _breedController.dispose();
-    _ageController.dispose();
+    _ageYearsController.dispose();
+    _ageMonthsController.dispose();
     _rescueStoryController.dispose();
     _locationController.dispose();
     _contactPhoneController.dispose();
@@ -105,41 +124,62 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     });
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: buildPawsCareAppBar(
-        context: context,
-        onLogout: _logout,
-        onMenuSelected: (value) {
-          if (value == 'profile') {
-            if (mainNavKey.currentState != null) {
-              mainNavKey.currentState!.selectTab(4);
-            } else {
-              Navigator.of(context).pushNamed('/main');
-            }
-          } else if (value == 'all_applications') {
-            Navigator.of(context).pushNamed('/all-applications');
-          } else if (value == 'my_applications') {
-            Navigator.of(context).pushNamed('/my-applications');
-          }
-        },
+      // --- CHANGE 1: Set background to transparent and extend body ---
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
+
+      // --- CHANGE 2: Make AppBar transparent ---
+      appBar: AppBar(
+        title: const Text(
+          'New Post',
+          style: TextStyle(
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: Column(
+      // --- CHANGE 3: Use a Stack for the layered background ---
+      body: Stack(
         children: [
-          _buildTabBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildPendingRequestsTab(), _buildAddNewAnimalTab()],
+          // --- LAYER 1: The background image ---
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.png',
+              fit: BoxFit.cover,
+              color: Colors.black.withOpacity(0.2),
+              colorBlendMode: BlendMode.darken,
+            ),
+          ),
+
+          // --- LAYER 2: The blur overlay ---
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(color: Colors.black.withOpacity(0.5)),
+            ),
+          ),
+
+          // --- LAYER 3: Your original screen content inside a SafeArea ---
+          SafeArea(
+            child: Column(
+              children: [
+                _buildTabBar(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildPendingRequestsTab(),
+                      _buildAddNewAnimalTab(),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -149,313 +189,242 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildTabBar() {
     return Material(
-      color: kCardColor,
+      // --- CHANGE 4: Make TabBar background transparent ---
+      color: Colors.transparent,
       child: TabBar(
         controller: _tabController,
-        indicatorColor: kPrimaryColor,
-        labelColor: kPrimaryColor,
-        unselectedLabelColor: kSecondaryColor,
+        indicatorColor: kPrimaryAccentColor,
+        labelColor: kPrimaryTextColor,
+        unselectedLabelColor:
+            kSecondaryTextColor, // Differentiate unselected tabs
         tabs: const [
           Tab(icon: Icon(Icons.pending_actions), text: 'Pending Requests'),
-          Tab(icon: Icon(Icons.add_circle_outline), text: 'Add New Animal'),
+          Tab(icon: Icon(Icons.add_circle_outline), text: 'Post New Animal'),
         ],
       ),
     );
   }
 
-  Widget _buildPendingRequestsTab() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Center(
-        child: Text('Please log in to view pending requests'),
-      );
-    }
-    return StreamBuilder<QuerySnapshot>(
-      stream: AnimalService.getPendingAnimals(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError)
-          return Center(child: Text('Error: ${snapshot.error}'));
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: kPrimaryColor),
-          );
-        }
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get(),
-          builder: (context, roleSnapshot) {
-            String role = (roleSnapshot.data?.get('role') ?? 'user');
-
-            final allAnimals = snapshot.data?.docs ?? [];
-
-            // Debug: Print all pending animals
-            print('DEBUG: Found ${allAnimals.length} total pending animals');
-            for (var doc in allAnimals) {
-              final data = doc.data() as Map<String, dynamic>;
-              print(
-                'DEBUG: Animal: ${data['name']} - Posted by: ${data['postedByEmail']}',
-              );
-            }
-            print('DEBUG: Current user email: ${user.email}');
-
-            List<DocumentSnapshot> animals = (role == 'admin')
-                ? allAnimals
-                : allAnimals.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final matches = data['postedByEmail'] == user.email;
-                    print(
-                      'DEBUG: Checking ${data['name']} - Posted by ${data['postedByEmail']} - Matches current user? $matches',
-                    );
-                    return matches;
-                  }).toList();
-
-            print(
-              'DEBUG: After filtering, found ${animals.length} animals for current user',
-            );
-
-            if (animals.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No pending requests for now',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 16),
-              itemCount: animals.length,
-              itemBuilder: (context, index) {
-                final animalData =
-                    animals[index].data() as Map<String, dynamic>;
-                final animalId = animals[index].id;
-                return _PendingAnimalCard(
-                  animalData: animalData,
-                  animalId: animalId,
-                  isAdmin: role == 'admin',
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      physics: const BouncingScrollPhysics(), // Added for a better scroll feel
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 24),
             const Text(
-              'Add a New Friend',
+              'Post a new pet',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: kPrimaryColor,
+                color: kPrimaryTextColor,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Your submission will be reviewed by an admin before going live.',
-              style: TextStyle(fontSize: 14, color: kSecondaryColor),
+              style: TextStyle(fontSize: 14, color: kSecondaryTextColor),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            _buildFormSection(
-              title: 'Basic Information',
-              children: [
-                _buildTextField(
-                  _nameController,
-                  'Name*',
-                  'e.g., Bruno, Kitty',
-                  validator: (v) => v!.isEmpty ? "Name is required" : null,
-                ),
-                _buildChoiceChipQuestion(
-                  question: 'Species*',
-                  options: ['Dog', 'Cat', 'Other'],
-                  selectedValue: _species,
-                  onSelected: (val) => setState(() => _species = val),
-                ),
-                if (_species == 'Other')
-                  _buildTextField(
-                    _breedController,
-                    'Species Name*',
-                    'e.g., Rabbit , Cow',
-                    validator: (v) => v!.isEmpty ? "Species is required" : null,
-                  ),
-                _buildChoiceChipQuestion(
-                  question: 'Is this a specific breed or an Indie?*',
-                  options: ['Indie', 'Specific Breed'],
-                  selectedValue: _breedType,
-                  onSelected: (val) => setState(() => _breedType = val),
-                ),
-                if (_breedType == 'Specific Breed')
-                  _buildTextField(
-                    _breedController,
-                    'Breed Name*',
-                    'e.g., Labrador, Persian',
-                    validator: (v) => v!.isEmpty ? "Breed is required" : null,
-                  ),
-                _buildTextField(
-                  _ageController,
-                  'Age*',
-                  'e.g., 2 years, 5 months',
-                  validator: (v) => v!.isEmpty ? "Age is required" : null,
-                ),
-                _buildChoiceChipQuestion(
-                  question: 'Gender*',
-                  options: ['Male', 'Female'],
-                  selectedValue: _gender,
-                  onSelected: (val) => setState(() => _gender = val),
-                ),
-                // Added Mother Status field
-                _buildChoiceChipQuestion(
-                  question: 'Mother Status',
-                  options: ['Known', 'Unknown'],
-                  selectedValue: _motherStatus,
-                  onSelected: (val) => setState(() => _motherStatus = val),
-                ),
-              ],
+            // --- Basic Information Section ---
+            _buildSectionHeader('Basic Information'),
+            _buildTextField(
+              _nameController,
+              'Name*',
+              'e.g., Bruno, Kitty',
+              validator: (v) => v!.isEmpty ? "Name is required" : null,
             ),
-
-            _buildFormSection(
-              title: 'Health & Wellness',
-              children: [
-                _buildBinaryQuestion(
-                  'Is the animal sterilized (neutered/spayed)?*',
-                  _isSterilized,
-                  (val) => setState(() => _isSterilized = val),
-                ),
-                _buildBinaryQuestion(
-                  'Are vaccinations up to date?*',
-                  _isVaccinated,
-                  (val) => setState(() => _isVaccinated = val),
-                ),
-                _buildBinaryQuestion(
-                  'Has the animal been dewormed recently?*',
-                  _isDewormed,
-                  (val) => setState(() => _isDewormed = val),
-                ),
-                _buildTextField(
-                  _medicalIssuesController,
-                  'Known Medical Issues',
-                  'e.g., Skin allergy, missing a limb. Write "None" if not applicable.',
-                ),
-              ],
+            const Divider(color: Colors.white12, height: 1),
+            _buildChoiceChipQuestion(
+              question: 'Species*',
+              options: ['Dog', 'Cat', 'Other'],
+              selectedValue: _species,
+              onSelected: (val) => setState(() => _species = val),
+            ),
+            if (_species == 'Other') ...[
+              const Divider(color: Colors.white12, height: 1),
+              _buildTextField(
+                _breedController,
+                'Species Name*',
+                'e.g., Rabbit, Cow',
+                validator: (v) => v!.isEmpty ? "Species is required" : null,
+              ),
+            ],
+            const Divider(color: Colors.white12, height: 1),
+            _buildChoiceChipQuestion(
+              question: 'Breed Type*',
+              options: ['Indie', 'Specific'],
+              selectedValue: _breedType,
+              onSelected: (val) => setState(() => _breedType = val),
+            ),
+            if (_breedType == 'Specific') ...[
+              const Divider(color: Colors.white12, height: 1),
+              _buildTextField(
+                _breedController,
+                'Breed Name*',
+                'e.g., Labrador, Persian',
+                validator: (v) => v!.isEmpty ? "Breed is required" : null,
+              ),
+            ],
+            const Divider(color: Colors.white12, height: 1),
+            _buildAgeField(),
+            const Divider(color: Colors.white12, height: 1),
+            _buildChoiceChipQuestion(
+              question: 'Gender*',
+              options: ['Male', 'Female'],
+              selectedValue: _gender,
+              onSelected: (val) => setState(() => _gender = val),
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _buildChoiceChipQuestion(
+              question: 'Mother Status',
+              options: ['Known', 'Unknown'],
+              selectedValue: _motherStatus,
+              onSelected: (val) => setState(() => _motherStatus = val),
             ),
 
-            // REMOVED: The "Behavior & Temperament" section has been removed as requested.
-            _buildFormSection(
-              title: 'Location, Contact & Story',
-              children: [
-                _buildTextField(
-                  _locationController,
-                  'Location of Animal*',
-                  'e.g., Koregaon Park, Pune',
-                  validator: (v) => v!.isEmpty ? "Location is required" : null,
-                ),
-                _buildTextField(
-                  _contactPhoneController,
-                  'Your Contact Number*',
-                  'Adopters will contact this number',
-                  isPhoneNumber: true,
-                  validator: (v) {
-                    if (v!.isEmpty) return "Phone number is required";
-                    if (v.length != 10)
-                      return "Please enter a valid 10-digit number";
-                    return null;
-                  },
-                ),
-                _buildTextField(
-                  _rescueStoryController,
-                  'Rescue Story / About the Animal',
-                  'Share their story...',
-                  maxLines: 5,
-                ),
-              ],
+            // --- Health & Wellness Section ---
+            _buildSectionHeader('Health & Wellness'),
+            _buildBinaryQuestion(
+              'Sterilized (Neutered/Spayed)?*',
+              _isSterilized,
+              (val) => setState(() => _isSterilized = val),
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _buildBinaryQuestion(
+              'Vaccinations up to date?*',
+              _isVaccinated,
+              (val) => setState(() => _isVaccinated = val),
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _buildBinaryQuestion(
+              'Dewormed recently?*',
+              _isDewormed,
+              (val) => setState(() => _isDewormed = val),
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _buildTextField(
+              _medicalIssuesController,
+              'Known Medical Issues',
+              'e.g., Skin allergy. Write "None" if not applicable.',
             ),
 
-            _buildFormSection(
-              title: 'Photos*',
-              children: [
-                _buildImagePicker(),
-                if (_images.isEmpty && _isSubmitting)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      'At least one photo is required.',
-                      style: TextStyle(color: Colors.red, fontSize: 12),
-                    ),
-                  ),
-              ],
+            // --- Location, Contact & Story Section ---
+            _buildSectionHeader('Location, Contact & Story'),
+            _buildPlacesAutocompleteField(),
+            const Divider(color: Colors.white12, height: 1),
+            _buildTextField(
+              _contactPhoneController,
+              'Your Contact Number*',
+              'Adopters will contact this number',
+              isPhoneNumber: true,
+              validator: (v) {
+                if (v!.isEmpty) return "Phone number is required";
+                if (v.length != 10) {
+                  return "Please enter a valid 10-digit number";
+                }
+                return null;
+              },
+            ),
+            const Divider(color: Colors.white12, height: 1),
+            _buildTextField(
+              _rescueStoryController,
+              'Rescue Story / About the Animal',
+              'Share their story...',
+              maxLines: 5,
             ),
 
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitForm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // --- Photos Section ---
+            _buildSectionHeader('Photos*'),
+            const SizedBox(height: 8),
+            _buildImagePicker(),
+            if (_images.isEmpty && _isSubmitting)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0, left: 4.0),
+                child: Text(
+                  'At least one photo is required.',
+                  style: TextStyle(color: Colors.redAccent, fontSize: 12),
                 ),
               ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 3,
+            const SizedBox(height: 32),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.2),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
                       ),
-                    )
-                  : const Text(
-                      'Submit for Review',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(0, 4),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isSubmitting ? null : _submitForm,
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        alignment: Alignment.center,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Submit for Review',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
                     ),
+                  ),
+                ),
+              ),
             ),
+            const SizedBox(height: 100),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFormSection({
-    required String title,
-    required List<Widget> children,
-  }) {
-    return Card(
-      color: kCardColor,
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
-      margin: const EdgeInsets.symmetric(vertical: 12.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: kPrimaryColor,
-              ),
-            ),
-            const Divider(height: 24),
-            ...children,
-          ],
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: kPrimaryTextColor,
         ),
       ),
     );
@@ -474,6 +443,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
         keyboardType: isPhoneNumber ? TextInputType.phone : TextInputType.text,
         inputFormatters: isPhoneNumber
             ? [
@@ -484,14 +454,35 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
+          labelStyle: const TextStyle(color: kSecondaryTextColor),
+          hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
+          filled: true,
+          fillColor: Colors.black.withOpacity(0.3),
           prefixIcon: isPhoneNumber
-              ? const Padding(padding: EdgeInsets.all(12.0), child: Text('+91'))
+              ? const Padding(
+                  padding: EdgeInsets.all(15.0),
+                  child: Text(
+                    '+91',
+                    style: TextStyle(color: kPrimaryTextColor, fontSize: 16),
+                  ),
+                )
               : null,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide.none,
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+            borderSide: const BorderSide(
+              color: kPrimaryAccentColor,
+              width: 1.5,
+            ),
+          ),
+          errorStyle: const TextStyle(color: Colors.redAccent),
         ),
         validator: validator,
       ),
@@ -504,38 +495,68 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     required String? selectedValue,
     required ValueChanged<String> onSelected,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            question,
-            style: const TextStyle(fontSize: 16, color: kSecondaryColor),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
-            children: options.map((option) {
-              final isSelected = selectedValue == option;
-              return ChoiceChip(
-                label: Text(option),
-                selected: isSelected,
-                onSelected: (_) => onSelected(option),
-                selectedColor: kPrimaryColor,
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : kPrimaryColor,
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 4.0,
+        horizontal: 4.0,
+      ),
+      title: Text(
+        question,
+        style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: options.map((option) {
+          final isSelected = selectedValue == option;
+          return Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.amber.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20.0),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.amber.withOpacity(0.4)
+                          : Colors.white.withOpacity(0.15),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => onSelected(option),
+                      borderRadius: BorderRadius.circular(20.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : kPrimaryTextColor.withOpacity(0.8),
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                backgroundColor: Colors.grey[200],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                showCheckmark: false,
-              );
-            }).toList(),
-          ),
-        ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -550,6 +571,351 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       options: ['Yes', 'No'],
       selectedValue: value == null ? null : (value ? 'Yes' : 'No'),
       onSelected: (val) => onChanged(val == 'Yes'),
+    );
+  }
+
+  Widget _buildPlacesAutocompleteField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GooglePlaceAutoCompleteTextField(
+            textEditingController: _locationController,
+            googleAPIKey: _googleApiKey,
+            inputDecoration: InputDecoration(
+              labelText: 'Location of Animal*',
+              hintText: 'Search for a location...',
+              labelStyle: const TextStyle(color: kSecondaryTextColor),
+              hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
+              filled: true,
+              fillColor: Colors.black.withOpacity(0.3),
+              prefixIcon: const Icon(
+                Icons.location_on,
+                color: kSecondaryTextColor,
+              ),
+              suffixIcon: _locationController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: kSecondaryTextColor),
+                      onPressed: () {
+                        setState(() {
+                          _locationController.clear();
+                          _selectedLocation = null;
+                          _locationPlaceId = null;
+                          _locationLatitude = null;
+                          _locationLongitude = null;
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(
+                  color: kPrimaryAccentColor,
+                  width: 1.5,
+                ),
+              ),
+              errorStyle: const TextStyle(color: Colors.redAccent),
+            ),
+            debounceTime: 800,
+            countries: const ["in"], // Restrict to India
+            isLatLngRequired: true,
+            getPlaceDetailWithLatLng: (Prediction prediction) async {
+              // This callback is triggered when user selects a place
+              print('Selected place: ${prediction.description}');
+              print('Lat: ${prediction.lat}, Lng: ${prediction.lng}');
+
+              setState(() {
+                _locationPlaceId = prediction.placeId;
+                _locationLatitude = double.tryParse(prediction.lat ?? '0');
+                _locationLongitude = double.tryParse(prediction.lng ?? '0');
+
+                _selectedLocation = AnimalLocation(
+                  address: prediction.description ?? '',
+                  latitude: _locationLatitude ?? 0.0,
+                  longitude: _locationLongitude ?? 0.0,
+                  placeId: _locationPlaceId,
+                  formattedAddress: prediction.description,
+                );
+              });
+            },
+            itemClick: (Prediction prediction) {
+              _locationController.text = prediction.description ?? '';
+              _locationController.selection = TextSelection.fromPosition(
+                TextPosition(offset: prediction.description?.length ?? 0),
+              );
+            },
+            itemBuilder: (context, index, Prediction prediction) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kCardColor.withOpacity(0.9),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: kPrimaryAccentColor,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        prediction.description ?? '',
+                        style: const TextStyle(
+                          color: kPrimaryTextColor,
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            seperatedBuilder: const Divider(
+              height: 0,
+              color: Colors.transparent,
+            ),
+            isCrossBtnShown: false,
+            containerHorizontalPadding: 0,
+            textStyle: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+          ),
+          if (_selectedLocation == null && _isSubmitting)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Text(
+                'Please select a location from the suggestions.',
+                style: TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ),
+          if (_selectedLocation != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Location selected: ${_selectedLocation!.formattedAddress}',
+                      style: const TextStyle(color: Colors.green, fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgeField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text(
+                'Age: ',
+                style: TextStyle(fontSize: 16, color: kPrimaryTextColor),
+              ),
+              SizedBox(
+                width: 100, // Increased width for better spacing
+                child: DropdownButtonFormField<int>(
+                  value:
+                      _selectedAgeYears ??
+                      int.tryParse(_ageYearsController.text) ??
+                      0,
+                  isExpanded: true,
+                  itemHeight: 48,
+                  menuMaxHeight: 48 * 5 + 8,
+                  items: List.generate(
+                    16,
+                    (i) =>
+                        DropdownMenuItem(value: i, child: Text(i.toString())),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedAgeYears = val;
+                      _ageYearsController.text = val?.toString() ?? '';
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Years',
+                    labelStyle: const TextStyle(color: kSecondaryTextColor),
+                    filled: true,
+                    fillColor: Colors.black.withOpacity(0.3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: const BorderSide(
+                        color: kPrimaryAccentColor,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  validator: (v) {
+                    if ((_ageYearsController.text.isEmpty) &&
+                        (_ageMonthsController.text.isEmpty)) {
+                      return 'Enter age';
+                    }
+                    return null;
+                  },
+                  dropdownColor: kCardColor,
+                  style: const TextStyle(color: kPrimaryTextColor),
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 100, // Increased width
+                child: DropdownButtonFormField<int>(
+                  value:
+                      _selectedAgeMonths ??
+                      int.tryParse(_ageMonthsController.text) ??
+                      0,
+                  isExpanded: true,
+                  itemHeight: 48,
+                  menuMaxHeight: 48 * 5 + 8,
+                  items: List.generate(
+                    13,
+                    (i) =>
+                        DropdownMenuItem(value: i, child: Text(i.toString())),
+                  ),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedAgeMonths = val;
+                      _ageMonthsController.text = val?.toString() ?? '';
+                    });
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Months',
+                    labelStyle: const TextStyle(color: kSecondaryTextColor),
+                    filled: true,
+                    fillColor: Colors.black.withOpacity(0.3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: const BorderSide(
+                        color: kPrimaryAccentColor,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  validator: (v) {
+                    if ((_ageMonthsController.text.isEmpty) &&
+                        (_ageYearsController.text.isEmpty)) {
+                      return 'Enter age';
+                    }
+                    return null;
+                  },
+                  dropdownColor: kCardColor,
+                  style: const TextStyle(color: kPrimaryTextColor),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingRequestsTab() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Center(
+        child: Text(
+          'Please log in to view pending requests',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
+      );
+    }
+    return StreamBuilder<QuerySnapshot>(
+      stream: AnimalService.getPendingAnimals(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: kPrimaryAccentColor),
+          );
+        }
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
+          builder: (context, roleSnapshot) {
+            String role = (roleSnapshot.data?.get('role') ?? 'user');
+            final allAnimals = snapshot.data?.docs ?? [];
+
+            List<DocumentSnapshot> animals = (role == 'admin')
+                ? allAnimals
+                : allAnimals.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return data['postedByEmail'] == user.email;
+                  }).toList();
+
+            if (animals.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No pending requests for now',
+                  style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 90),
+              itemCount: animals.length,
+              physics: const BouncingScrollPhysics(),
+              itemBuilder: (context, index) {
+                final animalData =
+                    animals[index].data() as Map<String, dynamic>;
+                final animalId = animals[index].id;
+                return _PendingAnimalCard(
+                  animalData: animalData,
+                  animalId: animalId,
+                  isAdmin: role == 'admin',
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -592,23 +958,112 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         const SizedBox(height: 12),
         Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: _images.length < 5
-                  ? () => _pickImage(ImageSource.gallery)
-                  : null,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('Gallery'),
-              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickImage(ImageSource.camera),
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Camera',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: _images.length < 5
-                  ? () => _pickImage(ImageSource.camera)
-                  : null,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Camera'),
-              style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor),
+            const SizedBox(width: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50.0),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50.0),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickImage(ImageSource.gallery),
+                      borderRadius: BorderRadius.circular(50.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.photo_library,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Gallery',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
+            const Spacer(),
+            if (_images.isNotEmpty) ...[
+              Text(
+                '${_images.length}/5 selected',
+                style: const TextStyle(color: kPrimaryTextColor),
+              ),
+              IconButton(
+                onPressed: () => setState(() => _images.clear()),
+                icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              ),
+            ],
           ],
         ),
       ],
@@ -616,64 +1071,58 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        backgroundColor: isError ? Colors.redAccent : Colors.green.shade800,
       ),
     );
   }
 
   Future<void> _submitForm() async {
     setState(() {});
-    if (!_formKey.currentState!.validate() || _images.isEmpty) {
-      _showSnackBar(
-        'Please fill all required fields (*) and add at least one photo.',
-        isError: true,
-      );
+
+    // Validate form and check for images and location
+    if (!_formKey.currentState!.validate() ||
+        _images.isEmpty ||
+        _selectedLocation == null) {
+      String errorMsg =
+          'Please fill all required fields (*) and add at least one photo.';
+      if (_selectedLocation == null) {
+        errorMsg = 'Please select a location from the dropdown suggestions.';
+      }
+      _showSnackBar(errorMsg, isError: true);
       return;
     }
 
-    // Debug: Print current user info
-    final user = FirebaseAuth.instance.currentUser;
-    print('DEBUG: Submitting form for user: ${user?.email}');
-
-    // Debug: Check user role
-    if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      print('DEBUG: User document exists: ${userDoc.exists}');
-      if (userDoc.exists) {
-        print('DEBUG: User data: ${userDoc.data()}');
-      }
-    }
-
     setState(() => _isSubmitting = true);
-
     try {
-      // We don't need to get the user here as the service handles it
+      final years = _ageYearsController.text.trim();
+      final months = _ageMonthsController.text.trim();
+      final ageString =
+          '${years.isEmpty ? '0' : years} Years, ${months.isEmpty ? '0' : months} Months';
 
-      // Use the service method to create the animal
       final animalDoc = await AnimalService.postAnimal(
         name: _nameController.text.trim(),
         species: _species!,
         breedType: _breedType!,
         breed: _breedType == 'Indie' ? 'Indie' : _breedController.text.trim(),
-        age: _ageController.text.trim(),
+        age: ageString,
         gender: _gender!,
         sterilization: _isSterilized! ? 'Yes' : 'No',
         vaccination: _isVaccinated! ? 'Yes' : 'No',
         deworming: _isDewormed! ? 'Yes' : 'No',
         motherStatus: _motherStatus ?? 'Unknown',
         medicalIssues: _medicalIssuesController.text.trim(),
-        location: _locationController.text.trim(),
+        location:
+            _selectedLocation!.formattedAddress ??
+            _locationController.text.trim(),
+        locationData: _selectedLocation,
         contactPhone: '+91${_contactPhoneController.text.trim()}',
         rescueStory: _rescueStoryController.text.trim(),
       );
       final animalId = animalDoc.id;
-
       List<String> imageUrls = [];
       for (int i = 0; i < _images.length; i++) {
         final url = await StorageService.uploadAnimalImage(
@@ -683,15 +1132,18 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         );
         imageUrls.add(url);
       }
-
       await animalDoc.update({'imageUrls': imageUrls});
-
+      await LoggingService.logEvent(
+        'animal_posted_client',
+        data: {'animalId': animalId, 'name': _nameController.text.trim()},
+      );
       if (mounted) {
         _showSnackBar('Animal submitted for review!', isError: false);
         _formKey.currentState!.reset();
         _nameController.clear();
         _breedController.clear();
-        _ageController.clear();
+        _ageYearsController.clear();
+        _ageMonthsController.clear();
         _rescueStoryController.clear();
         _locationController.clear();
         _contactPhoneController.clear();
@@ -705,7 +1157,12 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
           _isSterilized = null;
           _isVaccinated = null;
           _isDewormed = null;
-          // REMOVED: Resetting behavior state variables is no longer needed.
+          _selectedAgeYears = null;
+          _selectedAgeMonths = null;
+          _selectedLocation = null;
+          _locationPlaceId = null;
+          _locationLatitude = null;
+          _locationLongitude = null;
           _tabController.animateTo(0);
         });
       }
@@ -747,17 +1204,21 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     final imageUrls =
         (widget.animalData['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
-
     final postedAt = widget.animalData['postedAt'] as Timestamp?;
     final postedDate = postedAt != null
         ? DateFormat('MMM d, yyyy').format(postedAt.toDate())
         : 'N/A';
 
     return Card(
+      color: kCardColor.withOpacity(0.8), // Made card semi-transparent
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: Colors.white.withOpacity(0.1),
+        ), // Added subtle border
+      ),
+      elevation: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -777,16 +1238,18 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           itemBuilder: (context, index) => Image.network(
                             imageUrls[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.error, color: kSecondaryColor),
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.error_outline,
+                              color: kSecondaryTextColor,
+                            ),
                           ),
                         )
                       : Container(
-                          color: Colors.grey.shade200,
-                          child: Icon(
+                          color: Colors.grey.shade900,
+                          child: const Icon(
                             Icons.pets,
                             size: 60,
-                            color: Colors.grey.shade400,
+                            color: kSecondaryTextColor,
                           ),
                         ),
                 ),
@@ -805,9 +1268,9 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                           height: 8.0,
                           width: _currentPage == i ? 24.0 : 8.0,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(
-                              _currentPage == i ? 0.9 : 0.6,
-                            ),
+                            color: _currentPage == i
+                                ? kPrimaryAccentColor
+                                : kSecondaryTextColor.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
@@ -827,61 +1290,187 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: kPrimaryColor,
+                    color: kPrimaryTextColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Posted by: ${widget.animalData['postedByEmail'] ?? 'Unknown'} on $postedDate',
-                  style: const TextStyle(fontSize: 14, color: kSecondaryColor),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: kSecondaryTextColor,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showDetailsDialog(context),
-                        icon: const Icon(Icons.info_outline),
-                        label: const Text('View Details'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: kPrimaryColor,
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(50.0),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(50.0),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.4),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewDetailsScreen(
+                                  animalData: widget.animalData,
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'View Details',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ],
+                  ),
                 ),
                 if (widget.isAdmin) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      SizedBox(
-                        width: 100,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              _showApproveDialog(context, widget.animalId),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: const Size(0, 36),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showRejectDialog(
+                                    context,
+                                    widget.animalId,
+                                  ),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Reject',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          child: const Text('Approve'),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      SizedBox(
-                        width: 100,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              _showRejectDialog(context, widget.animalId),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            minimumSize: const Size(0, 36),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.green.withOpacity(0.4),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _showApproveDialog(
+                                    context,
+                                    widget.animalId,
+                                  ),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Approve',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          child: const Text('Reject'),
                         ),
                       ),
                     ],
@@ -900,19 +1489,34 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Approve Animal'),
+        backgroundColor: kCardColor,
+        title: const Text(
+          'Approve Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This will make the animal visible for adoption.'),
+            const Text(
+              'This will make the animal visible for adoption.',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: kPrimaryTextColor),
+              decoration: InputDecoration(
                 labelText: 'Optional Message',
                 hintText: 'Add any notes or comments (optional)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kPrimaryTextColor),
+                hintStyle: TextStyle(color: kPrimaryTextColor.withOpacity(0.5)),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -921,7 +1525,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -951,85 +1558,12 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 }
               }
             },
-            child: const Text('Approve'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDetailsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(widget.animalData['name'] ?? 'Animal Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailItem('Species', widget.animalData['species']),
-              _buildDetailItem('Breed', widget.animalData['breed']),
-              _buildDetailItem('Age', widget.animalData['age']),
-              _buildDetailItem('Gender', widget.animalData['gender']),
-              _buildDetailItem(
-                'Mother Status',
-                widget.animalData['motherStatus'],
-              ),
-              _buildDetailItem(
-                'Sterilization',
-                widget.animalData['sterilization'],
-              ),
-              _buildDetailItem('Vaccination', widget.animalData['vaccination']),
-              _buildDetailItem('Deworming', widget.animalData['deworming']),
-              _buildDetailItem('Location', widget.animalData['location']),
-              _buildDetailItem('Contact', widget.animalData['contactPhone']),
-              if (widget.animalData['medicalIssues']?.isNotEmpty ?? false)
-                _buildDetailItem(
-                  'Medical Issues',
-                  widget.animalData['medicalIssues'],
-                ),
-              if (widget.animalData['rescueStory']?.isNotEmpty ?? false) ...[
-                const Divider(height: 24),
-                const Text(
-                  'Rescue Story',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(widget.animalData['rescueStory'] ?? ''),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailItem(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: kSecondaryColor,
-              ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              shape: const StadiumBorder(),
             ),
+            child: const Text('Approve'),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
         ],
       ),
     );
@@ -1040,22 +1574,34 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reject Animal'),
+        backgroundColor: kCardColor,
+        title: const Text(
+          'Reject Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'Please provide a reason for rejection. This will be visible to the person who posted the animal.',
-              style: TextStyle(fontSize: 14),
+              style: TextStyle(fontSize: 14, color: kPrimaryTextColor),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: kPrimaryTextColor),
+              decoration: InputDecoration(
                 labelText: 'Reason for Rejection *',
                 hintText: 'Explain why this post is being rejected',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kPrimaryTextColor),
+                hintStyle: TextStyle(color: kPrimaryTextColor.withOpacity(0.5)),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -1064,7 +1610,10 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1077,7 +1626,6 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 );
                 return;
               }
-
               try {
                 await AnimalService.rejectAnimal(
                   animalId: animalId,
@@ -1104,8 +1652,11 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
                 }
               }
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: const StadiumBorder(),
+            ),
             child: const Text('Reject'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
           ),
         ],
       ),

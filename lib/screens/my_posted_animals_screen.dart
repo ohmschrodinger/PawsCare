@@ -1,226 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:pawscare/screens/pet_detail_screen.dart';
-import 'package:pawscare/widgets/animal_card.dart';
-import '../utils/constants.dart';
+import 'package:flutter/services.dart';
+import 'pet_detail_screen.dart';
 
-// Key Change: Renamed widget to MyPostedAnimalsScreen
+// --- THEME CONSTANTS FOR THE DARK UI ---
+const Color kBackgroundColor = Color(0xFF121212);
+const Color kCardColor = Color(0xFF1E1E1E);
+const Color kPrimaryAccentColor = Colors.amber;
+const Color kPrimaryTextColor = Colors.white;
+const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+// -----------------------------------------
+
 class MyPostedAnimalsScreen extends StatefulWidget {
-  const MyPostedAnimalsScreen({Key? key}) : super(key: key);
+  const MyPostedAnimalsScreen({super.key});
 
   @override
-  // Key Change: Renamed state class to _MyPostedAnimalsScreenState
   State<MyPostedAnimalsScreen> createState() => _MyPostedAnimalsScreenState();
 }
 
-// Key Change: Renamed state class
 class _MyPostedAnimalsScreenState extends State<MyPostedAnimalsScreen> {
-  // Filters remain the same
-  String? _filterSpecies;
-  String? _filterGender;
-  String? _filterSterilization;
-  String? _filterVaccination;
-
-  Set<String> _likedAnimals = {};
-  Set<String> _savedAnimals = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserPreferences();
-  }
-
-  void _loadUserPreferences() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final favoritesSnapshot = await FirebaseFirestore.instance
-        .collection('favorites')
-        .where('userId', isEqualTo: user.uid)
-        .get();
-    final likedIds = favoritesSnapshot.docs
-        .map((doc) => doc.data()['animalId'] as String)
-        .toSet();
-
-    final savedSnapshot = await FirebaseFirestore.instance
-        .collection('saved_animals')
-        .where('userId', isEqualTo: user.uid)
-        .get();
-    final savedIds = savedSnapshot.docs
-        .map((doc) => doc.data()['animalId'] as String)
-        .toSet();
-
-    if (mounted) {
-      setState(() {
-        _likedAnimals = likedIds;
-        _savedAnimals = savedIds;
-      });
-    }
-  }
-
-  // Key Change: This stream now filters for the current user's posts
   Stream<QuerySnapshot> _getAnimalsStream() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Return an empty stream if the user is not logged in
       return const Stream.empty();
     }
     return FirebaseFirestore.instance
         .collection('animals')
-        .where(
-          'postedBy',
-          isEqualTo: user.uid,
-        ) // Fixed: Changed from postedByUserId to postedBy
+        .where('postedBy', isEqualTo: user.uid)
         .snapshots();
   }
-
-  // Like and Save logic remains the same as in FullAnimalListScreen
-  void _likeAnimal(BuildContext context, String animalId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final animalRef = FirebaseFirestore.instance
-        .collection('animals')
-        .doc(animalId);
-    if (_likedAnimals.contains(animalId)) {
-      _likedAnimals.remove(animalId);
-      animalRef.update({'likeCount': FieldValue.increment(-1)});
-      final favoritesSnapshot = await FirebaseFirestore.instance
-          .collection('favorites')
-          .where('userId', isEqualTo: user.uid)
-          .where('animalId', isEqualTo: animalId)
-          .get();
-      for (var doc in favoritesSnapshot.docs) {
-        await doc.reference.delete();
-      }
-    } else {
-      _likedAnimals.add(animalId);
-      animalRef.update({'likeCount': FieldValue.increment(1)});
-      await FirebaseFirestore.instance.collection('favorites').add({
-        'userId': user.uid,
-        'animalId': animalId,
-        'likedAt': FieldValue.serverTimestamp(),
-      });
-    }
-  }
-
-  void _saveAnimal(BuildContext context, String animalId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    if (_savedAnimals.contains(animalId)) {
-      _savedAnimals.remove(animalId);
-      final savedSnapshot = await FirebaseFirestore.instance
-          .collection('saved_animals')
-          .where('userId', isEqualTo: user.uid)
-          .where('animalId', isEqualTo: animalId)
-          .get();
-      for (var doc in savedSnapshot.docs) {
-        await doc.reference.delete();
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Removed from saved items.'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    } else {
-      _savedAnimals.add(animalId);
-      await FirebaseFirestore.instance.collection('saved_animals').add({
-        'userId': user.uid,
-        'animalId': animalId,
-        'savedAt': FieldValue.serverTimestamp(),
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Saved for later!'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-  }
-
-  // _openFilterSheet is identical to FullAnimalListScreen, no changes needed.
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('My Posted Animals'),
-        // You might want to remove actions if filtering isn't needed here
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: kBackgroundColor,
+        elevation: 0,
+        title: const Text(
+          'My Posted Animals',
+          style: TextStyle(color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getAnimalsStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(child: Text('Something went wrong.'));
+            return const Center(
+              child: Text('Something went wrong.', style: TextStyle(color: Colors.redAccent)),
+            );
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
           }
 
           final animals = snapshot.data?.docs ?? [];
 
-          // Key Change: The filtering logic is now inside the builder scope
-          // This ensures the `filteredAnimals` variable is always available.
-          List<DocumentSnapshot> filteredAnimals = animals.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            bool matches = true;
-            if (_filterSpecies != null) {
-              matches = matches && (data['species'] == _filterSpecies);
-            }
-            if (_filterGender != null) {
-              matches = matches && (data['gender'] == _filterGender);
-            }
-            // Add other filters if needed
-            return matches;
-          }).toList();
-
-          if (filteredAnimals.isEmpty) {
+          if (animals.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.pets_outlined, size: 64, color: Colors.grey),
+                  Icon(Icons.pets_outlined, size: 64, color: kSecondaryTextColor),
                   SizedBox(height: 16),
-                  Text(
-                    'You have not posted any animals yet.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
+                  Text("You haven't posted any animals yet.", style: TextStyle(fontSize: 18, color: kSecondaryTextColor)),
                 ],
               ),
             );
           }
 
-          // Key Change: Now correctly uses the `filteredAnimals` variable
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 16),
-            itemCount: filteredAnimals.length,
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.8,
+            ),
+            itemCount: animals.length,
             itemBuilder: (context, index) {
-              final animalDoc = filteredAnimals[index];
-              final animalData = animalDoc.data() as Map<String, dynamic>;
-              final animalId = animalDoc.id;
-              final animal = {'id': animalId, ...animalData};
-              final likeCount = (animalData['likeCount'] ?? 0) as int;
+              final doc = animals[index];
+              final data = doc.data() as Map<String, dynamic>;
+              final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
+              final animalId = doc.id;
+              final petData = {
+                'id': animalId,
+                ...data,
+                'image': imageUrls.isNotEmpty ? imageUrls.first : null,
+              };
 
-              return AnimalCard(
-                animal: animal,
-                isLiked: _likedAnimals.contains(animalId),
-                isSaved: _savedAnimals.contains(animalId),
-                likeCount: likeCount,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PetDetailScreen(petData: animal),
-                    ),
-                  );
-                },
-                onLike: () => _likeAnimal(context, animalId),
-                onSave: () => _saveAnimal(context, animalId),
-              );
+              return _AnimalGridCard(pet: petData);
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _AnimalGridCard extends StatelessWidget {
+  final Map<String, dynamic> pet;
+
+  const _AnimalGridCard({super.key, required this.pet});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => PetDetailScreen(petData: pet)));
+      },
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: kCardColor,
+        elevation: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: pet['image'] != null
+                  ? Image.network(
+                      pet['image'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey.shade900,
+                        child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                      ),
+                    )
+                  : Container(
+                      color: Colors.grey.shade900,
+                      child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 40),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pet['name'] ?? 'Unknown',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kPrimaryTextColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${pet['species'] ?? 'N/A'} • ${pet['age'] ?? 'N/A'}',
+                    style: const TextStyle(fontSize: 12, color: kSecondaryTextColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

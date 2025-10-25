@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/auth_error_messages.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
-  const EmailVerificationScreen({Key? key}) : super(key: key);
+  const EmailVerificationScreen({super.key});
 
   @override
   State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
@@ -47,6 +47,25 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       _showErrorDialog(AuthErrorMessages.general(e));
+    }
+  }
+
+  Future<void> _onVerifiedButtonPressed() async {
+    await _checkVerificationStatus();
+    if (!_isVerified && mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Not Verified'),
+          content: const Text('Email not yet verified, try again later.'),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -257,7 +276,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _checkVerificationStatus,
+                    onPressed: _isLoading ? null : _onVerifiedButtonPressed,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5AC8F2),
                       foregroundColor: Colors.white,

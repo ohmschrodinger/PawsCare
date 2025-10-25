@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/firestore_recovery.dart';
 
 class FirestoreRecoveryScreen extends StatefulWidget {
-  const FirestoreRecoveryScreen({Key? key}) : super(key: key);
+  const FirestoreRecoveryScreen({super.key});
 
   @override
   State<FirestoreRecoveryScreen> createState() => _FirestoreRecoveryScreenState();

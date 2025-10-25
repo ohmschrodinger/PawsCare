@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/auth_error_messages.dart';
 
 class PasswordResetScreen extends StatefulWidget {
-  const PasswordResetScreen({Key? key}) : super(key: key);
+  const PasswordResetScreen({super.key});
 
   @override
   State<PasswordResetScreen> createState() => _PasswordResetScreenState();

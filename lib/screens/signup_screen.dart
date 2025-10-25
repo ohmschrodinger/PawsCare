@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../utils/auth_error_messages.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+// Removed direct GoogleSignIn usage; handled via AuthService
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -102,26 +102,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
+      final userCredential = await AuthService.signInWithGoogle();
+      if (userCredential == null) {
         setState(() => _isLoading = false);
         return; // cancelled
       }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
       print("Google Sign-In successful ✅");
       // Use pushReplacementNamed to prevent going back to signup screen
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
+       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+
       }
     } catch (e) {
       print("Google Sign-In error: $e");

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/animal_status.dart';
+import 'logging_service.dart';
+import '../models/animal_location.dart';
 
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,6 +22,7 @@ class AnimalService {
     required String motherStatus,
     String? medicalIssues,
     required String location,
+    AnimalLocation? locationData,
     required String contactPhone,
     String? rescueStory,
   }) async {
@@ -47,6 +50,12 @@ class AnimalService {
       const isActive = false;
       print('DEBUG: Setting approval status to: pending');
 
+      // Prepare location data for Firestore
+      Map<String, dynamic> locationMap = {};
+      if (locationData != null && locationData.hasCoordinates) {
+        locationMap = locationData.toMap();
+      }
+
       final animalData = {
         'name': name,
         'species': species,
@@ -61,6 +70,7 @@ class AnimalService {
         'motherStatus': motherStatus,
         'medicalIssues': medicalIssues ?? '',
         'location': location,
+        ...locationMap, // Spread location data (includes latitude, longitude, geopoint, etc.)
         'contactPhone': contactPhone,
         'rescueStory': rescueStory ?? '',
         'postedBy': user.uid,
@@ -80,6 +90,15 @@ class AnimalService {
 
       // Add the animal document and return its reference
       final docRef = await _firestore.collection('animals').add(animalData);
+      // Log the event client-side
+      await LoggingService.logEvent(
+        'animal_posted',
+        data: {
+          'animalId': docRef.id,
+          'name': name,
+          'approvalStatus': approvalStatus,
+        },
+      );
       print('DEBUG: Created animal document with ID: ${docRef.id}');
       return docRef;
     } catch (e) {
@@ -340,6 +359,10 @@ class AnimalService {
         'adminMessage': adminMessage ?? '',
       });
       print('Animal approved successfully: $animalId');
+      await LoggingService.logEvent(
+        'animal_approved',
+        data: {'animalId': animalId, 'adminMessage': adminMessage ?? ''},
+      );
     } catch (e) {
       print('Error approving animal: $e');
       throw Exception('Failed to approve animal: $e');
@@ -370,6 +393,10 @@ class AnimalService {
         'adminMessage': adminMessage,
       });
       print('Animal rejected successfully: $animalId');
+      await LoggingService.logEvent(
+        'animal_rejected',
+        data: {'animalId': animalId, 'adminMessage': adminMessage},
+      );
     } catch (e) {
       print('Error rejecting animal: $e');
       throw Exception('Failed to reject animal: $e');

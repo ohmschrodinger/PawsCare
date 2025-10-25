@@ -1,12 +1,98 @@
+
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 import cors from 'cors';
+import { google } from 'googleapis';
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
 const corsHandler = cors({ origin: true });
+
+// Helper function to send push notifications
+async function sendPushNotification({
+  userId,
+  title,
+  body,
+  data = {}
+}: {
+  userId: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+}) {
+  try {
+    // Get user's FCM token
+    const userDoc = await admin.firestore().collection('users').doc(userId).get();
+
+    if (!userDoc.exists) {
+      console.log('User document not found for push notification');
+      return;
+    }
+
+    const userData = userDoc.data();
+    const fcmToken = userData?.fcmToken;
+
+    if (!fcmToken) {
+      console.log('No FCM token found for user:', userId);
+      return;
+    }
+
+    // Send push notification
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: title,
+        body: body,
+      },
+      data: data,
+      android: {
+        notification: {
+          icon: 'ic_launcher',
+          color: '#5AC8F2',
+          sound: 'default',
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    console.log('Push notification sent successfully:', response);
+
+    // Log notification to Firestore
+    await admin.firestore().collection('notification_logs').add({
+      userId: userId,
+      title: title,
+      body: body,
+      data: data,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'sent',
+      messageId: response
+    });
+
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+
+    // Log failed notification
+    await admin.firestore().collection('notification_logs').add({
+      userId: userId,
+      title: title,
+      body: body,
+      data: data,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'failed',
+      error: String(error)
+    });
+  }
+}
 
 // Email templates
 const emailTemplates = {
@@ -291,7 +377,7 @@ export const onAnimalPostApproved = functions.firestore
   .onUpdate(async (change, context) => {
     const beforeData = change.before.data();
     const afterData = change.after.data();
-    
+
     // Check if approvalStatus changed from pending to approved
     if (beforeData.approvalStatus === 'pending' && afterData.approvalStatus === 'approved') {
       try {
@@ -365,13 +451,60 @@ export const onAnimalPostApproved = functions.firestore
     }
   });
 
+// Firestore trigger for when new animal is added and approved
+export const onNewAnimalApproved = functions.firestore
+  .document('animals/{animalId}')
+  .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+
+    // Check if approvalStatus changed from pending to approved
+    if (beforeData.approvalStatus === 'pending' && afterData.approvalStatus === 'approved') {
+      try {
+        // Get all users who have opted in for new animal notifications
+        const usersSnapshot = await admin.firestore()
+          .collection('users')
+          .where('newAnimalNotifications', '==', true)
+          .get();
+
+        if (usersSnapshot.empty) {
+          console.log('No users found with notifications enabled');
+          return;
+        }
+
+        // Send notification to all users
+        const notificationPromises = usersSnapshot.docs.map(async (userDoc) => {
+          const userId = userDoc.id;
+
+          await sendPushNotification({
+            userId: userId,
+            title: '🐾 New Animal Available!',
+            body: `Meet ${afterData.name || 'a new friend'} - ${afterData.species || 'pet'} available for adoption!`,
+            data: {
+              type: 'new_animal',
+              animalId: context.params.animalId,
+              animalName: afterData.name || 'Animal',
+              animalSpecies: afterData.species || 'Pet'
+            }
+          });
+        });
+
+        await Promise.all(notificationPromises);
+        console.log(`New animal notification sent to ${usersSnapshot.docs.length} users`);
+
+      } catch (error) {
+        console.error('Error sending new animal notifications:', error);
+      }
+    }
+  });
+
 // Firestore trigger for when adoption application is approved
 export const onAdoptionApplicationApproved = functions.firestore
   .document('applications/{applicationId}')
   .onUpdate(async (change, context) => {
     const beforeData = change.before.data();
     const afterData = change.after.data();
-    
+
     // Check if status changed from pending to approved
     if (beforeData.status === 'pending' && afterData.status === 'approved') {
       try {
@@ -434,6 +567,21 @@ export const onAdoptionApplicationApproved = functions.firestore
         await transporter.sendMail(mailOptions);
         console.log('Adoption approval email sent to:', userEmail);
 
+        // Send push notification if user has adoption notifications enabled
+        if (userData?.adoptionNotifications !== false) {
+          await sendPushNotification({
+            userId: afterData.userId,
+            title: '🎉 Adoption Approved!',
+            body: `Your adoption application for ${animalData?.name || 'the animal'} has been approved!`,
+            data: {
+              type: 'adoption_approved',
+              applicationId: context.params.applicationId,
+              animalId: afterData.animalId,
+              animalName: animalData?.name || 'Animal'
+            }
+          });
+        }
+
         // Log to Firestore
         await admin.firestore().collection('email_logs').add({
           type: 'adoption_approved',
@@ -455,3 +603,766 @@ export const onAdoptionApplicationApproved = functions.firestore
     }
   });
 
+// Firestore trigger for when adoption application is rejected
+export const onAdoptionApplicationRejected = functions.firestore
+  .document('applications/{applicationId}')
+  .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+
+    // Check if status changed from pending to rejected
+    if (beforeData.status === 'pending' && afterData.status === 'rejected') {
+      try {
+        // Get user data
+        const userDoc = await admin.firestore()
+          .collection('users')
+          .doc(afterData.userId)
+          .get();
+
+        if (!userDoc.exists) {
+          console.log('User document not found for adoption rejection notification');
+          return;
+        }
+
+        const userData = userDoc.data();
+
+        // Get animal data
+        const animalDoc = await admin.firestore()
+          .collection('animals')
+          .doc(afterData.animalId)
+          .get();
+
+        const animalData = animalDoc.exists ? animalDoc.data() : {};
+
+        // Send push notification if user has adoption notifications enabled
+        if (userData?.adoptionNotifications !== false) {
+          await sendPushNotification({
+            userId: afterData.userId,
+            title: 'Adoption Application Update',
+            body: `Your adoption application for ${animalData?.name || 'the animal'} has been reviewed.`,
+            data: {
+              type: 'adoption_rejected',
+              applicationId: context.params.applicationId,
+              animalId: afterData.animalId,
+              animalName: animalData?.name || 'Animal'
+            }
+          });
+        }
+
+        console.log('Adoption rejection notification sent to user:', afterData.userId);
+
+      } catch (error) {
+        console.error('Error sending adoption rejection notification:', error);
+      }
+    }
+  });
+
+
+
+
+
+
+/**
+ * Append to users_log sheet:
+ * [uid, email, Fullname, role, phonenumber, address, field_updated, timestamp]
+ */
+// Temporarily commented out due to googleapis import issues
+
+export const logUserToSheet = functions
+  .region("us-central1")
+  .firestore.document("users/{uid}")
+  .onWrite(async (change, context) => {
+    try {
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error(
+          "Missing functions config: sheets.spreadsheet_id or sheets.key_b64"
+        );
+        return null;
+      }
+
+      const uid = context.params.uid;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+
+      // ignore deletes
+      if (before && !after) return null;
+
+      // Fields we track (and the column order after uid)
+      const trackedFields = [
+        "email",
+        "fullName",
+        "role",
+        "phoneNumber",
+        "address",
+      ];
+
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") {
+          try {
+            return val.toDate().toISOString();
+          } catch {
+            return String(val);
+          }
+        }
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === "object") {
+          try {
+            return JSON.stringify(val);
+          } catch {
+            return String(val);
+          }
+        }
+        return String(val);
+      };
+
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+
+      // Build normalized maps for comparison
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+
+      // Determine changed tracked fields
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+
+      // Decide whether to append:
+      // - always append for create
+      // - for update append only if any tracked field changed
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+        // nothing to log
+        return null;
+      }
+
+      // Build the row in requested order:
+      // uid, email, Fullname, role, phonenumber, address, field_updated, timestamp
+      const rowValues: string[] = [
+        uid,
+        afterNormalized["email"] || "",
+        afterNormalized["fullName"] || "",
+        afterNormalized["role"] || "",
+        afterNormalized["phoneNumber"] || "",
+        afterNormalized["address"] || "",
+      ];
+
+      const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+
+      rowValues.push(fieldUpdated || "none", timestampISO);
+
+      // Authenticate to Sheets
+      const keyJson = JSON.parse(
+        Buffer.from(KEY_B64, "base64").toString("utf8")
+      );
+      const jwt = new google.auth.JWT(
+        keyJson.client_email,
+        undefined,
+        keyJson.private_key,
+        ["https://www.googleapis.com/auth/spreadsheets"]
+      );
+      await jwt.authorize();
+
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "users_log!A1",
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: [rowValues] },
+      });
+
+      console.log(
+        `logUserToSheet: appended for uid=${uid} fieldUpdated=${fieldUpdated}`
+      );
+      return null;
+    } catch (err) {
+      console.error("logUserToSheet error:", err);
+      throw err;
+    }
+  });
+
+
+/**
+ * Append to animals_log sheet:
+ * [animalId, name, species, breed, age, gender, status, approvalStatus, postedBy, description, images, adminMessage, field_updated, timestamp]
+ */
+export const logAnimalToSheet = functions
+  .region("us-central1")
+  .firestore.document("animals/{animalId}")
+  .onWrite(async (change, context) => {
+    try {
+      // Spreadsheet config
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+
+      const animalId = context.params.animalId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+
+      // ignore deletes
+      if (before && !after) return null;
+
+      // Fields to track and log
+      const trackedFields = [
+        "name",
+        "species",
+        "breed",
+        "age",
+        "gender",
+        "status",
+        "approvalStatus",
+        "postedBy",
+        "description",
+        "images",
+        "adminMessage"
+      ];
+
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") {
+          try {
+            return val.toDate().toISOString();
+          } catch {
+            return String(val);
+          }
+        }
+        if (val instanceof Date) return val.toISOString();
+        if (Array.isArray(val)) return val.join(", ");
+        if (typeof val === "object") {
+          try {
+            return JSON.stringify(val);
+          } catch {
+            return String(val);
+          }
+        }
+        return String(val);
+      };
+
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+
+      // Build normalized maps for comparison
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+
+      // Determine changed tracked fields
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+
+      // Decide whether to append:
+      // - always append for create
+      // - for update append only if any tracked field changed
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+        // nothing to log
+        return null;
+      }
+
+      // Build the row in requested order:
+      // animalId, name, species, breed, age, gender, status, approvalStatus, postedBy, description, images, adminMessage, field_updated, timestamp
+      const rowValues: string[] = [
+        animalId,
+        afterNormalized["name"] || "",
+        afterNormalized["species"] || "",
+        afterNormalized["breed"] || "",
+        afterNormalized["age"] || "",
+        afterNormalized["gender"] || "",
+        afterNormalized["status"] || "",
+        afterNormalized["approvalStatus"] || "",
+        afterNormalized["postedBy"] || "",
+        afterNormalized["description"] || "",
+        afterNormalized["images"] || "",
+        afterNormalized["adminMessage"] || ""
+      ];
+
+      const fieldUpdated = isCreate ? "new_animal" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+      rowValues.push(fieldUpdated || "none", timestampISO);
+
+      // Authenticate to Sheets
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(
+        keyJson.client_email,
+        undefined,
+        keyJson.private_key,
+        ["https://www.googleapis.com/auth/spreadsheets"]
+      );
+      await jwt.authorize();
+
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "animals_log!A1",
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: [rowValues] },
+      });
+
+      console.log(`logAnimalToSheet: appended for animalId=${animalId} fieldUpdated=${fieldUpdated}`);
+      return null;
+    } catch (err) {
+      console.error("logAnimalToSheet error:", err);
+      throw err;
+    }
+  });
+
+/**
+ * Append to applications_log sheet:
+ * [applicationId, adminMessage, allMembersAgree, applicantAddress, applicantEmail, applicantName, applicantPhone, appliedAt, currentPetsDetails, financiallyPrepared, hasAllergies, hasCurrentPets, hasPastPets, hasSurrenderedPets, hasVeterinarian, homeOwnership, hoursLeftAlone, householdMembers, ifCannotKeepCare, pastPetsDetails, petId, petImage, petName, petTypeLookingFor, preferenceForBreedAgeGender, preparedForLifetimeCommitment, reviewedAt, status, surrenderedPetsCircumstance, userId, vetContactInfo, whereKeptWhenAlone, whyAdoptPet, willingToProvideVetCare, field_updated, timestamp]
+ */
+export const logApplicationToSheet = functions
+  .region("us-central1")
+  .firestore.document("applications/{applicationId}")
+  .onWrite(async (change, context) => {
+    try {
+      // Spreadsheet config
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+
+      const applicationId = context.params.applicationId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+
+      // ignore deletes
+      if (before && !after) return null;
+
+      // Fields to track and log (order matches your list)
+      const trackedFields = [
+        "adminMessage",
+        "allMembersAgree",
+        "applicantAddress",
+        "applicantEmail",
+        "applicantName",
+        "applicantPhone",
+        "appliedAt",
+        "currentPetsDetails",
+        "financiallyPrepared",
+        "hasAllergies",
+        "hasCurrentPets",
+        "hasPastPets",
+        "hasSurrenderedPets",
+        "hasVeterinarian",
+        "homeOwnership",
+        "hoursLeftAlone",
+        "householdMembers",
+        "ifCannotKeepCare",
+        "pastPetsDetails",
+        "petId",
+        "petImage",
+        "petName",
+        "petTypeLookingFor",
+        "preferenceForBreedAgeGender",
+        "preparedForLifetimeCommitment",
+        "reviewedAt",
+        "status",
+        "surrenderedPetsCircumstance",
+        "userId",
+        "vetContactInfo",
+        "whereKeptWhenAlone",
+        "whyAdoptPet",
+        "willingToProvideVetCare"
+      ];
+
+      // Header row for the sheet
+      const headerRow = [
+        "applicationId",
+        ...trackedFields,
+        "field_updated",
+        "timestamp"
+      ];
+
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") {
+          try {
+            return val.toDate().toISOString();
+          } catch {
+            return String(val);
+          }
+        }
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === "boolean") return val ? "TRUE" : "FALSE";
+        if (typeof val === "number") return String(val);
+        if (Array.isArray(val)) return val.join(", ");
+        if (typeof val === "object") {
+          try {
+            return JSON.stringify(val);
+          } catch {
+            return String(val);
+          }
+        }
+        return String(val);
+      };
+
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+
+      // Build normalized maps for comparison
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+
+      // Determine changed tracked fields
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+
+      // Decide whether to append:
+      // - always append for create
+      // - for update append only if any tracked field changed
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+        // nothing to log
+        return null;
+      }
+
+      // Build the row in requested order:
+      // applicationId, ...fields..., field_updated, timestamp
+      const rowValues: string[] = [
+        applicationId,
+        ...trackedFields.map(f => afterNormalized[f] || ""),
+      ];
+
+      const fieldUpdated = isCreate ? "new_application" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+      rowValues.push(fieldUpdated || "none", timestampISO);
+
+      // Authenticate to Sheets
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(
+        keyJson.client_email,
+        undefined,
+        keyJson.private_key,
+        ["https://www.googleapis.com/auth/spreadsheets"]
+      );
+      await jwt.authorize();
+
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+
+      // Write header row if sheet is empty
+      const getSheet = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "applications_log!A1:Z1"
+      });
+      if (!getSheet.data.values || getSheet.data.values.length === 0) {
+        await sheets.spreadsheets.values.append({
+          spreadsheetId: SPREADSHEET_ID,
+          range: "applications_log!A1",
+          valueInputOption: "RAW",
+          insertDataOption: "INSERT_ROWS",
+          requestBody: { values: [headerRow] },
+        });
+      }
+
+      // Append the application row
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "applications_log!A1",
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: { values: [rowValues] },
+      });
+
+      console.log(`logApplicationToSheet: appended for applicationId=${applicationId} fieldUpdated=${fieldUpdated}`);
+      return null;
+    } catch (err) {
+      console.error("logApplicationToSheet error:", err);
+      throw err;
+    }
+  });
+
+
+
+/**
+* Append to emails_log sheet:
+* [logId, type, recipientEmail, animalId, animalName, animalSpecies, adminMessage, sentAt, status, data, field_updated, timestamp]
+*/
+export const logEmailToSheet = functions
+  .region("us-central1")
+  .firestore.document("email_logs/{logId}")
+  .onWrite(async (change, context) => {
+    try {
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+      const logId = context.params.logId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+      if (!after) return null; // Only log creates/updates
+      const trackedFields = [
+        "type",
+        "recipientEmail",
+        "animalId",
+        "animalName",
+        "animalSpecies",
+        "adminMessage",
+        "sentAt",
+        "status",
+        "data"
+      ];
+      const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") { try { return val.toDate().toISOString(); } catch { return String(val); } }
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === "boolean") return val ? "TRUE" : "FALSE";
+        if (typeof val === "number") return String(val);
+        if (Array.isArray(val)) return val.join(", ");
+        if (typeof val === "object") { try { return JSON.stringify(val); } catch { return String(val); } }
+        return String(val);
+      };
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) return null;
+      const rowValues: string[] = [
+        logId,
+        ...trackedFields.map(f => afterNormalized[f] || ""),
+      ];
+      const fieldUpdated = isCreate ? "new_email_log" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+      rowValues.push(fieldUpdated || "none", timestampISO);
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
+      await jwt.authorize();
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      const getSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "emails_log!A1:Z1" });
+      if (!getSheet.data.values || getSheet.data.values.length === 0) {
+        await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "emails_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [headerRow] }, });
+      }
+      await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "emails_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [rowValues] }, });
+      console.log(`logEmailToSheet: appended for logId=${logId} fieldUpdated=${fieldUpdated}`);
+      return null;
+    } catch (err) {
+      console.error("logEmailToSheet error:", err);
+      throw err;
+    }
+  });
+
+/**
+ * Append to notifications_log sheet:
+ * [logId, userId, title, body, animalId, animalName, animalSpecies, type, messageId, sentAt, status, data, field_updated, timestamp]
+ */
+export const logNotificationToSheet = functions
+  .region("us-central1")
+  .firestore.document("notification_logs/{logId}")
+  .onWrite(async (change, context) => {
+    try {
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+      const logId = context.params.logId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+      if (!after) return null;
+      const trackedFields = [
+        "userId",
+        "title",
+        "body",
+        "animalId",
+        "animalName",
+        "animalSpecies",
+        "type",
+        "messageId",
+        "sentAt",
+        "status",
+        "data"
+      ];
+      const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") { try { return val.toDate().toISOString(); } catch { return String(val); } }
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === "boolean") return val ? "TRUE" : "FALSE";
+        if (typeof val === "number") return String(val);
+        if (Array.isArray(val)) return val.join(", ");
+        if (typeof val === "object") { try { return JSON.stringify(val); } catch { return String(val); } }
+        return String(val);
+      };
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) return null;
+      const rowValues: string[] = [
+        logId,
+        ...trackedFields.map(f => afterNormalized[f] || ""),
+      ];
+      const fieldUpdated = isCreate ? "new_notification_log" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+      rowValues.push(fieldUpdated || "none", timestampISO);
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
+      await jwt.authorize();
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      const getSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "notifications_log!A1:Z1" });
+      if (!getSheet.data.values || getSheet.data.values.length === 0) {
+        await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "notifications_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [headerRow] }, });
+      }
+      await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "notifications_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [rowValues] }, });
+      console.log(`logNotificationToSheet: appended for logId=${logId} fieldUpdated=${fieldUpdated}`);
+      return null;
+    } catch (err) {
+      console.error("logNotificationToSheet error:", err);
+      throw err;
+    }
+  });
+
+  /**
+ * Append to general_log sheet:
+ * [logId, userId, userEmail, animalId, eventType, adminMessage, createdAt, data, field_updated, timestamp]
+ */
+
+export const logGeneralToSheet = functions
+  .region("us-central1")
+  .firestore.document("general_logs/{logId}")
+  .onWrite(async (change, context) => {
+    try {
+      const cfg = functions.config();
+      const SPREADSHEET_ID = cfg.sheets?.spreadsheet_id;
+      const KEY_B64 = cfg.sheets?.key_b64;
+      if (!SPREADSHEET_ID || !KEY_B64) {
+        console.error("Missing functions config: sheets.spreadsheet_id or sheets.key_b64");
+        return null;
+      }
+      const logId = context.params.logId;
+      const before = change.before.exists ? change.before.data() : null;
+      const after = change.after.exists ? change.after.data() : null;
+      if (!after) return null;
+      const trackedFields = [
+        "userId",
+        "userEmail",
+        "animalId",
+        "eventType",
+        "adminMessage",
+        "createdAt",
+        "data"
+      ];
+      const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
+      const normalize = (val: any): string => {
+        if (val === null || val === undefined) return "";
+        if (typeof val?.toDate === "function") { try { return val.toDate().toISOString(); } catch { return String(val); } }
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === "boolean") return val ? "TRUE" : "FALSE";
+        if (typeof val === "number") return String(val);
+        if (Array.isArray(val)) return val.join(", ");
+        if (typeof val === "object") { try { return JSON.stringify(val); } catch { return String(val); } }
+        return String(val);
+      };
+      const isCreate = !before && !!after;
+      const isUpdate = !!before && !!after;
+      const beforeNormalized: Record<string, string> = {};
+      const afterNormalized: Record<string, string> = {};
+      for (const f of trackedFields) {
+        beforeNormalized[f] = normalize(before?.[f]);
+        afterNormalized[f] = normalize(after?.[f]);
+      }
+      const changedFields: string[] = [];
+      if (isUpdate) {
+        for (const f of trackedFields) {
+          if (beforeNormalized[f] !== afterNormalized[f]) {
+            changedFields.push(f);
+          }
+        }
+      }
+      if (!isCreate && !(isUpdate && changedFields.length > 0)) return null;
+      const rowValues: string[] = [
+        logId,
+        ...trackedFields.map(f => afterNormalized[f] || ""),
+      ];
+      const fieldUpdated = isCreate ? "new_general_log" : changedFields.join(", ");
+      const timestampISO = new Date().toISOString();
+      rowValues.push(fieldUpdated || "none", timestampISO);
+      const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
+      const jwt = new google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
+      await jwt.authorize();
+      const sheets = google.sheets({ version: "v4", auth: jwt });
+      const getSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1:Z1" });
+      if (!getSheet.data.values || getSheet.data.values.length === 0) {
+        await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [headerRow] }, });
+      }
+      await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [rowValues] }, });
+      console.log(`logGeneralToSheet: appended for logId=${logId} fieldUpdated=${fieldUpdated}`);
+      return null;
+    } catch (err) {
+      console.error("logGeneralToSheet error:", err);
+      throw err;
+    }
+  });
