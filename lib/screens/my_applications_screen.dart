@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/screens/application_detail_screen.dart';
+import 'dart:ui'; // For ImageFilter
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pawscare/widgets/animal_card.dart'; // For customCacheManager if needed
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -31,6 +34,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     if (currentUser == null) {
       return Scaffold(
         backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          title: const Text('My Applications'),
+          backgroundColor: kCardColor,
+        ),
         body: const Center(
           child: Text(
             'Please log in to view your applications.',
@@ -41,54 +48,64 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle.light,
-        backgroundColor: kCardColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            const Text(
-              'My Applications',
-              style: TextStyle(
-                  color: kPrimaryTextColor, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            // FILTER DROPDOWN on the right
-            Theme(
-              data: Theme.of(context).copyWith(
-                canvasColor: kCardColor, // popup background color dark
-              ),
+        title: const Text(
+          'My Applications',
+          style: TextStyle(
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          // FILTER DROPDOWN on the right
+          Theme(
+            data: Theme.of(
+              context,
+            ).copyWith(canvasColor: kCardColor.withOpacity(0.8)),
+            child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: _statusFilter,
-                hint: const Text('Filter by Status',
-                    style: TextStyle(color: kSecondaryTextColor)),
+                hint: const Text(
+                  'Filter',
+                  style: TextStyle(color: kSecondaryTextColor),
+                ),
                 icon: const Icon(Icons.filter_list, color: kSecondaryTextColor),
-                underline: const SizedBox(),
                 items: const [
                   DropdownMenuItem(
                     value: null,
-                    child: Text('All Status',
-                        style: TextStyle(color: kPrimaryTextColor)),
+                    child: Text(
+                      'All Status',
+                      style: TextStyle(color: kPrimaryTextColor),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'Under Review',
-                    child: Text('Under Review',
-                        style: TextStyle(color: kPrimaryTextColor)),
+                    child: Text(
+                      'Under Review',
+                      style: TextStyle(color: kPrimaryTextColor),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'Accepted',
-                    child: Text('Accepted',
-                        style: TextStyle(color: kPrimaryTextColor)),
+                    child: Text(
+                      'Accepted',
+                      style: TextStyle(color: kPrimaryTextColor),
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'Rejected',
-                    child: Text('Rejected',
-                        style: TextStyle(color: kPrimaryTextColor)),
+                    child: Text(
+                      'Rejected',
+                      style: TextStyle(color: kPrimaryTextColor),
+                    ),
                   ),
                 ],
                 onChanged: (String? newValue) {
@@ -98,11 +115,29 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                 },
               ),
             ),
-          ],
-        ),
-        centerTitle: false,
+          ),
+          const SizedBox(width: 16),
+        ],
       ),
-      body: _buildApplicationsList(userId: currentUser.uid),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/background.png',
+              fit: BoxFit.cover,
+              color: Colors.black.withOpacity(0.2),
+              colorBlendMode: BlendMode.darken,
+            ),
+          ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+              child: Container(color: Colors.black.withOpacity(0.5)),
+            ),
+          ),
+          SafeArea(child: _buildApplicationsList(userId: currentUser.uid)),
+        ],
+      ),
     );
   }
 
@@ -121,18 +156,34 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: kPrimaryAccentColor));
+            child: CircularProgressIndicator(color: kPrimaryAccentColor),
+          );
         }
         if (snapshot.hasError) {
           return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.redAccent)));
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
-            child: Text(
-              'You have no adoption applications yet.',
-              style: TextStyle(fontSize: 16, color: kSecondaryTextColor),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 64,
+                  color: kSecondaryTextColor,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'You have no adoption applications yet.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: kSecondaryTextColor),
+                ),
+              ],
             ),
           );
         }
@@ -140,8 +191,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         final applications = snapshot.data!.docs;
 
         return ListView.builder(
-          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          padding: const EdgeInsets.only(top: 8, bottom: 90),
           itemCount: applications.length,
+          physics: const BouncingScrollPhysics(),
           itemBuilder: (context, index) {
             final applicationDoc = applications[index];
             final appData = applicationDoc.data() as Map<String, dynamic>;
@@ -150,11 +202,12 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             if (petId == null) {
               return Card(
                 color: kCardColor,
-                margin:
-                    const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: ListTile(
-                  title: Text(appData['petName'] ?? 'Unknown Pet',
-                      style: const TextStyle(color: kPrimaryTextColor)),
+                  title: Text(
+                    appData['petName'] ?? 'Unknown Pet',
+                    style: const TextStyle(color: kPrimaryTextColor),
+                  ),
                   subtitle: const Text(
                     'Error: Application is not linked to a pet correctly.',
                     style: TextStyle(color: Colors.redAccent),
@@ -173,8 +226,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   return const SizedBox(
                     height: 150,
                     child: Center(
-                        child:
-                            CircularProgressIndicator(color: kPrimaryAccentColor)),
+                      child: CircularProgressIndicator(
+                        color: kPrimaryAccentColor,
+                      ),
+                    ),
                   );
                 }
 
@@ -182,12 +237,18 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   return Card(
                     color: kCardColor,
                     margin: const EdgeInsets.symmetric(
-                        vertical: 8, horizontal: 16),
+                      vertical: 8,
+                      horizontal: 16,
+                    ),
                     child: ListTile(
-                      title: Text(appData['petName'] ?? 'Unknown Pet',
-                          style: const TextStyle(color: kPrimaryTextColor)),
-                      subtitle: const Text('Could not load pet details.',
-                          style: TextStyle(color: kSecondaryTextColor)),
+                      title: Text(
+                        appData['petName'] ?? 'Unknown Pet',
+                        style: const TextStyle(color: kPrimaryTextColor),
+                      ),
+                      subtitle: const Text(
+                        'Could not load pet details.',
+                        style: TextStyle(color: kSecondaryTextColor),
+                      ),
                     ),
                   );
                 }
@@ -198,7 +259,6 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   applicationData: appData,
                   animalData: animalData,
                   applicationId: applicationDoc.id,
-                  showAdminActions: false,
                 );
               },
             );
@@ -213,13 +273,11 @@ class _StyledApplicationCard extends StatefulWidget {
   final Map<String, dynamic> applicationData;
   final Map<String, dynamic> animalData;
   final String applicationId;
-  final bool showAdminActions;
 
   const _StyledApplicationCard({
     required this.applicationData,
     required this.animalData,
     required this.applicationId,
-    required this.showAdminActions,
   });
 
   @override
@@ -236,15 +294,15 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
     super.dispose();
   }
 
-  void _showApplicationDetails(
-      BuildContext context, Map<String, dynamic> appData) {
+  void _navigateToPetDetail(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ApplicationDetailScreen(
-          applicationData: appData,
-          applicationId: widget.applicationId,
-          isAdmin: false,
+        builder: (context) => PetDetailScreen(
+          petData: {
+            'id': widget.applicationData['petId'],
+            ...widget.animalData,
+          },
         ),
       ),
     );
@@ -257,7 +315,6 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
     final hasImages = imageUrls.isNotEmpty;
     final appStatus = widget.applicationData['status'] ?? 'Under Review';
     final petName = widget.animalData['name'] ?? 'Unknown Pet';
-    final gender = widget.animalData['gender'] as String?;
     final appliedAt = widget.applicationData['appliedAt'] as Timestamp?;
     final appliedDate = appliedAt != null
         ? DateFormat('MMM d, yyyy').format(appliedAt.toDate())
@@ -275,34 +332,17 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
         appStatusColor = kPrimaryAccentColor;
     }
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PetDetailScreen(
-              petData: {
-                'id': widget.applicationData['petId'],
-                ...widget.animalData,
-              },
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: BoxDecoration(
-          color: kCardColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-              child: SizedBox(
-                height: 300,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: GestureDetector(
+          onTap: () => _navigateToPetDetail(context),
+          child: Stack(
+            children: [
+              // --- IMAGE LAYER ---
+              SizedBox(
+                height: 420,
                 width: double.infinity,
                 child: hasImages
                     ? PageView.builder(
@@ -311,111 +351,191 @@ class __StyledApplicationCardState extends State<_StyledApplicationCard> {
                         onPageChanged: (index) =>
                             setState(() => _currentPage = index),
                         itemBuilder: (context, index) {
-                          return Image.network(
-                            imageUrls[index],
+                          return CachedNetworkImage(
+                            cacheManager: customCacheManager,
+                            imageUrl: imageUrls[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
+                            placeholder: (context, url) => Container(
                               color: Colors.grey.shade900,
-                              child: const Icon(Icons.pets,
-                                  size: 60, color: kSecondaryTextColor),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: kPrimaryAccentColor,
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey.shade900,
+                              child: const Icon(
+                                Icons.pets,
+                                size: 60,
+                                color: kSecondaryTextColor,
+                              ),
                             ),
                           );
                         },
                       )
                     : Container(
                         color: Colors.grey.shade900,
-                        child: const Icon(Icons.pets,
-                            size: 60, color: kSecondaryTextColor),
+                        child: const Icon(
+                          Icons.pets,
+                          size: 60,
+                          color: kSecondaryTextColor,
+                        ),
                       ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          petName,
-                          style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: kPrimaryTextColor),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (gender != null) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          gender.toLowerCase() == 'male'
-                              ? Icons.male
-                              : Icons.female,
-                          color: gender.toLowerCase() == 'male'
-                              ? Colors.blue
-                              : Colors.pink,
-                          size: 24,
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Applied on: $appliedDate',
-                    style: const TextStyle(
-                        fontSize: 15, color: kSecondaryTextColor),
-                  ),
-                  const Divider(height: 24, color: kBackgroundColor),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Application Status:',
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: kPrimaryTextColor),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+
+              // --- PAGE INDICATOR ---
+              if (imageUrls.length > 1)
+                Positioned(
+                  top: 16,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      imageUrls.length,
+                      (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 3.0),
+                        height: 8.0,
+                        width: _currentPage == i ? 24.0 : 8.0,
                         decoration: BoxDecoration(
-                          color: appStatusColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
+                          color: _currentPage == i
+                              ? kPrimaryAccentColor
+                              : kSecondaryTextColor.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          appStatus,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: appStatusColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // --- GLASSMORPHIC INFO PANEL ---
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        border: Border(
+                          top: BorderSide(color: Colors.white.withOpacity(0.1)),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            petName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: kPrimaryTextColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${widget.animalData['breed'] ?? 'Mixed Breed'} • ${widget.animalData['age'] ?? 'Unknown age'}",
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: kSecondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 14,
+                                color: kSecondaryTextColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                "Applied on $appliedDate",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: kSecondaryTextColor,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 24, color: Colors.white12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Status:',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: kPrimaryTextColor,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: appStatusColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  appStatus,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: appStatusColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ApplicationDetailScreen(
+                                    applicationData: widget.applicationData,
+                                    applicationId: widget.applicationId,
+                                    isAdmin: false,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'View Application Details',
+                              style: TextStyle(
+                                color: kPrimaryAccentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () =>
-                        _showApplicationDetails(context, widget.applicationData),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'View Details',
-                      style: TextStyle(
-                        color: kPrimaryAccentColor,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

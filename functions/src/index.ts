@@ -5,6 +5,9 @@ import * as nodemailer from 'nodemailer';
 import cors from 'cors';
 import { google } from 'googleapis';
 
+// Export Pet of the Day functions
+export { updatePetOfTheDay, refreshPetOfTheDay } from './pet_of_day';
+
 // Initialize Firebase Admin
 admin.initializeApp();
 

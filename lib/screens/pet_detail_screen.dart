@@ -278,6 +278,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
     final bool isAdopted = status.toLowerCase() == 'adopted';
 
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       child: Column(
         children: [
           const SizedBox(height: 360),
@@ -301,7 +302,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                             child: Text(
                               getField('name'),
                               style: const TextStyle(
-                                fontSize: 20,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: kPrimaryTextColor,
                               ),
@@ -681,7 +682,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     alignment: Alignment.center,
                     child: const Text(
-                      'Adopt Me',
+                      'Adopt Now',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

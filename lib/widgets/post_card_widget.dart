@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../services/current_user_cache.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -64,6 +65,18 @@ class _PostCardWidgetState extends State<PostCardWidget>
     _commentFocusNode.addListener(_onFocusChange);
     currentUser = FirebaseAuth.instance.currentUser;
     _loadUserRole();
+
+    // Pre-set the resolved name synchronously if it's the current user
+    final userId = (widget.postData['userId'] ?? '').toString();
+    if (currentUser != null && userId == currentUser!.uid) {
+      // Try to use cached name first (synchronous) to prevent flickering
+      final cachedName = CurrentUserCache().cachedName;
+      if (cachedName != null && cachedName.isNotEmpty) {
+        _resolvedAuthorName = cachedName;
+      }
+    }
+
+    // Then fetch the full name asynchronously
     _resolveAuthorNameIfNeeded();
 
     _iconController = AnimationController(
@@ -78,9 +91,10 @@ class _PostCardWidgetState extends State<PostCardWidget>
     ]).animate(CurvedAnimation(parent: _iconController, curve: Curves.easeOut));
 
     // rotation: small rotation when opening (turns). 0 -> 0.06 turns (~21 deg)
-    _iconRotationAnimation = Tween(begin: 0.0, end: 0.06).animate(
-      CurvedAnimation(parent: _iconController, curve: Curves.easeOut),
-    );
+    _iconRotationAnimation = Tween(
+      begin: 0.0,
+      end: 0.06,
+    ).animate(CurvedAnimation(parent: _iconController, curve: Curves.easeOut));
   }
 
   @override
@@ -90,6 +104,26 @@ class _PostCardWidgetState extends State<PostCardWidget>
     _commentFocusNode.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(PostCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the postId changed, we have a completely different post
+    if (oldWidget.postId != widget.postId) {
+      _resolvedAuthorName = null;
+
+      // Pre-set the resolved name synchronously if it's the current user
+      final userId = (widget.postData['userId'] ?? '').toString();
+      if (currentUser != null && userId == currentUser!.uid) {
+        final cachedName = CurrentUserCache().cachedName;
+        if (cachedName != null && cachedName.isNotEmpty) {
+          _resolvedAuthorName = cachedName;
+        }
+      }
+
+      _resolveAuthorNameIfNeeded();
+    }
   }
 
   void _onFocusChange() {
@@ -134,24 +168,32 @@ class _PostCardWidgetState extends State<PostCardWidget>
     }
   }
 
-  /// If post's author string is missing or set to "Anonymous", try to resolve
-  /// using users/{userId} document fields (fullName, name, displayName).
+  /// Always fetch the current name from Firestore using userId to ensure
+  /// the most up-to-date name is displayed, preventing glitches when users post.
   Future<void> _resolveAuthorNameIfNeeded() async {
-    final author = (widget.postData['author'] ?? '').toString();
     final userId = (widget.postData['userId'] ?? '').toString();
-    if (author.trim().isNotEmpty &&
-        author.trim().toLowerCase() != 'anonymous') {
-      setState(() => _resolvedAuthorName = author.trim());
-      return;
-    }
 
     if (userId.isEmpty) {
-      setState(() => _resolvedAuthorName = 'User');
+      // No userId, try to use author field as fallback
+      final author = (widget.postData['author'] ?? '').toString();
+      setState(
+        () => _resolvedAuthorName = author.isNotEmpty ? author.trim() : 'User',
+      );
       return;
     }
 
     setState(() => _resolvingAuthor = true);
     try {
+      // Check if it's the current user - use cache for instant results
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null && currentUser.uid == userId) {
+        final name = await CurrentUserCache().getDisplayName();
+        setState(() => _resolvedAuthorName = name);
+        setState(() => _resolvingAuthor = false);
+        return;
+      }
+
+      // For other users, fetch from Firestore
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -398,110 +440,112 @@ class _PostCardWidgetState extends State<PostCardWidget>
   }
 
   @override
- @override
-Widget build(BuildContext context) {
-  final timestamp =
-      (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-  final timeAgo = _getTimeAgo(timestamp);
-  final likes = List<String>.from(widget.postData['likes'] ?? []);
-  final isLiked = currentUser != null && likes.contains(currentUser!.uid);
-  final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
-  final String storyText = widget.postData['story'] ?? '';
-  final bool isLongText = storyText.length > _minCharsForReadMore;
+  @override
+  Widget build(BuildContext context) {
+    final timestamp =
+        (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final timeAgo = _getTimeAgo(timestamp);
+    final likes = List<String>.from(widget.postData['likes'] ?? []);
+    final isLiked = currentUser != null && likes.contains(currentUser!.uid);
+    final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
+    final String storyText = widget.postData['story'] ?? '';
+    final bool isLongText = storyText.length > _minCharsForReadMore;
 
-  final displayAuthor =
-      _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
+    final displayAuthor =
+        _resolvedAuthorName ?? (widget.postData['author'] ?? 'User').toString();
 
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(16.0),
-      child: Stack(
-        children: [
-          // NOTE: Background image removed as requested.
-          // Keep only the glassmorphism layer (blur + semi-transparent black card)
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        child: Stack(
+          children: [
+            // NOTE: Background image removed as requested.
+            // Keep only the glassmorphism layer (blur + semi-transparent black card)
 
-          // Glassmorphism effect layer (with requested blur and color)
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-            child: Container(
-              decoration: BoxDecoration(
-                // Use black with 25% opacity as requested
-                color: Colors.black.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(16.0),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.15), // subtle border
-                  width: 1.5,
+            // Glassmorphism effect layer (with requested blur and color)
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  // Use black with 25% opacity as requested
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.15), // subtle border
+                    width: 1.5,
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPostHeader(displayAuthor, timeAgo),
-                    const SizedBox(height: 12),
-                    if (storyText.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            storyText,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              height: 1.4,
-                              color: kPrimaryTextColor,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPostHeader(displayAuthor, timeAgo),
+                      const SizedBox(height: 12),
+                      if (storyText.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              storyText,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                height: 1.4,
+                                color: kPrimaryTextColor,
+                              ),
+                              maxLines: _isExpanded ? null : _maxLinesCollapsed,
+                              overflow: _isExpanded
+                                  ? TextOverflow.visible
+                                  : TextOverflow.ellipsis,
                             ),
-                            maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                            overflow: _isExpanded
-                                ? TextOverflow.visible
-                                : TextOverflow.ellipsis,
-                          ),
-                          if (isLongText)
-                            GestureDetector(
-                              onTap: () =>
-                                  setState(() => _isExpanded = !_isExpanded),
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  _isExpanded ? 'Read less' : 'Read more...',
-                                  style: const TextStyle(
-                                    color: kPrimaryTextColor,
-                                    fontWeight: FontWeight.bold,
+                            if (isLongText)
+                              GestureDetector(
+                                onTap: () =>
+                                    setState(() => _isExpanded = !_isExpanded),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    _isExpanded ? 'Read less' : 'Read more...',
+                                    style: const TextStyle(
+                                      color: kPrimaryTextColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
+                      if ((widget.postData['imageUrl'] ?? '')
+                          .toString()
+                          .isNotEmpty)
+                        _buildPostImage(widget.postData['imageUrl']),
+                      const SizedBox(height: 8),
+                      _buildActionButtons(isLiked, likes.length, commentCount),
+                      AnimatedCrossFade(
+                        firstChild: const SizedBox.shrink(),
+                        secondChild: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: _buildCommentSection(),
+                        ),
+                        crossFadeState: _isCommentSectionVisible
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        duration: const Duration(milliseconds: 300),
+                        firstCurve: Curves.easeOut,
+                        secondCurve: Curves.easeIn,
+                        sizeCurve: Curves.easeInOut,
                       ),
-                    if ((widget.postData['imageUrl'] ?? '').toString().isNotEmpty)
-                      _buildPostImage(widget.postData['imageUrl']),
-                    const SizedBox(height: 8),
-                    _buildActionButtons(isLiked, likes.length, commentCount),
-                    AnimatedCrossFade(
-                      firstChild: const SizedBox.shrink(),
-                      secondChild: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: _buildCommentSection(),
-                      ),
-                      crossFadeState: _isCommentSectionVisible
-                          ? CrossFadeState.showSecond
-                          : CrossFadeState.showFirst,
-                      duration: const Duration(milliseconds: 300),
-                      firstCurve: Curves.easeOut,
-                      secondCurve: Curves.easeIn,
-                      sizeCurve: Curves.easeInOut,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildPostHeader(String displayAuthor, String timeAgo) {
     final bool isAuthor = currentUser?.uid == widget.postData['userId'];
@@ -515,8 +559,8 @@ Widget build(BuildContext context) {
           backgroundColor: kAvatarAccentColor.withOpacity(0.2),
           backgroundImage:
               (profileImageUrl != null && profileImageUrl.isNotEmpty)
-                  ? NetworkImage(profileImageUrl)
-                  : null,
+              ? NetworkImage(profileImageUrl)
+              : null,
           child: (profileImageUrl == null || profileImageUrl.isEmpty)
               ? Text(
                   displayAuthor.isNotEmpty
@@ -677,7 +721,9 @@ Widget build(BuildContext context) {
                 Text(
                   '$commentCount',
                   style: const TextStyle(
-                      color: kSecondaryTextColor, fontWeight: FontWeight.w500),
+                    color: kSecondaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -775,8 +821,7 @@ Widget build(BuildContext context) {
                       return ListTile(
                         leading: CircleAvatar(
                           radius: 15,
-                          backgroundColor:
-                              kAvatarAccentColor.withOpacity(0.2),
+                          backgroundColor: kAvatarAccentColor.withOpacity(0.2),
                           child: Text(
                             author.isNotEmpty ? author[0] : 'U',
                             style: const TextStyle(color: kAvatarAccentColor),
@@ -817,9 +862,7 @@ Widget build(BuildContext context) {
                       onSubmitted: (_) => _postComment(),
                       decoration: InputDecoration(
                         hintText: 'Add a comment...',
-                        hintStyle: const TextStyle(
-                          color: kSecondaryTextColor,
-                        ),
+                        hintStyle: const TextStyle(color: kSecondaryTextColor),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(25.0),
                           borderSide: BorderSide.none,

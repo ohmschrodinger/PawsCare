@@ -28,7 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     AnimalAdoptionScreen(),
-    PostAnimalScreen(),
+    PostAnimalScreen(initialTab: 1),
     CommunityFeedScreen(),
     ProfileScreen(),
   ];
@@ -77,59 +77,69 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-onWillPop: () async {
-  // If there's cross-tab history and the last entry is NOT Home (0),
-  // pop it and navigate to the previous tab.
-  if (_navStack.length > 1 && _navStack.last != 0) {
-    setState(() {
-      _navStack.removeLast();
-      _selectedIndex = _navStack.last;
-    });
-    return false;
-  }
+      onWillPop: () async {
+        // If there's cross-tab history and the last entry is NOT Home (0),
+        // pop it and navigate to the previous tab.
+        if (_navStack.length > 1 && _navStack.last != 0) {
+          setState(() {
+            _navStack.removeLast();
+            _selectedIndex = _navStack.last;
+          });
+          return false;
+        }
 
-  // If we're not on Home, go to Home (normalize navStack) — don’t exit yet.
-  if (_selectedIndex != 0) {
-    setState(() {
-      _selectedIndex = 0;
-      _navStack
-        ..removeWhere((i) => i == 0)
-        ..add(0);
-    });
-    return false;
-  }
+        // If we're not on Home, go to Home (normalize navStack) — don’t exit yet.
+        if (_selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+            _navStack
+              ..removeWhere((i) => i == 0)
+              ..add(0);
+          });
+          return false;
+        }
 
-  // If already on Home → confirm before exiting.
-  final shouldExit = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: const Color(0xFF2C2C2E),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        "Exit App?",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      content: const Text(
-        "Do you really want to exit?",
-        style: TextStyle(color: Colors.white70),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text("Cancel", style: TextStyle(color: Colors.amber)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text("Exit", style: TextStyle(color: Colors.redAccent)),
-        ),
-      ],
-    ),
-  );
+        // If already on Home → confirm before exiting.
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF2C2C2E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              "Exit App?",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: const Text(
+              "Do you really want to exit?",
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.amber),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  "Exit",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            ],
+          ),
+        );
 
-  return shouldExit ?? false;
-},
+        return shouldExit ?? false;
+      },
 
-      
       child: Scaffold(
         // IMPORTANT: prevent body from being pushed up by keyboard
         resizeToAvoidBottomInset: false,
@@ -189,16 +199,32 @@ onWillPop: () async {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(icon: Icons.home_rounded, index: 0, label: 'Home'),
-                  _buildNavItem(icon: Icons.pets_rounded, index: 1, label: 'Adopt'),
+                  _buildNavItem(
+                    icon: Icons.home_rounded,
+                    index: 0,
+                    label: 'Home',
+                  ),
+                  _buildNavItem(
+                    icon: Icons.pets_rounded,
+                    index: 1,
+                    label: 'Adopt',
+                  ),
                   _buildNavItem(
                     icon: Icons.add_circle_rounded,
                     index: 2,
                     label: 'Post',
                     isCenter: true,
                   ),
-                  _buildNavItem(icon: Icons.groups_rounded, index: 3, label: 'Community'),
-                  _buildNavItem(icon: Icons.person_rounded, index: 4, label: 'Account'),
+                  _buildNavItem(
+                    icon: Icons.groups_rounded,
+                    index: 3,
+                    label: 'Community',
+                  ),
+                  _buildNavItem(
+                    icon: Icons.person_rounded,
+                    index: 4,
+                    label: 'Account',
+                  ),
                 ],
               ),
             ),

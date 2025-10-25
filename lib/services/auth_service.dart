@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'user_service.dart';
+import 'current_user_cache.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -82,6 +83,9 @@ class AuthService {
       // Reload user to get latest verification status
       await userCredential.user?.reload();
 
+      // Initialize the user cache
+      await CurrentUserCache().refreshDisplayName();
+
       return userCredential;
     } on FirebaseAuthException {
       rethrow;
@@ -139,6 +143,9 @@ class AuthService {
         } catch (_) {
           // Soft-fail to avoid blocking sign-in
         }
+
+        // Initialize the user cache
+        await CurrentUserCache().refreshDisplayName();
       }
 
       return userCredential;
@@ -158,6 +165,8 @@ class AuthService {
 
   /// Sign out
   static Future<void> signOut() async {
+    // Clear the user cache on sign out
+    CurrentUserCache().clearCache();
     await _auth.signOut();
   }
 
