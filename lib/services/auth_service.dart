@@ -143,7 +143,7 @@ class AuthService {
         } catch (_) {
           // Soft-fail to avoid blocking sign-in
         }
-        
+
         // Initialize the user cache
         await CurrentUserCache().refreshDisplayName();
       }

@@ -51,12 +51,12 @@ class CurrentUserCache {
           .collection('users')
           .doc(user.uid)
           .get(const GetOptions(source: Source.server));
-      
+
       final data = doc.data();
       final candidate = data == null
           ? null
           : (data['fullName'] ?? data['name'] ?? data['displayName']);
-      
+
       if (candidate != null && candidate.toString().trim().isNotEmpty) {
         _cachedDisplayName = candidate.toString().trim();
         return _cachedDisplayName!;

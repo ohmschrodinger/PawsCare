@@ -101,9 +101,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(
-                  color: Colors.black.withOpacity(0.5),
-                ),
+                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
 
@@ -112,7 +110,10 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
               child: Column(
                 children: [
                   // NOTE: Ensure your `PostComposer` widget is updated with the dark theme colors.
-                  Padding(padding: const EdgeInsets.all(8.0), child: PostComposer()),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: PostComposer(),
+                  ),
 
                   // Filter chips row
                   Container(
@@ -128,11 +129,16 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                         children: _filters.map((filter) {
                           final selected = _selectedFilter == filter;
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20.0),
                               child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                                filter: ImageFilter.blur(
+                                  sigmaX: 10.0,
+                                  sigmaY: 10.0,
+                                ),
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: selected
@@ -185,7 +191,8 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                     child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                       stream: _postsStream,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: kPrimaryAccentColor,

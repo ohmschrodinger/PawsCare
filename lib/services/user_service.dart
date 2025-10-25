@@ -54,14 +54,14 @@ class UserService {
     try {
       // Create a mutable copy of the data map to avoid modifying the original.
       final Map<String, dynamic> updateData = Map<String, dynamic>.from(data);
-      
+
       // Add the server timestamp for the 'updatedAt' field.
       // This is the operation that caused the original type error.
       updateData['updatedAt'] = FieldValue.serverTimestamp();
-      
+
       // The .update() method correctly handles the Map<String, dynamic> type.
       await _firestore.collection('users').doc(uid).update(updateData);
-      
+
       // Update the cache if fullName was changed and it's the current user
       if (data.containsKey('fullName') && _auth.currentUser?.uid == uid) {
         final newName = data['fullName']?.toString().trim();
@@ -97,11 +97,7 @@ class UserService {
     try {
       final exists = await userDocumentExists(uid);
       if (!exists) {
-        await createUserDocument(
-          uid: uid,
-          email: email,
-          fullName: fullName,
-        );
+        await createUserDocument(uid: uid, email: email, fullName: fullName);
         print('Created missing user document for existing user: $uid');
       }
     } catch (e) {
