@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/cupertino.dart';
+import '../services/current_user_cache.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -57,46 +58,23 @@ class _PostComposerState extends State<PostComposer> {
     super.dispose();
   }
 
-  Future<void> _fetchUserName() async {
+  Future<String> _fetchUserName() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() {
         _userName = 'User';
         _uid = null;
       });
-      return;
+      return 'User';
     }
     _uid = user.uid;
-    if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
-      setState(() {
-        _userName = user.displayName!.trim();
-      });
-      return;
-    }
 
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      final data = doc.data();
-      final candidate = data == null
-          ? null
-          : (data['fullName'] ?? data['name'] ?? data['displayName']);
-      if (candidate != null && candidate.toString().trim().isNotEmpty) {
-        setState(() {
-          _userName = candidate.toString().trim();
-        });
-      } else {
-        setState(() {
-          _userName = 'User ${user.uid.substring(user.uid.length - 4)}';
-        });
-      }
-    } catch (_) {
-      setState(() {
-        _userName = 'User ${user.uid.substring(user.uid.length - 4)}';
-      });
-    }
+    // Use the cached user service to get the display name
+    final name = await CurrentUserCache().refreshDisplayName();
+    setState(() {
+      _userName = name;
+    });
+    return name;
   }
 
   void _clearAndCollapse() {
@@ -144,7 +122,7 @@ class _PostComposerState extends State<PostComposer> {
     }
     setState(() => _isUploading = true);
 
-    await _fetchUserName();
+    final authorName = await _fetchUserName();
 
     try {
       String? imageUrl;
@@ -160,7 +138,7 @@ class _PostComposerState extends State<PostComposer> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
 
       await FirebaseFirestore.instance.collection('community_posts').add({
-        'author': _userName,
+        'author': authorName,
         'story': text,
         'imageUrl': imageUrl,
         'category': _selectedCategory,

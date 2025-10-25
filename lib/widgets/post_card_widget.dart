@@ -8,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../services/current_user_cache.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -64,6 +65,18 @@ class _PostCardWidgetState extends State<PostCardWidget>
     _commentFocusNode.addListener(_onFocusChange);
     currentUser = FirebaseAuth.instance.currentUser;
     _loadUserRole();
+    
+    // Pre-set the resolved name synchronously if it's the current user
+    final userId = (widget.postData['userId'] ?? '').toString();
+    if (currentUser != null && userId == currentUser!.uid) {
+      // Try to use cached name first (synchronous) to prevent flickering
+      final cachedName = CurrentUserCache().cachedName;
+      if (cachedName != null && cachedName.isNotEmpty) {
+        _resolvedAuthorName = cachedName;
+      }
+    }
+    
+    // Then fetch the full name asynchronously
     _resolveAuthorNameIfNeeded();
 
     _iconController = AnimationController(
@@ -90,6 +103,26 @@ class _PostCardWidgetState extends State<PostCardWidget>
     _commentFocusNode.dispose();
     _commentController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(PostCardWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the postId changed, we have a completely different post
+    if (oldWidget.postId != widget.postId) {
+      _resolvedAuthorName = null;
+      
+      // Pre-set the resolved name synchronously if it's the current user
+      final userId = (widget.postData['userId'] ?? '').toString();
+      if (currentUser != null && userId == currentUser!.uid) {
+        final cachedName = CurrentUserCache().cachedName;
+        if (cachedName != null && cachedName.isNotEmpty) {
+          _resolvedAuthorName = cachedName;
+        }
+      }
+      
+      _resolveAuthorNameIfNeeded();
+    }
   }
 
   void _onFocusChange() {
@@ -134,24 +167,30 @@ class _PostCardWidgetState extends State<PostCardWidget>
     }
   }
 
-  /// If post's author string is missing or set to "Anonymous", try to resolve
-  /// using users/{userId} document fields (fullName, name, displayName).
+  /// Always fetch the current name from Firestore using userId to ensure 
+  /// the most up-to-date name is displayed, preventing glitches when users post.
   Future<void> _resolveAuthorNameIfNeeded() async {
-    final author = (widget.postData['author'] ?? '').toString();
     final userId = (widget.postData['userId'] ?? '').toString();
-    if (author.trim().isNotEmpty &&
-        author.trim().toLowerCase() != 'anonymous') {
-      setState(() => _resolvedAuthorName = author.trim());
-      return;
-    }
-
+    
     if (userId.isEmpty) {
-      setState(() => _resolvedAuthorName = 'User');
+      // No userId, try to use author field as fallback
+      final author = (widget.postData['author'] ?? '').toString();
+      setState(() => _resolvedAuthorName = author.isNotEmpty ? author.trim() : 'User');
       return;
     }
 
     setState(() => _resolvingAuthor = true);
     try {
+      // Check if it's the current user - use cache for instant results
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null && currentUser.uid == userId) {
+        final name = await CurrentUserCache().getDisplayName();
+        setState(() => _resolvedAuthorName = name);
+        setState(() => _resolvingAuthor = false);
+        return;
+      }
+
+      // For other users, fetch from Firestore
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)

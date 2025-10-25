@@ -222,7 +222,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                             final data = posts[index].data();
                             final postId = posts[index].id;
                             // NOTE: Ensure your `PostCardWidget` is updated with the dark theme colors.
-                            return PostCardWidget(postData: data, postId: postId);
+                            // IMPORTANT: Use Key to prevent widget recycling issues with state
+                            return PostCardWidget(
+                              key: ValueKey(postId),
+                              postData: data,
+                              postId: postId,
+                            );
                           },
                         );
                       },

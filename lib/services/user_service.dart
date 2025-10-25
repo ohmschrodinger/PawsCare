@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'current_user_cache.dart';
 
 class UserService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -60,6 +61,14 @@ class UserService {
       
       // The .update() method correctly handles the Map<String, dynamic> type.
       await _firestore.collection('users').doc(uid).update(updateData);
+      
+      // Update the cache if fullName was changed and it's the current user
+      if (data.containsKey('fullName') && _auth.currentUser?.uid == uid) {
+        final newName = data['fullName']?.toString().trim();
+        if (newName != null && newName.isNotEmpty) {
+          CurrentUserCache().updateCachedName(newName);
+        }
+      }
     } catch (e) {
       print('Error updating user profile: $e');
       // The original error message you saw was thrown from here.
