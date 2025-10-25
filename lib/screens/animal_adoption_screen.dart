@@ -497,7 +497,7 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                                   12.0,
                                 ),
                                 child: const Text(
-                                        'Waiting For a Home',
+                                        'Pets available for adoption',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,

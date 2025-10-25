@@ -87,3 +87,9 @@ lib/firebase_options.dart
 
 service-account.json
 pawscareadoption-b7e881897e1e.json
+serviceAccountKey.json
+credentials.json
+token.json
+
+#Node modules
+node_modules/
