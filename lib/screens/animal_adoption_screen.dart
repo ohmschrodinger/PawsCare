@@ -8,7 +8,7 @@ import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/widgets/animal_card.dart';
 import 'package:pawscare/services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:pawscare/models/animal_location.dart';
+import 'package:pawscare/screens/animal_map_screen.dart';
 
 // --- THEME CONSTANTS FOR THE DARK UI ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -30,11 +30,12 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
   String _genderFilter = 'All';
   String _ageFilter = 'All';
   Position? _currentPosition;
-  bool _loadingLocation = false;
   bool _hasActiveFilters = false;
 
   void _openFilterSheet() async {
-    print('Opening filter sheet with current values - Sort: $_sortBy, Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter');
+    print(
+      'Opening filter sheet with current values - Sort: $_sortBy, Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter',
+    );
     final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -56,13 +57,16 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
         _speciesFilter = result['species'] ?? _speciesFilter;
         _genderFilter = result['gender'] ?? _genderFilter;
         _ageFilter = result['age'] ?? _ageFilter;
-        
-        print('Updated filters - Sort: $_sortBy, Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter');
-        
+
+        print(
+          'Updated filters - Sort: $_sortBy, Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter',
+        );
+
         // Check if any filters are active
-        _hasActiveFilters = _speciesFilter != 'All' || 
-                          _genderFilter != 'All' || 
-                          _ageFilter != 'All';
+        _hasActiveFilters =
+            _speciesFilter != 'All' ||
+            _genderFilter != 'All' ||
+            _ageFilter != 'All';
       });
 
       // If "Near Me" is selected, get current location
@@ -75,8 +79,6 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => _loadingLocation = true);
-
     try {
       final hasPermission = await LocationService.hasLocationPermission();
 
@@ -125,8 +127,6 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
       setState(() => _sortBy = 'postedAt'); // Fallback to default
-    } finally {
-      setState(() => _loadingLocation = false);
     }
   }
 
@@ -187,7 +187,6 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
     }
   }
   // --- NEW CODE: END ---
-
 
   // Helper method to build filter chips
   Widget _buildFilterChip(String label, VoidCallback onRemove) {
@@ -258,11 +257,12 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
           _ageFilter = 'All';
           break;
       }
-      
+
       // Update active filters status
-      _hasActiveFilters = _speciesFilter != 'All' || 
-                        _genderFilter != 'All' || 
-                        _ageFilter != 'All';
+      _hasActiveFilters =
+          _speciesFilter != 'All' ||
+          _genderFilter != 'All' ||
+          _ageFilter != 'All';
     });
   }
 
@@ -276,20 +276,35 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
       appBar: AppBar(
         title: const Text(
           'Adopt Love',
-          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: false,
         backgroundColor: Colors.transparent, // Set to transparent
         elevation: 0, // Remove shadow
         actions: [
+          // Map view button
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AnimalMapScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.map, color: Colors.white),
+            tooltip: 'Map View',
+          ),
+          // Filter button with indicator
           Stack(
             children: [
               IconButton(
                 onPressed: _openFilterSheet,
-                icon: const Icon(
-                  Icons.tune,
-                  color: Colors.white,
-                ),
+                icon: const Icon(Icons.tune, color: Colors.white),
               ),
               if (_hasActiveFilters)
                 Positioned(
@@ -337,7 +352,10 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                 // Filter chips display
                 if (_hasActiveFilters) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -364,226 +382,241 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
                 ],
                 // Main content
                 Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: AnimalService.getAvailableAnimals(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(
-                    child: Text(
-                      'Something went wrong',
-                      style: TextStyle(color: Colors.redAccent),
-                    ),
-                  );
-                }
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: kPrimaryAccentColor,
-                    ),
-                  );
-                }
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: AnimalService.getAvailableAnimals(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return const Center(
+                          child: Text(
+                            'Something went wrong',
+                            style: TextStyle(color: Colors.redAccent),
+                          ),
+                        );
+                      }
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: kPrimaryAccentColor,
+                          ),
+                        );
+                      }
 
-                List<QueryDocumentSnapshot> animals = snapshot.data?.docs ?? [];
-                final List<Map<String, dynamic>> animalList = animals.map((
-                  doc,
-                ) {
-                  return {
-                    'id': doc.id,
-                    ...(doc.data() as Map<String, dynamic>),
-                  };
-                }).toList();
+                      List<QueryDocumentSnapshot> animals =
+                          snapshot.data?.docs ?? [];
+                      final List<Map<String, dynamic>> animalList = animals.map(
+                        (doc) {
+                          return {
+                            'id': doc.id,
+                            ...(doc.data() as Map<String, dynamic>),
+                          };
+                        },
+                      ).toList();
 
-                // Apply filters
-                List<Map<String, dynamic>> filtered = animalList.where((a) {
-                  // Species filter
-                  final speciesMatch =
-                      _speciesFilter == 'All' ||
-                      (a['species'] ?? '').toString().toLowerCase() ==
-                          _speciesFilter.toLowerCase();
-                  
-                  // Gender filter
-                  final genderMatch =
-                      _genderFilter == 'All' ||
-                      (a['gender'] ?? '').toString().toLowerCase() ==
-                          _genderFilter.toLowerCase();
-                  
-                  // Age filter
-                  final ageMatch = _ageFilter == 'All' || _matchesAgeFilter(a);
-                  
-                  // Debug print to help troubleshoot (only for first animal to avoid spam)
-                  if (animalList.indexOf(a) == 0) {
-                    print('Sample Animal: ${a['name']}, Species: ${a['species']}, Gender: ${a['gender']}, Status: ${a['status']}, Approval: ${a['approvalStatus']}, Active: ${a['isActive']}');
-                    print('Current Filters - Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter');
-                  }
-                  
-                  return speciesMatch && genderMatch && ageMatch;
-                }).toList();
+                      // Apply filters
+                      List<Map<String, dynamic>> filtered = animalList.where((
+                        a,
+                      ) {
+                        // Species filter
+                        final speciesMatch =
+                            _speciesFilter == 'All' ||
+                            (a['species'] ?? '').toString().toLowerCase() ==
+                                _speciesFilter.toLowerCase();
 
-                // Apply sorting
-                if (_sortBy == 'name') {
-                  filtered.sort(
-                    (a, b) => (a['name'] ?? '')
-                        .toString()
-                        .toLowerCase()
-                        .compareTo((b['name'] ?? '').toString().toLowerCase()),
-                  );
-                } else if (_sortBy == 'nearMe') {
-                  // Sort by distance from current location
-                  if (_currentPosition != null) {
-                    filtered.sort((a, b) {
-                      final aLat = a['latitude'] as double?;
-                      final aLng = a['longitude'] as double?;
-                      final bLat = b['latitude'] as double?;
-                      final bLng = b['longitude'] as double?;
+                        // Gender filter
+                        final genderMatch =
+                            _genderFilter == 'All' ||
+                            (a['gender'] ?? '').toString().toLowerCase() ==
+                                _genderFilter.toLowerCase();
 
-                      if (aLat == null || aLng == null) return 1;
-                      if (bLat == null || bLng == null) return -1;
+                        // Age filter
+                        final ageMatch =
+                            _ageFilter == 'All' || _matchesAgeFilter(a);
 
-                      final distanceA = LocationService.calculateDistance(
-                        _currentPosition!.latitude,
-                        _currentPosition!.longitude,
-                        aLat,
-                        aLng,
-                      );
+                        // Debug print to help troubleshoot (only for first animal to avoid spam)
+                        if (animalList.indexOf(a) == 0) {
+                          print(
+                            'Sample Animal: ${a['name']}, Species: ${a['species']}, Gender: ${a['gender']}, Status: ${a['status']}, Approval: ${a['approvalStatus']}, Active: ${a['isActive']}',
+                          );
+                          print(
+                            'Current Filters - Species: $_speciesFilter, Gender: $_genderFilter, Age: $_ageFilter',
+                          );
+                        }
 
-                      final distanceB = LocationService.calculateDistance(
-                        _currentPosition!.latitude,
-                        _currentPosition!.longitude,
-                        bLat,
-                        bLng,
-                      );
+                        return speciesMatch && genderMatch && ageMatch;
+                      }).toList();
 
-                      return distanceA.compareTo(distanceB);
-                    });
-                  } else {
-                    // If location not available, fall back to recent
-                    filtered.sort((a, b) {
-                      final aTime = a['postedAt'] as Timestamp?;
-                      final bTime = b['postedAt'] as Timestamp?;
-                      if (aTime == null && bTime == null) return 0;
-                      if (aTime == null) return 1;
-                      if (bTime == null) return -1;
-                      return bTime.compareTo(aTime);
-                    });
-                  }
-                } else {
-                  filtered.sort((a, b) {
-                    final aTime = a['postedAt'] as Timestamp?;
-                    final bTime = b['postedAt'] as Timestamp?;
-                    if (aTime == null && bTime == null) return 0;
-                    if (aTime == null) return 1;
-                    if (bTime == null) return -1;
-                    return bTime.compareTo(aTime); // Descending
-                  });
-                }
+                      // Apply sorting
+                      if (_sortBy == 'name') {
+                        filtered.sort(
+                          (a, b) => (a['name'] ?? '')
+                              .toString()
+                              .toLowerCase()
+                              .compareTo(
+                                (b['name'] ?? '').toString().toLowerCase(),
+                              ),
+                        );
+                      } else if (_sortBy == 'nearMe') {
+                        // Sort by distance from current location
+                        if (_currentPosition != null) {
+                          filtered.sort((a, b) {
+                            final aLat = a['latitude'] as double?;
+                            final aLng = a['longitude'] as double?;
+                            final bLat = b['latitude'] as double?;
+                            final bLng = b['longitude'] as double?;
 
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16.0,
-                                  12.0,
-                                  16.0,
-                                  12.0,
-                                ),
-                                child: const Text(
+                            if (aLat == null || aLng == null) return 1;
+                            if (bLat == null || bLng == null) return -1;
+
+                            final distanceA = LocationService.calculateDistance(
+                              _currentPosition!.latitude,
+                              _currentPosition!.longitude,
+                              aLat,
+                              aLng,
+                            );
+
+                            final distanceB = LocationService.calculateDistance(
+                              _currentPosition!.latitude,
+                              _currentPosition!.longitude,
+                              bLat,
+                              bLng,
+                            );
+
+                            return distanceA.compareTo(distanceB);
+                          });
+                        } else {
+                          // If location not available, fall back to recent
+                          filtered.sort((a, b) {
+                            final aTime = a['postedAt'] as Timestamp?;
+                            final bTime = b['postedAt'] as Timestamp?;
+                            if (aTime == null && bTime == null) return 0;
+                            if (aTime == null) return 1;
+                            if (bTime == null) return -1;
+                            return bTime.compareTo(aTime);
+                          });
+                        }
+                      } else {
+                        filtered.sort((a, b) {
+                          final aTime = a['postedAt'] as Timestamp?;
+                          final bTime = b['postedAt'] as Timestamp?;
+                          if (aTime == null && bTime == null) return 0;
+                          if (aTime == null) return 1;
+                          if (bTime == null) return -1;
+                          return bTime.compareTo(aTime); // Descending
+                        });
+                      }
+
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        16.0,
+                                        12.0,
+                                        16.0,
+                                        12.0,
+                                      ),
+                                      child: const Text(
                                         'Pets available for adoption',
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
-                                ),
-                              ),
-                              if (filtered.isEmpty)
-                                Expanded(
-                                  child: Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 48.0,
-                                        bottom: 90.0,
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.pets_outlined,
-                                            size: 64,
-                                            color: kSecondaryTextColor
-                                                .withOpacity(0.5),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            _hasActiveFilters
-                                                ? 'No animals match your filters.'
-                                                : 'No animals available for adoption.',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: kSecondaryTextColor,
-                                            ),
-                                          ),
-                                          if (_hasActiveFilters) ...[
-                                            const SizedBox(height: 8),
-                                            TextButton(
-                                              onPressed: () {
-                                                setState(() {
-                                                  _speciesFilter = 'All';
-                                                  _genderFilter = 'All';
-                                                  _ageFilter = 'All';
-                                                  _hasActiveFilters = false;
-                                                });
-                                              },
-                                              child: const Text(
-                                                'Clear all filters',
-                                                style: TextStyle(
-                                                  color: kPrimaryAccentColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
                                       ),
                                     ),
-                                  ),
-                                )
-                              else
-                                ...filtered.map((animalData) {
-                                  return AnimalCard(
-                                    animal: animalData,
-                                    isLiked:
-                                        false, // You'll likely connect this to a state management solution
-                                    isSaved:
-                                        false, // You'll likely connect this to a state management solution
-                                    likeCount:
-                                        (animalData['likeCount'] as int?) ?? 0,
-                                    onLike: () {},
-                                    onSave: () {},
-                                  );
-                                }).toList(),
-                              if (filtered.isNotEmpty)
-                                const SizedBox(
-                                  height: 90,
-                                ), // Padding for floating navigation bar if any
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                                    if (filtered.isEmpty)
+                                      Expanded(
+                                        child: Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 48.0,
+                                              bottom: 90.0,
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.pets_outlined,
+                                                  size: 64,
+                                                  color: kSecondaryTextColor
+                                                      .withOpacity(0.5),
+                                                ),
+                                                const SizedBox(height: 16),
+                                                Text(
+                                                  _hasActiveFilters
+                                                      ? 'No animals match your filters.'
+                                                      : 'No animals available for adoption.',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: kSecondaryTextColor,
+                                                  ),
+                                                ),
+                                                if (_hasActiveFilters) ...[
+                                                  const SizedBox(height: 8),
+                                                  TextButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _speciesFilter = 'All';
+                                                        _genderFilter = 'All';
+                                                        _ageFilter = 'All';
+                                                        _hasActiveFilters =
+                                                            false;
+                                                      });
+                                                    },
+                                                    child: const Text(
+                                                      'Clear all filters',
+                                                      style: TextStyle(
+                                                        color:
+                                                            kPrimaryAccentColor,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      ...filtered.map((animalData) {
+                                        return AnimalCard(
+                                          animal: animalData,
+                                          isLiked:
+                                              false, // You'll likely connect this to a state management solution
+                                          isSaved:
+                                              false, // You'll likely connect this to a state management solution
+                                          likeCount:
+                                              (animalData['likeCount']
+                                                  as int?) ??
+                                              0,
+                                          onLike: () {},
+                                          onSave: () {},
+                                        );
+                                      }).toList(),
+                                    if (filtered.isNotEmpty)
+                                      const SizedBox(
+                                        height: 90,
+                                      ), // Padding for floating navigation bar if any
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
@@ -634,9 +667,7 @@ class _FilterSheetState extends State<_FilterSheet> {
       maxChildSize: 0.9,
       builder: (_, controller) {
         return ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(16),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(
@@ -684,7 +715,8 @@ class _FilterSheetState extends State<_FilterSheet> {
                             child: Text('Near Me'),
                           ),
                         ],
-                        onChanged: (v) => setState(() => localSort = v ?? 'postedAt'),
+                        onChanged: (v) =>
+                            setState(() => localSort = v ?? 'postedAt'),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
@@ -735,16 +767,11 @@ class _FilterSheetState extends State<_FilterSheet> {
                             value: 'All',
                             child: Text('All Species'),
                           ),
-                          DropdownMenuItem(
-                            value: 'Dog',
-                            child: Text('Dogs'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Cat',
-                            child: Text('Cats'),
-                          ),
+                          DropdownMenuItem(value: 'Dog', child: Text('Dogs')),
+                          DropdownMenuItem(value: 'Cat', child: Text('Cats')),
                         ],
-                        onChanged: (v) => setState(() => localSpecies = v ?? 'All'),
+                        onChanged: (v) =>
+                            setState(() => localSpecies = v ?? 'All'),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
@@ -795,16 +822,14 @@ class _FilterSheetState extends State<_FilterSheet> {
                             value: 'All',
                             child: Text('Any Gender'),
                           ),
-                          DropdownMenuItem(
-                            value: 'Male',
-                            child: Text('Male'),
-                          ),
+                          DropdownMenuItem(value: 'Male', child: Text('Male')),
                           DropdownMenuItem(
                             value: 'Female',
                             child: Text('Female'),
                           ),
                         ],
-                        onChanged: (v) => setState(() => localGender = v ?? 'All'),
+                        onChanged: (v) =>
+                            setState(() => localGender = v ?? 'All'),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.1),
@@ -913,10 +938,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(50),
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: 10,
-                              sigmaY: 10,
-                            ),
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.1),
@@ -938,15 +960,11 @@ class _FilterSheetState extends State<_FilterSheet> {
                                   },
                                   borderRadius: BorderRadius.circular(50),
                                   child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: 12,
-                                    ),
+                                    padding: EdgeInsets.symmetric(vertical: 12),
                                     child: Center(
                                       child: Text(
                                         'Clear All',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                        ),
+                                        style: TextStyle(color: Colors.white),
                                       ),
                                     ),
                                   ),
@@ -978,7 +996,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: () {
-                                    print('Applying filters - Sort: $localSort, Species: $localSpecies, Gender: $localGender, Age: $localAge');
+                                    print(
+                                      'Applying filters - Sort: $localSort, Species: $localSpecies, Gender: $localGender, Age: $localAge',
+                                    );
                                     Navigator.of(context).pop({
                                       'sortBy': localSort,
                                       'species': localSpecies,

@@ -17,11 +17,16 @@
     <application
         android:label="pawscare"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
-        android:enableOnBackInvokedCallback="true"
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="pawscare_notifications" />
+        
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}" />
         
         <!-- Firebase Cloud Messaging Service -->
         <service

@@ -72,6 +72,9 @@ macos/Runner/GoogleService-Info.plist
 # Local Android config
 android/local.properties
 
+# iOS API Keys config
+ios/Config.xcconfig
+
 
 
 ios/Flutter/App.framework
