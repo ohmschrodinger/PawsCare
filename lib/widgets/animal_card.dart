@@ -5,6 +5,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../services/user_favorites_service.dart';
 import '../screens/pet_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geocoding/geocoding.dart';
 
 // --- THEME CONSTANTS ---
 const Color kBackgroundColor = Color(0xFF121212);
@@ -60,6 +61,8 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
   bool? _optimisticIsSaved;
   int? _optimisticLikeCount;
 
+  String _city = '';
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +92,8 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
         setState(() => _isHeartAnimating = false);
       }
     });
+
+    _getCityFromLocation();
   }
 
   @override
@@ -97,6 +102,64 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     _likeAnimationController.dispose();
     _heartAnimationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCityFromLocation() async {
+    if (!mounted) return;
+
+    // Default to a loading or placeholder text
+    setState(() {
+      _city = 'Loading location...';
+    });
+
+    try {
+      // Case 1: Modern format with 'locationData' map
+      if (widget.animal['locationData'] != null &&
+          widget.animal['locationData'] is Map) {
+        final locationData = widget.animal['locationData'];
+        final lat = locationData['latitude'] as double?;
+        final lng = locationData['longitude'] as double?;
+
+        if (lat != null && lng != null) {
+          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+          if (mounted && placemarks.isNotEmpty) {
+            setState(() {
+              _city = placemarks.first.locality ?? 'Unknown City';
+            });
+            return;
+          }
+        }
+      }
+
+      // Case 2: Fallback for older data with just a 'location' string
+      if (widget.animal['location'] is String) {
+        final locationString = widget.animal['location'] as String;
+        // Attempt to parse city from string "City, State"
+        final parts = locationString.split(',');
+        if (parts.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _city = parts.first.trim();
+            });
+            return;
+          }
+        }
+      }
+
+      // If all else fails
+      if (mounted) {
+        setState(() {
+          _city = 'Pune, Maharashtra'; // Final fallback
+        });
+      }
+    } catch (e) {
+      print('Error getting city from location: $e');
+      if (mounted) {
+        setState(() {
+          _city = 'Location unavailable'; // Error state
+        });
+      }
+    }
   }
 
   // ================= LOGIC METHODS =================
@@ -464,7 +527,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                         child: Text(
                           widget.animal['name'] as String? ?? 'Unknown Pet',
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: kPrimaryTextColor,
                           ),
@@ -530,7 +593,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    "${widget.animal['location'] ?? 'Pune, Maharashtra'} • Posted ${_getTimeAgo()}",
+                    "$_city • Posted ${_getTimeAgo()}",
                     style: const TextStyle(
                       fontSize: 14,
                       color: kSecondaryTextColor,

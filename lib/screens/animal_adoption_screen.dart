@@ -397,7 +397,7 @@ class _AnimalAdoptionScreenState extends State<AnimalAdoptionScreen> {
       appBar: AppBar(
         title: const Text(
           'Adopt Love',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
         ),
         centerTitle: false,
         backgroundColor: Colors.transparent, // Set to transparent

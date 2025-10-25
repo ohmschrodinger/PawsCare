@@ -355,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Bottom-most layer: Pet image
                 Positioned.fill(
                   child: Image.asset(
-                    'assets/images/petoftheday.jpeg',
+                    'assets/images/background.png',
                     fit: BoxFit.cover,
                   ),
                 ),
