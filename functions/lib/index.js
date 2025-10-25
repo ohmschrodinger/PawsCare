@@ -36,12 +36,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logGeneralToSheet = exports.logNotificationToSheet = exports.logEmailToSheet = exports.logApplicationToSheet = exports.logAnimalToSheet = exports.logUserToSheet = exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = void 0;
+exports.logGeneralToSheet = exports.logNotificationToSheet = exports.logEmailToSheet = exports.logApplicationToSheet = exports.logAnimalToSheet = exports.logUserToSheet = exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = exports.refreshPetOfTheDay = exports.updatePetOfTheDay = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const nodemailer = __importStar(require("nodemailer"));
 const cors_1 = __importDefault(require("cors"));
 const googleapis_1 = require("googleapis");
+// Export Pet of the Day functions
+var pet_of_day_1 = require("./pet_of_day");
+Object.defineProperty(exports, "updatePetOfTheDay", { enumerable: true, get: function () { return pet_of_day_1.updatePetOfTheDay; } });
+Object.defineProperty(exports, "refreshPetOfTheDay", { enumerable: true, get: function () { return pet_of_day_1.refreshPetOfTheDay; } });
 // Initialize Firebase Admin
 admin.initializeApp();
 const corsHandler = (0, cors_1.default)({ origin: true });

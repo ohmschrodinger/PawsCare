@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
-          // Header with "Pet of the Day" and "See More"
+          // Header with "Pet of the Day"
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -347,150 +347,274 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Stack: Bottom image + Glassmorphic Card
-          ClipRRect(
+          // Fetch Pet of the Day from Firestore
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('app_config')
+                .doc('pet_of_the_day')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildPetOfTheDayLoading();
+              }
+
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return _buildPetOfTheDayPlaceholder();
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>?;
+              final hasPet = data?['hasPet'] ?? false;
+
+              if (!hasPet) {
+                return _buildPetOfTheDayPlaceholder(
+                  message:
+                      data?['message'] ?? 'No pets available at the moment',
+                );
+              }
+
+              // Extract pet data
+              final petImage = data?['petImage'] ?? '';
+              final petName = data?['petName'] ?? 'Unknown Pet';
+              final petSpecies = data?['petSpecies'] ?? 'Pet';
+              final petAge = data?['petAge'] ?? '';
+              final fullPetData = data?['fullPetData'] as Map<String, dynamic>?;
+
+              // Use rescue story from fullPetData if available, otherwise use petDescription
+              final rescueStory =
+                  fullPetData?['rescueStory'] ??
+                  data?['petDescription'] ??
+                  'Meet this adorable pet!';
+
+              return _buildPetOfTheDayCard(
+                petImage: petImage,
+                petName: petName,
+                petSpecies: petSpecies,
+                petAge: petAge,
+                rescueStory: rescueStory,
+                fullPetData: fullPetData,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPetOfTheDayLoading() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 190,
+        decoration: BoxDecoration(
+          color: kCardColor.withOpacity(0.25),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: kPrimaryAccentColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPetOfTheDayPlaceholder({String? message}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          height: 190,
+          decoration: BoxDecoration(
+            color: kCardColor.withOpacity(0.25),
             borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                // Bottom-most layer: Pet image
-                Positioned.fill(
-                  child: Image.asset(
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.pets, size: 50, color: kSecondaryTextColor),
+                  const SizedBox(height: 12),
+                  Text(
+                    message ?? 'No pets available at the moment',
+                    style: AppTypography.subhead.copyWith(
+                      color: kSecondaryTextColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPetOfTheDayCard({
+    required String petImage,
+    required String petName,
+    required String petSpecies,
+    required String petAge,
+    required String rescueStory,
+    Map<String, dynamic>? fullPetData,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        children: [
+          // Bottom-most layer: Pet image or fallback
+          Positioned.fill(
+            child: petImage.isNotEmpty
+                ? Image.network(
+                    petImage,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/background.png',
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  )
+                : Image.asset(
                     'assets/images/background.png',
                     fit: BoxFit.cover,
                   ),
-                ),
+          ),
 
-                // Glassmorphic Card on top
-                BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    height: 190,
-                    decoration: BoxDecoration(
-                      color: kCardColor.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        // Left Side: Image
-                        Expanded(
-                          flex: 2,
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              bottomLeft: Radius.circular(16),
-                            ),
-                            child: Image.network(
-                              'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1964&q=80',
-                              fit: BoxFit.cover,
-                              height: double.infinity,
-                            ),
-                          ),
+          // Glassmorphic Card on top
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              height: 190,
+              decoration: BoxDecoration(
+                color: kCardColor.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Row(
+                children: [
+                  // Left Side: Image
+                  if (petImage.isNotEmpty)
+                    Expanded(
+                      flex: 2,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
                         ),
-                        // Right Side: Text and Button
-                        Expanded(
-                          flex: 3,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Meet Billi',
-                                      style: AppTypography.headline.copyWith(
-                                        color: kPrimaryTextColor,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'This playful cutie loves belly rubs and what not.',
-                                      style: AppTypography.subhead.copyWith(
-                                        color: kSecondaryTextColor,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                  ],
+                        child: Image.network(
+                          petImage,
+                          fit: BoxFit.cover,
+                          height: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: kCardColor,
+                              child: const Icon(
+                                Icons.pets,
+                                color: kSecondaryTextColor,
+                                size: 50,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  // Right Side: Text and Button
+                  Expanded(
+                    flex: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Meet $petName',
+                                style: AppTypography.headline.copyWith(
+                                  color: kPrimaryTextColor,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: ClipRRect(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                rescueStory,
+                                style: AppTypography.subhead.copyWith(
+                                  color: kSecondaryTextColor,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(60),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(
+                                  sigmaX: 10,
+                                  sigmaY: 10,
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(60),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(
-                                        sigmaX: 10,
-                                        sigmaY: 10,
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.05),
-                                          borderRadius: BorderRadius.circular(
-                                            60,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(
-                                              0.2,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        if (fullPetData != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  PetDetailScreen(
+                                                    petData: fullPetData,
+                                                  ),
                                             ),
-                                            width: 1.5,
-                                          ),
+                                          );
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(60),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 10,
                                         ),
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: InkWell(
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      PetDetailScreen(
-                                                        petData: {
-                                                          'name': 'Rocky',
-                                                          'species': 'Cat',
-                                                          'age': '2 years',
-                                                          'image':
-                                                              'https://images.unsplash.com/photo-1574144611937-0df059b5ef3e',
-                                                        },
-                                                      ),
-                                                ),
-                                              );
-                                            },
-                                            borderRadius: BorderRadius.circular(
-                                              60,
-                                            ),
-                                            child: Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 20,
-                                                vertical: 10,
-                                              ),
-                                              child: Text(
-                                                'See More',
-                                                style: AppTypography.callout
-                                                    .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: kPrimaryTextColor,
-                                                    ),
-                                              ),
-                                            ),
+                                        child: Text(
+                                          'See More',
+                                          style: AppTypography.callout.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: kPrimaryTextColor,
                                           ),
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
