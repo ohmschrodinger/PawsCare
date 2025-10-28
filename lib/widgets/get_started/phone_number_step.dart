@@ -145,6 +145,7 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: const Color(0xFF2A2A2A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -161,23 +162,23 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Colors.grey.shade600,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             // Title
-            Padding(
-              padding: const EdgeInsets.all(16),
+            const Padding(
+              padding: EdgeInsets.all(16),
               child: Text(
                 'Select Country Code',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
+                  color: Colors.white,
                 ),
               ),
             ),
-            const Divider(height: 1),
+            Divider(height: 1, color: Colors.grey.shade700),
             // Country list
             Expanded(
               child: ListView.builder(
@@ -187,27 +188,22 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
                   final country = CountryCodes.countries[index];
                   final isSelected = country.code == _selectedCountry.code;
                   return ListTile(
-                    leading: Text(
-                      country.flag,
-                      style: const TextStyle(fontSize: 24),
-                    ),
                     title: Text(
                       country.name,
                       style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: Colors.white,
                       ),
                     ),
                     trailing: Text(
                       country.dialCode,
                       style: TextStyle(
                         color: isSelected
-                            ? const Color(0xFF2196F3)
-                            : Colors.grey.shade600,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
+                            ? const Color(0xFF2196F3) // Kept original blue
+                            : Colors.grey.shade400,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                     selected: isSelected,
@@ -321,77 +317,66 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon
-            Center(
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.phone_outlined,
-                  size: 40,
-                  color: Color(0xFF2196F3),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
             // Title
-            const Text(
-              'Enter your phone number',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1F2937),
+            const Align(
+              alignment: Alignment.center,
+              child: Text(
+                'Enter your phone number',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
             const SizedBox(height: 8),
 
             // Subtitle
-            Text(
-              'We\'ll send you a verification code to confirm your number.',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+            Align(
+              alignment: Alignment.center,
+              child: Text(
+                'We\'ll send you a verification code to confirm your number.',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 32),
+
+            // Label for the field
+            _buildLabel('Phone Number'),
+            const SizedBox(height: 8),
 
             // Phone Number field with country code selector
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Country code selector
+                // Country code selector (styled)
                 InkWell(
                   onTap: _showCountryPicker,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    height: 58,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    height: 58, // Match TextFormField height
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      color: const Color(0xFF2C2C2E),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _selectedCountry.flag,
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
                           _selectedCountry.dialCode,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 4),
                         Icon(
                           Icons.arrow_drop_down,
-                          color: Colors.grey.shade600,
+                          color: Colors.grey.shade400,
                         ),
                       ],
                     ),
@@ -402,15 +387,38 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
                 Expanded(
                   child: TextFormField(
                     controller: _phoneController,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                     decoration: InputDecoration(
-                      labelText: 'Phone Number',
                       hintText: 'Enter your number',
-                      prefixIcon: const Icon(Icons.phone),
+                      hintStyle: TextStyle(color: Colors.grey.shade700),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.white,
+                      fillColor: const Color(0xFF2C2C2E),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 18),
+                      // Error styling for dark theme
+                      errorStyle: TextStyle(color: Colors.red.shade300),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide:
+                            BorderSide(color: Colors.red.shade300, width: 1),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30),
+                        borderSide:
+                            BorderSide(color: Colors.red.shade300, width: 2),
+                      ),
                     ),
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
@@ -430,23 +438,24 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  // Using the same dark error as sign in
+                  color: const Color(0xFF5A1D1D),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: Colors.red.shade400),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.error_outline,
-                      color: Colors.red.shade700,
+                      color: Colors.red.shade200,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _errorMessage!,
                         style: TextStyle(
-                          color: Colors.red.shade700,
+                          color: Colors.red.shade200,
                           fontSize: 14,
                         ),
                       ),
@@ -459,39 +468,7 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
             const SizedBox(height: 32),
 
             // Next button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
-                      )
-                    : const Text(
-                        'Send Verification Code',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-            ),
+            _buildSendCodeButton(),
 
             const SizedBox(height: 16),
 
@@ -503,6 +480,73 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Helper widget for the text labels above input fields
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: Colors.grey.shade400,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
+  /// New Gradient Send Code Button
+  Widget _buildSendCodeButton() {
+    return Container(
+      height: 54,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        // Gradient border
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFD500F9), // Purple-ish
+            Color(0xFFED00AA), // Pink
+            Color(0xFFF77062), // Orange-ish
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2.0), // This creates the border thickness
+        child: InkWell(
+          onTap: _isLoading ? null : _handleNext,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            decoration: BoxDecoration(
+              // Dark button color, matching fields
+              color:
+                  _isLoading ? const Color(0xFF1A1A1A) : const Color(0xFF2C2C2E),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Send Verification Code',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
         ),
       ),
     );

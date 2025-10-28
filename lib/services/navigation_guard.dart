@@ -25,8 +25,17 @@ class NavigationGuard {
       return '/entry-point';
     }
 
-    // User is authenticated, check verification status
-    final userData = await UserService.getUserModel(user.uid);
+    // User is authenticated, reload to get latest verification status
+    await AuthService.reloadUser();
+
+    // Get fresh user reference after reload
+    final freshUser = AuthService.getCurrentUser();
+    if (freshUser == null) {
+      await AuthService.signOut();
+      return '/entry-point';
+    }
+
+    final userData = await UserService.getUserModel(freshUser.uid);
 
     if (userData == null) {
       // User document doesn't exist, sign out and redirect to entry point
@@ -34,6 +43,25 @@ class NavigationGuard {
       return '/entry-point';
     }
 
+    // Sync Firebase Auth email verification status with Firestore
+    if (freshUser.emailVerified && !userData.isEmailVerified) {
+      await UserService.updateEmailVerificationStatus(
+        uid: freshUser.uid,
+        isVerified: true,
+      );
+      // Refresh userData after update
+      final updatedUserData = await UserService.getUserModel(freshUser.uid);
+      if (updatedUserData != null) {
+        // Continue with updated data
+        return _checkUserDataAccess(updatedUserData, requestedRoute);
+      }
+    }
+
+    return _checkUserDataAccess(userData, requestedRoute);
+  }
+
+  /// Helper method to check user data access
+  static String? _checkUserDataAccess(dynamic userData, String requestedRoute) {
     // Check if user can access the app
     if (!userData.canAccessApp) {
       // User needs verification
@@ -52,8 +80,7 @@ class NavigationGuard {
       }
 
       if (!userData.isActive) {
-        // Account is deactivated
-        await AuthService.signOut();
+        AuthService.signOut();
         return '/entry-point';
       }
     }
@@ -117,17 +144,37 @@ class NavigationGuard {
       return '/entry-point';
     }
 
-    // Reload user to get latest verification status
+    // Reload user to get latest verification status from Firebase Auth
     await AuthService.reloadUser();
 
-    final userData = await UserService.getUserModel(user.uid);
+    // Get fresh user reference after reload
+    final freshUser = AuthService.getCurrentUser();
+    if (freshUser == null) {
+      return '/entry-point';
+    }
+
+    final userData = await UserService.getUserModel(freshUser.uid);
 
     if (userData == null) {
       await AuthService.signOut();
       return '/entry-point';
     }
 
-    if (!userData.isEmailVerified) {
+    // Sync Firebase Auth email verification status with Firestore
+    if (freshUser.emailVerified && !userData.isEmailVerified) {
+      await UserService.updateEmailVerificationStatus(
+        uid: freshUser.uid,
+        isVerified: true,
+      );
+      // Refresh userData after update
+      final updatedUserData = await UserService.getUserModel(freshUser.uid);
+      if (updatedUserData != null && updatedUserData.canAccessApp) {
+        return '/main';
+      }
+    }
+
+    // Check email verification status
+    if (!userData.isEmailVerified && !freshUser.emailVerified) {
       return '/email-verification';
     }
 
@@ -151,14 +198,35 @@ class NavigationGuard {
   static Future<String?> handlePostAuthentication(User user) async {
     await AuthService.reloadUser();
 
-    final userData = await UserService.getUserModel(user.uid);
+    // Get fresh user reference after reload
+    final freshUser = AuthService.getCurrentUser();
+    if (freshUser == null) {
+      await AuthService.signOut();
+      return '/entry-point';
+    }
+
+    final userData = await UserService.getUserModel(freshUser.uid);
 
     if (userData == null) {
       await AuthService.signOut();
       return '/entry-point';
     }
 
-    if (!userData.isEmailVerified) {
+    // Sync Firebase Auth email verification status with Firestore
+    if (freshUser.emailVerified && !userData.isEmailVerified) {
+      await UserService.updateEmailVerificationStatus(
+        uid: freshUser.uid,
+        isVerified: true,
+      );
+      // Refresh userData after update
+      final updatedUserData = await UserService.getUserModel(freshUser.uid);
+      if (updatedUserData != null && updatedUserData.canAccessApp) {
+        return '/main';
+      }
+    }
+
+    // Check email verification status
+    if (!userData.isEmailVerified && !freshUser.emailVerified) {
       return '/email-verification';
     }
 

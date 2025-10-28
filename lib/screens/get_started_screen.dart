@@ -72,7 +72,7 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
 
   // Complete registration and navigate to home
   void _completeRegistration() {
-    // This will be implemented in Phase 4
+    // Navigate to the main app screen
     Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
   }
 
@@ -87,32 +87,13 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: _currentStep > 0
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Color(0xFF2196F3)),
-                  onPressed: _goToPreviousStep,
-                )
-              : IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF2196F3)),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-          title: Text(
-            'Get Started',
-            style: TextStyle(
-              color: Colors.grey.shade800,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-        ),
+        backgroundColor: Colors.black, // Changed to solid black
         body: SafeArea(
           child: Column(
             children: [
+              // Custom navigation (Back/Close)
+              _buildNavigation(),
+
               // Progress indicator
               _buildProgressIndicator(),
               const SizedBox(height: 20),
@@ -126,7 +107,57 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
     );
   }
 
+  /// Custom navigation bar (replaces AppBar)
+  Widget _buildNavigation() {
+    return Container(
+      height: 56, // Standard AppBar height
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Back/Close Button
+          IconButton(
+            icon: Icon(
+              _currentStep > 0 ? Icons.arrow_back_ios_new : Icons.close,
+              color: Colors.white,
+              size: 22,
+            ),
+            onPressed: () {
+              if (_currentStep > 0) {
+                _goToPreviousStep();
+              } else {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          // Title
+          Text(
+            'Get Started',
+            style: TextStyle(
+              color: Colors.grey.shade200,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          // Spacer to center title
+          const SizedBox(width: 48), // Width of an IconButton
+        ],
+      ),
+    );
+  }
+
+  /// Styled Gradient Progress Indicator
   Widget _buildProgressIndicator() {
+    const gradient = LinearGradient(
+      colors: [
+        Color(0xFFD500F9), // Purple-ish
+        Color(0xFFED00AA), // Pink
+        Color(0xFFF77062), // Orange-ish
+      ],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Row(
@@ -136,12 +167,14 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
 
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: index < 4 ? 8 : 0),
+              margin: EdgeInsets.only(right: index < 4 ? 6 : 0),
               height: 4,
               decoration: BoxDecoration(
+                // Apply gradient if completed or current, otherwise dark grey
+                gradient: isCompleted || isCurrent ? gradient : null,
                 color: isCompleted || isCurrent
-                    ? const Color(0xFF2196F3)
-                    : Colors.grey.shade300,
+                    ? null
+                    : const Color(0xFF3A3A3A),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

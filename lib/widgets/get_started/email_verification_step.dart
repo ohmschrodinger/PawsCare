@@ -87,19 +87,28 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
       // Start checking for email verification
       _startVerificationCheck();
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to create account: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to create account: ${e.toString()}';
+          _isLoading = false;
+          _accountCreated =
+              true; // Show page with error even if account creation failed
+        });
+      }
     }
   }
 
   void _startVerificationCheck() {
+    _checkTimer?.cancel(); // Cancel any existing timer
     _checkTimer = Timer.periodic(
       Duration(
         seconds: VerificationConstants.emailVerificationCheckIntervalSeconds,
       ),
       (timer) async {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         if (_checkCount >=
             VerificationConstants.maxEmailVerificationCheckAttempts) {
           timer.cancel();
@@ -117,6 +126,7 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
 
     setState(() {
       _isCheckingVerification = true;
+      _errorMessage = null;
     });
 
     try {
@@ -138,9 +148,23 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
         if (mounted) {
           widget.onVerified();
         }
+      } else {
+        // Show error if not verified
+        if (mounted) {
+          setState(() {
+            _errorMessage =
+                'Email not verified yet. Please check your inbox and click the verification link.';
+          });
+        }
       }
     } catch (e) {
       print('Error checking email verification: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              'Error checking verification status. Please try again.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -161,9 +185,12 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification email sent successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text(
+              'Verification email sent successfully',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green.shade800, // Darker green
           ),
         );
       }
@@ -186,17 +213,22 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading && !_accountCreated) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              'Creating your account...',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-            ),
-          ],
+      return Container(
+        color: Colors.black, // Dark background for loading
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Creating your account...',
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -206,29 +238,13 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Icon
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2196F3).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.mark_email_unread_outlined,
-              size: 50,
-              color: Color(0xFF2196F3),
-            ),
-          ),
-          const SizedBox(height: 24),
-
           // Title
           const Text(
             'Verify your email',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1F2937),
+              color: Colors.white,
             ),
             textAlign: TextAlign.center,
           ),
@@ -237,16 +253,16 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
           // Subtitle
           Text(
             'We sent a verification link to',
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
             widget.email,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2196F3),
+              color: Colors.grey.shade200, // Styled
             ),
             textAlign: TextAlign.center,
           ),
@@ -256,9 +272,8 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: const Color(0xFF2C2C2E), // Styled
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade100),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,62 +295,27 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
 
           const SizedBox(height: 24),
 
-          // Checking status
-          if (_isCheckingVerification)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.green.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Checking verification status...',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.green.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           if (_errorMessage != null) ...[
-            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: const Color(0xFF5A1D1D), // Styled
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: Colors.red.shade400),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.error_outline,
-                    color: Colors.red.shade700,
+                    color: Colors.red.shade200,
                     size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       _errorMessage!,
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: Colors.red.shade200,
                         fontSize: 14,
                       ),
                     ),
@@ -343,27 +323,11 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
           ],
 
-          const SizedBox(height: 24),
-
-          // Manual check button
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: _isLoading ? null : _checkEmailVerification,
-              icon: const Icon(Icons.refresh),
-              label: const Text('I\'ve verified, check now'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF2196F3),
-                side: const BorderSide(color: Color(0xFF2196F3)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ),
+          // Manual check button (Styled as primary action)
+          _buildCheckButton(),
 
           const SizedBox(height: 32),
 
@@ -373,17 +337,22 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
             children: [
               Text(
                 "Didn't receive the email? ",
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
               ),
               GestureDetector(
-                onTap: _isLoading ? null : _resendVerificationEmail,
+                onTap: _isLoading || _isCheckingVerification
+                    ? null
+                    : _resendVerificationEmail,
                 child: Text(
                   'Resend',
                   style: TextStyle(
                     fontSize: 14,
-                    color: _isLoading ? Colors.grey : const Color(0xFF2196F3),
+                    color: _isLoading || _isCheckingVerification
+                        ? Colors.grey.shade600
+                        : Colors.blue.shade300, // Styled
                     fontWeight: FontWeight.w600,
                     decoration: TextDecoration.underline,
+                    decorationColor: Colors.blue.shade300,
                   ),
                 ),
               ),
@@ -403,6 +372,64 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
     );
   }
 
+  /// New Gradient Check Button
+  Widget _buildCheckButton() {
+    return Container(
+      height: 54,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        // Gradient border
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFD500F9), // Purple-ish
+            Color(0xFFED00AA), // Pink
+            Color(0xFFF77062), // Orange-ish
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2.0), // This creates the border thickness
+        child: InkWell(
+          onTap: _isLoading || _isCheckingVerification
+              ? null
+              : _checkEmailVerification,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            decoration: BoxDecoration(
+              // Dark button color, matching fields
+              color: _isLoading || _isCheckingVerification
+                  ? const Color(0xFF1A1A1A)
+                  : const Color(0xFF2C2C2E),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Center(
+              child: _isCheckingVerification
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'I\'ve verified, check now',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInstructionStep(String number, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,8 +437,17 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
         Container(
           width: 24,
           height: 24,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2196F3),
+          decoration: const BoxDecoration(
+            // Use gradient for the number circle
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFFD500F9), // Purple-ish
+                Color(0xFFED00AA), // Pink
+                Color(0xFFF77062), // Orange-ish
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -429,7 +465,7 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade300),
           ),
         ),
       ],

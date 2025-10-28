@@ -16,12 +16,8 @@ class NewSignInScreen extends StatefulWidget {
 }
 
 class _NewSignInScreenState extends State<NewSignInScreen> {
-  // Sign-in method selection
-  SignInMethod _selectedMethod = SignInMethod.email;
-
   // Controllers
   final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
   // Form state
@@ -33,28 +29,18 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   // Validation
-  String? _validateEmailOrPhone(String? value) {
+  String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return _selectedMethod == SignInMethod.email
-          ? 'Please enter your email address'
-          : 'Please enter your phone number';
+      return 'Please enter your email address';
     }
 
-    if (_selectedMethod == SignInMethod.email) {
-      if (!VerificationConstants.emailRegex.hasMatch(value.trim())) {
-        return 'Please enter a valid email address';
-      }
-    } else {
-      final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
-      if (digitsOnly.length != 10) {
-        return 'Phone number must be 10 digits';
-      }
+    if (!VerificationConstants.emailRegex.hasMatch(value.trim())) {
+      return 'Please enter a valid email address';
     }
 
     return null;
@@ -124,43 +110,6 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
     }
   }
 
-  Future<void> _signInWithPhone() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final digitsOnly = _phoneController.text.replaceAll(RegExp(r'\D'), '');
-      final formattedPhone = '+1$digitsOnly';
-
-      // Check if account exists with this phone number
-      final phoneExists = await UserService.phoneNumberExists(formattedPhone);
-      if (!phoneExists) {
-        setState(() {
-          _errorMessage =
-              'No account found with this phone number. Please sign up first.';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // TODO: In Phase 4, implement Firebase Phone Auth sign-in
-      // For now, show a message
-      setState(() {
-        _errorMessage = 'Phone sign-in will be implemented in Phase 4';
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Failed to sign in with phone: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<void> _handlePostSignIn(User user) async {
     // Use NavigationGuard to determine where to navigate
     final route = await NavigationGuard.handlePostAuthentication(user);
@@ -187,105 +136,100 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
     }
   }
 
-  void _handleSignIn() {
-    if (_selectedMethod == SignInMethod.email) {
-      _signInWithEmail();
-    } else {
-      _signInWithPhone();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.black, // Dark background from image
+      // Added an AppBar back, but styled transparently to hold the back button
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF2196F3)),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: SafeArea(
+        // Use .only(bottom: true) to avoid double padding with AppBar
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
+                // == Header added back ==
                 const Text(
                   'Welcome Back!',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Sign in to continue to PawsCare',
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
                 ),
                 const SizedBox(height: 32),
 
-                // Sign-in method selector
-                _buildMethodSelector(),
-                const SizedBox(height: 24),
+                // Email field
+                _buildLabel('Email'),
+                const SizedBox(height: 8),
+                _buildEmailField(),
+                const SizedBox(height: 24), // Increased spacing
 
-                // Input fields
-                if (_selectedMethod == SignInMethod.email)
-                  _buildEmailField()
-                else
-                  _buildPhoneField(),
-                const SizedBox(height: 16),
-
-                // Password field (for email and phone)
+                // Password field
+                _buildLabel('Password'),
+                const SizedBox(height: 8),
                 _buildPasswordField(),
                 const SizedBox(height: 8),
 
-                // Forgot password
+                // == Forgot password added back ==
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
                       Navigator.pushNamed(context, '/password-reset');
                     },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue.shade300, // Styled for dark theme
+                    ),
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: Color(0xFF2196F3),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 8), // Spacing before error
 
                 // Error message
                 if (_errorMessage != null) ...[
-                  const SizedBox(height: 8),
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      // Dark theme error color
+                      color: const Color(0xFF5A1D1D),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
+                      border: Border.all(color: Colors.red.shade400),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.error_outline,
-                          color: Colors.red.shade700,
+                          color: Colors.red.shade200,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             _errorMessage!,
                             style: TextStyle(
-                              color: Colors.red.shade700,
+                              color: Colors.red.shade200,
                               fontSize: 14,
                             ),
                           ),
@@ -293,48 +237,18 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 24),
+                ] else ...[
+                  // Added space to keep button in same place
+                  const SizedBox(height: 24),
                 ],
 
-                const SizedBox(height: 24),
-
                 // Sign-in button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleSignIn,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text(
-                            'Sign In',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                  ),
-                ),
+                _buildSignInButton(),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 32), // Spacing before sign up
 
-                // Sign up link
+                // == "Sign Up" link added back ==
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -342,20 +256,21 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
                       "Don't have an account? ",
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Colors.grey.shade500,
                       ),
                     ),
                     GestureDetector(
                       onTap: () {
                         Navigator.pushReplacementNamed(context, '/get-started');
                       },
-                      child: const Text(
+                      child: Text(
                         'Sign Up',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF2196F3),
+                          color: Colors.blue.shade300, // Styled for dark theme
                           fontWeight: FontWeight.w600,
                           decoration: TextDecoration.underline,
+                          decorationColor: Colors.blue.shade300,
                         ),
                       ),
                     ),
@@ -369,82 +284,14 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
     );
   }
 
-  Widget _buildMethodSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildMethodButton(
-              'Email',
-              SignInMethod.email,
-              Icons.email_outlined,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: _buildMethodButton(
-              'Phone',
-              SignInMethod.phone,
-              Icons.phone_outlined,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMethodButton(String label, SignInMethod method, IconData icon) {
-    final isSelected = _selectedMethod == method;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMethod = method;
-          _errorMessage = null;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected
-                  ? const Color(0xFF2196F3)
-                  : Colors.grey.shade600,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? const Color(0xFF2196F3)
-                    : Colors.grey.shade600,
-              ),
-            ),
-          ],
-        ),
+  /// Helper widget for the text labels above input fields
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: Colors.grey.shade400,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -452,39 +299,41 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
+      style: const TextStyle(color: Colors.white, fontSize: 16),
       decoration: InputDecoration(
-        labelText: 'Email Address',
-        hintText: 'you@example.com',
-        prefixIcon: const Icon(Icons.email_outlined),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        // Removed labelText
+        hintText: 'youremail@example.com',
+        hintStyle: TextStyle(color: Colors.grey.shade700),
+        // Removed prefixIcon
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none, // No border
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none, // No border
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none, // No border on focus
+        ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFF2C2C2E), // Darker field color
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        // Error styling for dark theme
+        errorStyle: TextStyle(color: Colors.red.shade300),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: Colors.red.shade300, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: Colors.red.shade300, width: 2),
+        ),
       ),
       keyboardType: TextInputType.emailAddress,
-      validator: _validateEmailOrPhone,
-      textInputAction: TextInputAction.next,
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return TextFormField(
-      controller: _phoneController,
-      decoration: InputDecoration(
-        labelText: 'Phone Number',
-        hintText: '(555) 123-4567',
-        prefixIcon: const Icon(Icons.phone_outlined),
-        prefixText: '+1 ',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      keyboardType: TextInputType.phone,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
-        _PhoneNumberFormatter(),
-      ],
-      validator: _validateEmailOrPhone,
+      validator: _validateEmail,
       textInputAction: TextInputAction.next,
     );
   }
@@ -493,13 +342,20 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 16,
+        letterSpacing: 2, // Added letter spacing for '***'
+      ),
       decoration: InputDecoration(
-        labelText: 'Password',
-        hintText: 'Enter your password',
-        prefixIcon: const Icon(Icons.lock_outline),
+        // Removed labelText
+        hintText: '************',
+        hintStyle: TextStyle(color: Colors.grey.shade700, letterSpacing: 2),
+        // Removed prefixIcon
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey.shade500,
           ),
           onPressed: () {
             setState(() {
@@ -507,47 +363,112 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
             });
           },
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFF2C2C2E),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        // Error styling for dark theme
+        errorStyle: TextStyle(color: Colors.red.shade300),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: Colors.red.shade300, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: Colors.red.shade300, width: 2),
+        ),
       ),
       validator: _validatePassword,
       textInputAction: TextInputAction.done,
-      onFieldSubmitted: (_) => _handleSignIn(),
+      onFieldSubmitted: (_) => _signInWithEmail(),
+    );
+  }
+
+  /// New Gradient Sign In Button
+  Widget _buildSignInButton() {
+    return Container(
+      height: 54,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        // Gradient border
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFFD500F9), // Purple-ish
+            Color(0xFFED00AA), // Pink
+            Color(0xFFF77062), // Orange-ish
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(2.0), // This creates the border thickness
+        child: InkWell(
+          onTap: _isLoading ? null : _signInWithEmail,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            decoration: BoxDecoration(
+              // Dark button color, matching fields
+              color:
+                  _isLoading ? const Color(0xFF1A1A1A) : const Color(0xFF2C2C2E),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Center(
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Arrow Icon
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            border:
+                                Border.all(color: Colors.white54, width: 1.5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-enum SignInMethod { email, phone }
-
-/// Phone number formatter for US format (XXX) XXX-XXXX
-class _PhoneNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-    if (text.isEmpty) {
-      return newValue;
-    }
-
-    final buffer = StringBuffer();
-    for (int i = 0; i < text.length; i++) {
-      if (i == 0) {
-        buffer.write('(');
-      }
-      buffer.write(text[i]);
-      if (i == 2) {
-        buffer.write(') ');
-      } else if (i == 5) {
-        buffer.write('-');
-      }
-    }
-
-    return TextEditingValue(
-      text: buffer.toString(),
-      selection: TextSelection.collapsed(offset: buffer.length),
-    );
-  }
-}
