@@ -1,12 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'user_service.dart';
 import 'current_user_cache.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Send email verification link
   static Future<void> sendEmailVerification() async {
@@ -178,5 +176,154 @@ class AuthService {
   /// Get authentication state changes stream
   static Stream<User?> get authStateChanges {
     return _auth.authStateChanges();
+  }
+
+  // ==================== PHONE AUTHENTICATION ====================
+
+  /// Verify phone number and send SMS code
+  /// Returns verification ID to be used with verifyPhoneCode
+  static Future<String> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(String verificationId) onCodeSent,
+    required Function(String error) onError,
+    Function(PhoneAuthCredential credential)? onAutoVerified,
+  }) async {
+    String verificationIdResult = '';
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      timeout: const Duration(seconds: 60),
+
+      // Called when SMS code is automatically verified (Android only)
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        print('Phone verification completed automatically');
+        if (onAutoVerified != null) {
+          onAutoVerified(credential);
+        }
+      },
+
+      // Called when verification fails
+      verificationFailed: (FirebaseAuthException e) {
+        print('Phone verification failed: ${e.code} - ${e.message}');
+        if (e.code == 'invalid-phone-number') {
+          onError('The phone number entered is invalid.');
+        } else if (e.code == 'too-many-requests') {
+          onError('Too many requests. Please try again later.');
+        } else if (e.code == 'quota-exceeded') {
+          onError('SMS quota exceeded. Please try again later.');
+        } else {
+          onError('Phone verification failed: ${e.message ?? e.code}');
+        }
+      },
+
+      // Called when SMS code is sent
+      codeSent: (String verificationId, int? resendToken) {
+        print('SMS code sent. Verification ID: $verificationId');
+        verificationIdResult = verificationId;
+        onCodeSent(verificationId);
+      },
+
+      // Called when SMS code auto-retrieval times out
+      codeAutoRetrievalTimeout: (String verificationId) {
+        print('Code auto-retrieval timeout. Verification ID: $verificationId');
+        verificationIdResult = verificationId;
+      },
+    );
+
+    return verificationIdResult;
+  }
+
+  /// Verify the SMS code entered by user
+  static Future<PhoneAuthCredential> verifyPhoneCode({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      return credential;
+    } catch (e) {
+      print('Error creating phone credential: $e');
+      throw Exception('Invalid verification code');
+    }
+  }
+
+  /// Sign in with phone credential
+  static Future<UserCredential> signInWithPhoneCredential(
+    PhoneAuthCredential credential,
+  ) async {
+    try {
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Initialize the user cache
+      await CurrentUserCache().refreshDisplayName();
+
+      return userCredential;
+    } on FirebaseAuthException {
+      rethrow;
+    } catch (e) {
+      throw Exception('signInWithPhoneCredential_generic: $e');
+    }
+  }
+
+  /// Link phone number to existing account (for users who signed up with email)
+  static Future<UserCredential> linkPhoneCredential(
+    PhoneAuthCredential credential,
+  ) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      final userCredential = await user.linkWithCredential(credential);
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'credential-already-in-use') {
+        throw Exception(
+          'This phone number is already linked to another account',
+        );
+      } else if (e.code == 'provider-already-linked') {
+        throw Exception('Phone number is already linked to this account');
+      }
+      rethrow;
+    } catch (e) {
+      throw Exception('linkPhoneCredential_generic: $e');
+    }
+  }
+
+  /// Update phone number for existing user
+  static Future<void> updatePhoneNumber(PhoneAuthCredential credential) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      await user.updatePhoneNumber(credential);
+    } on FirebaseAuthException {
+      rethrow;
+    } catch (e) {
+      throw Exception('updatePhoneNumber_generic: $e');
+    }
+  }
+
+  /// Unlink phone number from account
+  static Future<User?> unlinkPhoneNumber() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      final updatedUser = await user.unlink('phone');
+      return updatedUser;
+    } on FirebaseAuthException {
+      rethrow;
+    } catch (e) {
+      throw Exception('unlinkPhoneNumber_generic: $e');
+    }
   }
 }

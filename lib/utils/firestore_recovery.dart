@@ -1,9 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_service.dart';
 
 class FirestoreRecovery {
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Recreate user documents for all existing Firebase Auth users
@@ -11,7 +9,7 @@ class FirestoreRecovery {
   static Future<void> recreateUsersCollection() async {
     try {
       print('Starting users collection recovery...');
-      
+
       // Get all users from Firebase Auth (this requires admin privileges)
       // For now, we'll create a document for the current user if they exist
       final currentUser = _auth.currentUser;
@@ -21,14 +19,17 @@ class FirestoreRecovery {
           email: currentUser.email ?? '',
           fullName: currentUser.displayName,
         );
-        print('Created/recovered user document for current user: ${currentUser.uid}');
+        print(
+          'Created/recovered user document for current user: ${currentUser.uid}',
+        );
       }
 
       // Note: To recover ALL users, you would need to use Firebase Admin SDK
       // This is a client-side solution that only handles the current user
       print('Users collection recovery completed for current user.');
-      print('To recover ALL users, use Firebase Admin SDK or manually recreate from backup.');
-      
+      print(
+        'To recover ALL users, use Firebase Admin SDK or manually recreate from backup.',
+      );
     } catch (e) {
       print('Error during users collection recovery: $e');
       throw Exception('Failed to recover users collection: $e');
@@ -46,7 +47,9 @@ class FirestoreRecovery {
         };
       }
 
-      final userDocExists = await UserService.userDocumentExists(currentUser.uid);
+      final userDocExists = await UserService.userDocumentExists(
+        currentUser.uid,
+      );
       final userData = await UserService.getUserData(currentUser.uid);
 
       return {
@@ -55,9 +58,9 @@ class FirestoreRecovery {
         'currentUserEmail': currentUser.email,
         'userDocumentExists': userDocExists,
         'userData': userData,
-        'message': userDocExists 
-          ? 'User document exists and is accessible'
-          : 'User document does not exist and needs to be created',
+        'message': userDocExists
+            ? 'User document exists and is accessible'
+            : 'User document does not exist and needs to be created',
       };
     } catch (e) {
       return {
@@ -74,10 +77,21 @@ class FirestoreRecovery {
     String? fullName,
   }) async {
     try {
+      // Split fullName into firstName and lastName
+      final nameParts = (fullName ?? '').trim().split(' ');
+      final firstName = nameParts.isNotEmpty ? nameParts.first : 'Test';
+      final lastName = nameParts.length > 1
+          ? nameParts.sublist(1).join(' ')
+          : 'User';
+
       await UserService.createUserDocument(
         uid: uid,
         email: email,
-        fullName: fullName,
+        firstName: firstName,
+        lastName: lastName,
+        signInMethod: 'email',
+        isEmailVerified: false,
+        isPhoneVerified: false,
       );
       print('Test user document created successfully');
     } catch (e) {

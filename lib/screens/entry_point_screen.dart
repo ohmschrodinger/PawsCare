@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+/// Entry Point Screen - The landing page when user is not signed in
+/// Shows "Get Started" button and "Sign In" text link
+class EntryPointScreen extends StatefulWidget {
+  const EntryPointScreen({super.key});
 
   @override
-  _WelcomeScreenState createState() => _WelcomeScreenState();
+  State<EntryPointScreen> createState() => _EntryPointScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen>
+class _EntryPointScreenState extends State<EntryPointScreen>
     with TickerProviderStateMixin {
   late AnimationController _bounceController;
   late AnimationController _floatController;
@@ -42,9 +44,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
       vsync: this,
     )..repeat(reverse: true);
 
-    _catAnimation = Tween<double>(begin: 0, end: -8).animate(
-      CurvedAnimation(parent: _catController, curve: Curves.easeInOut),
-    );
+    _catAnimation = Tween<double>(
+      begin: 0,
+      end: -8,
+    ).animate(CurvedAnimation(parent: _catController, curve: Curves.easeInOut));
   }
 
   @override
@@ -69,138 +72,17 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         child: SafeArea(
           child: Stack(
             children: [
-              // Stationary large blue curved sphere at lower-left
-              Positioned(
-                left: -120,
-                bottom: -140,
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.25,
-                    child: Container(
-                      width: 320,
-                      height: 320,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          center: Alignment( -0.2, -0.2),
-                          radius: 0.9,
-                          colors: [
-                            Color(0xFF64B5F6),
-                            Color(0xFF1E88E5),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Subtle animated cloud (top-left)
-              Positioned(
-                top: 40,
-                left: 20,
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value * 0.4),
-                      child: Opacity(
-                        opacity: 0.55,
-                        child: const _Cloud(size: 90),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Subtle animated cloud (bottom-right)
-              Positioned(
-                bottom: 60,
-                right: 24,
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value * -0.3),
-                      child: Opacity(
-                        opacity: 0.45,
-                        child: const _Cloud(size: 110),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 100,
-                right: 30,
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value),
-                      child: _buildSmallPaw(Colors.blue.shade300, 0.3),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 150,
-                left: 20,
-                child: AnimatedBuilder(
-                  animation: _floatAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _floatAnimation.value * 0.7),
-                      child: _buildSmallPaw(Colors.green.shade300, 0.25),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                top: 200,
-                right: 60,
-                child: AnimatedBuilder(
-                  animation: _bounceAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _bounceAnimation.value * 0.5),
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade200.withOpacity(0.4),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Positioned(
-                bottom: 200,
-                left: 40,
-                child: AnimatedBuilder(
-                  animation: _bounceAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _bounceAnimation.value * -0.3),
-                      child: Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100.withOpacity(0.6),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              // Decorative background elements
+              _buildBackgroundDecorations(),
 
+              // Main content
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Animated cat and paw icons
                       Column(
                         children: [
                           AnimatedBuilder(
@@ -225,6 +107,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ],
                       ),
                       const SizedBox(height: 30),
+
+                      // App title and tagline
                       const Text(
                         'PawsCare',
                         style: TextStyle(
@@ -242,11 +126,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           color: Color(0xFF6B7280),
                           fontWeight: FontWeight.w400,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 60),
-                      _buildPrimaryButton('Get Started'),
-                      const SizedBox(height: 16),
-                      _buildSecondaryButton('Sign In'),
+
+                      // Get Started button
+                      _buildGetStartedButton(),
+                      const SizedBox(height: 24),
+
+                      // Sign In text link
+                      _buildSignInLink(),
                     ],
                   ),
                 ),
@@ -258,40 +147,134 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  Widget _buildMainPawIcon() {
-    return SizedBox(
-      width: 80,
-      height: 80,
-      child: CustomPaint(
-        painter: PawPainter(Colors.blue),
-      ),
-    );
-  }
-
-  Widget _buildCatIcon() {
-    return SizedBox(
-      width: 100,
-      height: 80,
-      child: CustomPaint(
-        painter: CatPainter(const Color(0xFF2196F3)),
-      ),
-    );
-  }
-
-  Widget _buildSmallPaw(Color color, double opacity) {
-    return Opacity(
-      opacity: opacity,
-      child: SizedBox(
-        width: 20,
-        height: 20,
-        child: CustomPaint(
-          painter: PawPainter(color),
+  Widget _buildBackgroundDecorations() {
+    return Stack(
+      children: [
+        // Large blue sphere at lower-left
+        Positioned(
+          left: -120,
+          bottom: -140,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.25,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    center: Alignment(-0.2, -0.2),
+                    radius: 0.9,
+                    colors: [Color(0xFF64B5F6), Color(0xFF1E88E5)],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
+
+        // Animated clouds
+        Positioned(
+          top: 40,
+          left: 20,
+          child: AnimatedBuilder(
+            animation: _floatAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _floatAnimation.value * 0.4),
+                child: Opacity(opacity: 0.55, child: const _Cloud(size: 90)),
+              );
+            },
+          ),
+        ),
+        Positioned(
+          bottom: 60,
+          right: 24,
+          child: AnimatedBuilder(
+            animation: _floatAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _floatAnimation.value * -0.3),
+                child: Opacity(opacity: 0.45, child: const _Cloud(size: 110)),
+              );
+            },
+          ),
+        ),
+
+        // Floating paw prints
+        Positioned(
+          top: 100,
+          right: 30,
+          child: AnimatedBuilder(
+            animation: _floatAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _floatAnimation.value),
+                child: _buildSmallPaw(Colors.blue.shade300, 0.3),
+              );
+            },
+          ),
+        ),
+        Positioned(
+          top: 150,
+          left: 20,
+          child: AnimatedBuilder(
+            animation: _floatAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _floatAnimation.value * 0.7),
+                child: _buildSmallPaw(Colors.green.shade300, 0.25),
+              );
+            },
+          ),
+        ),
+
+        // Small decorative dots
+        Positioned(
+          top: 200,
+          right: 60,
+          child: AnimatedBuilder(
+            animation: _bounceAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _bounceAnimation.value * 0.5),
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade200.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Positioned(
+          bottom: 200,
+          left: 40,
+          child: AnimatedBuilder(
+            animation: _bounceAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _bounceAnimation.value * -0.3),
+                child: Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildPrimaryButton(String text) {
+  Widget _buildGetStartedButton() {
     return Container(
       width: double.infinity,
       height: 56,
@@ -315,12 +298,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(25),
           onTap: () {
-            Navigator.of(context).pushNamed('/signup');
+            Navigator.of(context).pushNamed('/get-started');
           },
-          child: Center(
+          child: const Center(
             child: Text(
-              text,
-              style: const TextStyle(
+              'Get Started',
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -332,41 +315,64 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
   }
 
-  Widget _buildSecondaryButton(String text) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: const Color(0xFFE3F2FD), width: 2),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(25),
+  Widget _buildSignInLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text(
+          'Already have an account? ',
+          style: TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+        ),
+        GestureDetector(
           onTap: () {
-            Navigator.of(context).pushNamed('/login');
+            Navigator.of(context).pushNamed('/signin');
           },
-          child: Center(
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Color(0xFF2196F3),
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+          child: const Text(
+            'Sign In',
+            style: TextStyle(
+              color: Color(0xFF2196F3),
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildMainPawIcon() {
+    return SizedBox(
+      width: 80,
+      height: 80,
+      child: CustomPaint(painter: _PawPainter(Colors.blue)),
+    );
+  }
+
+  Widget _buildCatIcon() {
+    return SizedBox(
+      width: 100,
+      height: 80,
+      child: CustomPaint(painter: _CatPainter(const Color(0xFF2196F3))),
+    );
+  }
+
+  Widget _buildSmallPaw(Color color, double opacity) {
+    return Opacity(
+      opacity: opacity,
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CustomPaint(painter: _PawPainter(color)),
       ),
     );
   }
 }
 
-class PawPainter extends CustomPainter {
+// Custom Painters (same as welcome screen)
+class _PawPainter extends CustomPainter {
   final Color color;
-
-  PawPainter(this.color);
+  _PawPainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -437,9 +443,7 @@ class _Cloud extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size * 0.6,
-      child: CustomPaint(
-        painter: _CloudPainter(),
-      ),
+      child: CustomPaint(painter: _CloudPainter()),
     );
   }
 }
@@ -451,32 +455,49 @@ class _CloudPainter extends CustomPainter {
     final lightColor = const Color(0xFFBBDEFB).withOpacity(0.8);
     final paint = Paint()..style = PaintingStyle.fill;
 
-    // Main cloud bumps (overlapping circles)
     paint.color = baseColor;
-    canvas.drawCircle(Offset(size.width * 0.30, size.height * 0.55), size.height * 0.25, paint);
-    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.45), size.height * 0.30, paint);
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.52), size.height * 0.22, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.30, size.height * 0.55),
+      size.height * 0.25,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.50, size.height * 0.45),
+      size.height * 0.30,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.72, size.height * 0.52),
+      size.height * 0.22,
+      paint,
+    );
 
-    // Bottom body (rounded rect)
     final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(size.width * 0.18, size.height * 0.45, size.width * 0.64, size.height * 0.22),
+      Rect.fromLTWH(
+        size.width * 0.18,
+        size.height * 0.45,
+        size.width * 0.64,
+        size.height * 0.22,
+      ),
       Radius.circular(size.height * 0.12),
     );
     canvas.drawRRect(rrect, paint);
 
-    // Soft highlight
     paint.color = lightColor;
-    canvas.drawCircle(Offset(size.width * 0.48, size.height * 0.42), size.height * 0.20, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.48, size.height * 0.42),
+      size.height * 0.20,
+      paint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class CatPainter extends CustomPainter {
+class _CatPainter extends CustomPainter {
   final Color color;
-
-  CatPainter(this.color);
+  _CatPainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -484,6 +505,7 @@ class CatPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
+    // Head
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(size.width * 0.5, size.height * 0.55),
@@ -493,6 +515,7 @@ class CatPainter extends CustomPainter {
       paint,
     );
 
+    // Ears
     Path leftEar = Path();
     leftEar.moveTo(size.width * 0.3, size.height * 0.35);
     leftEar.lineTo(size.width * 0.25, size.height * 0.1);
@@ -507,6 +530,7 @@ class CatPainter extends CustomPainter {
     rightEar.close();
     canvas.drawPath(rightEar, paint);
 
+    // Eyes
     final eyePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
@@ -519,7 +543,6 @@ class CatPainter extends CustomPainter {
       ),
       eyePaint,
     );
-
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(size.width * 0.6, size.height * 0.5),
@@ -529,6 +552,7 @@ class CatPainter extends CustomPainter {
       eyePaint,
     );
 
+    // Pupils
     final pupilPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.fill;
@@ -541,7 +565,6 @@ class CatPainter extends CustomPainter {
       ),
       pupilPaint,
     );
-
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(size.width * 0.6, size.height * 0.5),
@@ -551,6 +574,7 @@ class CatPainter extends CustomPainter {
       pupilPaint,
     );
 
+    // Nose
     final nosePaint = Paint()
       ..color = Colors.pink.shade300
       ..style = PaintingStyle.fill;
@@ -562,6 +586,7 @@ class CatPainter extends CustomPainter {
     nose.close();
     canvas.drawPath(nose, nosePaint);
 
+    // Mouth
     final mouthPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -569,14 +594,25 @@ class CatPainter extends CustomPainter {
 
     Path mouth = Path();
     mouth.moveTo(size.width * 0.5, size.height * 0.65);
-    mouth.quadraticBezierTo(size.width * 0.45, size.height * 0.7, size.width * 0.42, size.height * 0.68);
+    mouth.quadraticBezierTo(
+      size.width * 0.45,
+      size.height * 0.7,
+      size.width * 0.42,
+      size.height * 0.68,
+    );
     canvas.drawPath(mouth, mouthPaint);
 
     mouth = Path();
     mouth.moveTo(size.width * 0.5, size.height * 0.65);
-    mouth.quadraticBezierTo(size.width * 0.55, size.height * 0.7, size.width * 0.58, size.height * 0.68);
+    mouth.quadraticBezierTo(
+      size.width * 0.55,
+      size.height * 0.7,
+      size.width * 0.58,
+      size.height * 0.68,
+    );
     canvas.drawPath(mouth, mouthPaint);
 
+    // Whiskers
     final whiskerPaint = Paint()
       ..color = color.withOpacity(0.7)
       ..style = PaintingStyle.stroke
@@ -592,7 +628,6 @@ class CatPainter extends CustomPainter {
       Offset(size.width * 0.35, size.height * 0.6),
       whiskerPaint,
     );
-
     canvas.drawLine(
       Offset(size.width * 0.85, size.height * 0.52),
       Offset(size.width * 0.65, size.height * 0.55),
@@ -608,4 +643,3 @@ class CatPainter extends CustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
-

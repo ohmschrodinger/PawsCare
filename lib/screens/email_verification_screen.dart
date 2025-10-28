@@ -7,7 +7,8 @@ class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
 
   @override
-  State<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
+  State<EmailVerificationScreen> createState() =>
+      _EmailVerificationScreenState();
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
@@ -24,11 +25,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Future<void> _checkVerificationStatus() async {
     setState(() => _isLoading = true);
-    
+
     try {
       await AuthService.reloadUser();
       final verified = AuthService.isEmailVerified();
-      
+
       setState(() {
         _isVerified = verified;
         _isLoading = false;
@@ -76,7 +77,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
     try {
       await AuthService.sendEmailVerification();
-      
+
       setState(() {
         _isLoading = false;
         _canResend = false;
@@ -85,7 +86,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
       // Start countdown
       _startResendCooldown();
-      
+
       _showSuccessDialog('Verification email sent successfully!');
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
@@ -115,28 +116,33 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   Future<bool> _onWillPop() async {
     // If user tries to go back, show a dialog asking if they want to cancel verification
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Verification?'),
-        content: const Text('Are you sure you want to cancel email verification? You will be signed out.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Continue'),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Cancel Verification?'),
+            content: const Text(
+              'Are you sure you want to cancel email verification? You will be signed out.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Continue'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop(true);
+                  await AuthService.signOut();
+                  if (mounted) {
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
+                  }
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop(true);
-              await AuthService.signOut();
-              if (mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
-              }
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   void _showErrorDialog(String message) {
@@ -189,7 +195,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               onPressed: () async {
                 await AuthService.signOut();
                 if (!mounted) return;
-                Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (route) => false);
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
               },
               child: const Text(
                 'Cancel',
@@ -209,11 +217,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   const SizedBox(height: 24),
                   const Text('Checking verification status...'),
                 ] else if (_isVerified) ...[
-                  const Icon(
-                    Icons.verified,
-                    size: 80,
-                    color: Colors.green,
-                  ),
+                  const Icon(Icons.verified, size: 80, color: Colors.green),
                   const SizedBox(height: 24),
                   const Text(
                     'Email Verified!',
@@ -238,19 +242,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   const SizedBox(height: 24),
                   const Text(
                     'Verify Your Email',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'We\'ve sent a verification email to:',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -286,9 +284,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: _canResend && !_isLoading ? _resendVerificationEmail : null,
+                    onPressed: _canResend && !_isLoading
+                        ? _resendVerificationEmail
+                        : null,
                     child: Text(
-                      _canResend 
+                      _canResend
                           ? 'Resend Verification Email'
                           : 'Resend in $_resendCooldown seconds',
                     ),

@@ -4,15 +4,15 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Import your screen files
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart'; // Import the new sign-up screen
+import 'screens/entry_point_screen.dart';
+import 'screens/get_started_screen.dart';
+import 'screens/new_signin_screen.dart';
 import 'screens/firestore_recovery_screen.dart';
 import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
 import 'screens/cat_facts_screen.dart';
 import 'main_navigation_screen.dart';
-import 'screens/welcome_screen.dart';
 import 'services/notification_service.dart';
 
 // main.dart
@@ -105,9 +105,9 @@ class PawsCareApp extends StatelessWidget {
       ),
       home: const SplashScreen(),
       routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignUpScreen(), // Added signup route
+        '/entry-point': (context) => const EntryPointScreen(),
+        '/get-started': (context) => const GetStartedScreen(),
+        '/signin': (context) => const NewSignInScreen(),
         '/main': (context) => MainNavigationScreen(key: mainNavKey),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
         '/admin-animal-approval': (context) =>
