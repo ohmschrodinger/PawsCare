@@ -3,13 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-// --- THEME CONSTANTS ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -555,16 +549,18 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             child: Container(
               decoration: BoxDecoration(
                 // Subtle blue tint for dark theme glassmorphism
-                color: Colors.blue.withOpacity(0.2),
+                color: const Color(
+                  0xFF4FC3F7,
+                ).withOpacity(0.2), // Light Sky Blue
                 borderRadius: BorderRadius.circular(50.0),
                 border: Border.all(
-                  color: Colors.blue.withOpacity(0.4),
+                  color: const Color(0xFF4FC3F7).withOpacity(0.4),
                   width: 1.5,
                 ),
                 // Subtle shadow with blue tint for depth
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: const Color(0xFF4FC3F7).withOpacity(0.2),
                     offset: const Offset(0, 4),
                     blurRadius: 12,
                   ),

@@ -6,13 +6,7 @@ import '../services/user_favorites_service.dart';
 import '../screens/pet_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geocoding/geocoding.dart';
-
-// --- THEME CONSTANTS ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import '../constants/app_colors.dart';
 
 // Custom cache manager
 final customCacheManager = CacheManager(

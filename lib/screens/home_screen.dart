@@ -10,15 +10,7 @@ import 'package:pawscare/theme/typography.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
-// -------------------- Color Palette --------------------
-// Note: kBackgroundColor is no longer used for the Scaffold background
-// but might be used by other components.
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
 
 // -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
@@ -249,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: const TextStyle(
                                             fontSize: 32,
                                             fontWeight: FontWeight.bold,
-                                            color: kPrimaryAccentColor,
+                                            color: kLegacyAccentColor,
                                           ),
                                         ),
                                         const Text(
@@ -295,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: const TextStyle(
                                             fontSize: 32,
                                             fontWeight: FontWeight.bold,
-                                            color: kPrimaryAccentColor,
+                                            color: kLegacyAccentColor,
                                           ),
                                         ),
                                         const Text(
@@ -1022,7 +1014,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
         effect: WormEffect(
           dotHeight: 8.0,
           dotWidth: 8.0,
-          activeDotColor: kPrimaryAccentColor,
+          activeDotColor: Colors.amber,
           dotColor: Colors.grey.shade800,
         ),
       ),

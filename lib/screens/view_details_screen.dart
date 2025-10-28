@@ -3,11 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ViewDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> animalData;
@@ -192,6 +189,9 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
 
   Widget _buildDetailItem(String label, String? value) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
+
+    final isPhoneNumber = label == 'Contact';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Container(
@@ -215,15 +215,72 @@ class _ViewDetailsScreenState extends State<ViewDetailsScreen> {
               ),
             ),
             Expanded(
-              child: Text(
-                value,
-                style: const TextStyle(fontSize: 14, color: kPrimaryTextColor),
-              ),
+              child: isPhoneNumber
+                  ? InkWell(
+                      onTap: () => _launchWhatsApp(value),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              value,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.arrow_forward,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: kPrimaryTextColor,
+                      ),
+                    ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _launchWhatsApp(String phoneNumber) async {
+    // Remove any non-digit characters except the leading +
+    String cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Create WhatsApp URL
+    final whatsappUrl = Uri.parse('https://wa.me/$cleanNumber');
+
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open WhatsApp'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening WhatsApp: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Widget _buildContent(String text) {

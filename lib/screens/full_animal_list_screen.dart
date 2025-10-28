@@ -4,14 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/widgets/animal_card.dart';
 import '../utils/constants.dart';
-
-// --- Re-using the color palette for consistency ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -------------------------------------------------
+import '../constants/app_colors.dart';
 
 class FullAnimalListScreen extends StatefulWidget {
   final String title;
@@ -101,8 +94,10 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Added to favorites!',
-                style: TextStyle(color: Colors.black)),
+            content: const Text(
+              'Added to favorites!',
+              style: TextStyle(color: Colors.black),
+            ),
             backgroundColor: kPrimaryAccentColor,
             duration: const Duration(seconds: 1),
           ),
@@ -141,9 +136,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
           builder: (BuildContext context, StateSetter modalState) {
             return Theme(
               // Apply dark theme specifically to the dropdown menus
-              data: Theme.of(context).copyWith(
-                canvasColor: kCardColor,
-              ),
+              data: Theme.of(context).copyWith(canvasColor: kCardColor),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -161,10 +154,13 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                     const SizedBox(height: 24),
                     DropdownButtonFormField<String>(
                       value: _filterSpecies,
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: kSecondaryTextColor),
-                      decoration:
-                          darkInputDecoration.copyWith(labelText: 'Species'),
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: kSecondaryTextColor,
+                      ),
+                      decoration: darkInputDecoration.copyWith(
+                        labelText: 'Species',
+                      ),
                       style: const TextStyle(color: kPrimaryTextColor),
                       items: [null, ...AppConstants.speciesOptions]
                           .map(
@@ -180,10 +176,13 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _filterGender,
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: kSecondaryTextColor),
-                      decoration:
-                          darkInputDecoration.copyWith(labelText: 'Gender'),
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: kSecondaryTextColor,
+                      ),
+                      decoration: darkInputDecoration.copyWith(
+                        labelText: 'Gender',
+                      ),
                       style: const TextStyle(color: kPrimaryTextColor),
                       items: [null, 'Male', 'Female']
                           .map(
@@ -204,7 +203,9 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
                               foregroundColor: kPrimaryTextColor,
-                              side: const BorderSide(color: kSecondaryTextColor),
+                              side: const BorderSide(
+                                color: kSecondaryTextColor,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             onPressed: () {
@@ -256,7 +257,9 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
         title: Text(
           widget.title,
           style: const TextStyle(
-              color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: kPrimaryTextColor),
@@ -284,7 +287,8 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
 
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: kPrimaryAccentColor));
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
           }
 
           final animals = snapshot.data?.docs ?? [];
@@ -327,10 +331,7 @@ class _FullAnimalListScreenState extends State<FullAnimalListScreen> {
                   const SizedBox(height: 16),
                   const Text(
                     'No animals found.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: kSecondaryTextColor,
-                    ),
+                    style: TextStyle(fontSize: 18, color: kSecondaryTextColor),
                   ),
                   if (_filterSpecies != null || _filterGender != null) ...[
                     const SizedBox(height: 8),

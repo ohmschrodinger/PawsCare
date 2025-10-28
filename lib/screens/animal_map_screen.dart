@@ -8,11 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:pawscare/services/location_service.dart';
 import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/constants/animal_status.dart';
-
-// --- THEME CONSTANTS ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kCardColor = Color(0xFF1E1E1E);
+import 'package:pawscare/constants/app_colors.dart';
 
 class AnimalMapScreen extends StatefulWidget {
   const AnimalMapScreen({super.key});

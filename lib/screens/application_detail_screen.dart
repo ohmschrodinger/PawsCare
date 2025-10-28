@@ -3,15 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:ui'; // Import for ImageFilter
 import '../services/animal_service.dart';
 import '../services/logging_service.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-// --- CHANGE 1: Primary accent color is now white ---
-const Color kPrimaryAccentColor = Colors.white;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -------------------------------------------------
+import '../constants/app_colors.dart';
 
 class ApplicationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> applicationData;

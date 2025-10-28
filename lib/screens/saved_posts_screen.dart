@@ -3,14 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/user_favorites_service.dart';
 import 'pet_detail_screen.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import '../constants/app_colors.dart';
 
 class SavedPostsScreen extends StatefulWidget {
   const SavedPostsScreen({super.key});
@@ -36,7 +29,9 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
           title: const Text(
             'Saved Posts',
             style: TextStyle(
-                color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+              color: kPrimaryTextColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         body: const Center(
@@ -59,7 +54,9 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
         title: const Text(
           'Saved Posts',
           style: TextStyle(
-              color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -67,14 +64,16 @@ class _SavedPostsScreenState extends State<SavedPostsScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: kPrimaryAccentColor));
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
           }
           if (snapshot.hasError) {
             return Center(
-                child: Text(
-              'Error: ${snapshot.error}',
-              style: const TextStyle(color: Colors.redAccent),
-            ));
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            );
           }
 
           final animals = snapshot.data?.docs ?? [];

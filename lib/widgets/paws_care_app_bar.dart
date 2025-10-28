@@ -13,13 +13,7 @@ import '../screens/all_applications_screen.dart';
 import '../screens/admin_logs_screen.dart';
 import '../screens/contact_us_screen.dart';
 import '../services/notification_badge_service.dart';
-
-// --- THEME CONSTANTS ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import '../constants/app_colors.dart';
 
 // --- ⭐️ MODIFICATION START ---
 

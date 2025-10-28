@@ -5,10 +5,7 @@ import 'package:pawscare/screens/post_animal_screen.dart';
 import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 import 'package:pawscare/screens/animal_adoption_screen.dart';
-
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
 
 final mainNavKey = GlobalKey<_MainNavigationScreenState>();
 
@@ -123,7 +120,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 onPressed: () => Navigator.of(context).pop(false),
                 child: const Text(
                   "Cancel",
-                  style: TextStyle(color: Colors.amber),
+                  style: TextStyle(color: kLegacyAccentColor),
                 ),
               ),
               TextButton(
@@ -257,7 +254,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               Icon(
                 icon,
                 size: isCenter ? 28 : 25,
-                color: isSelected ? kPrimaryAccentColor : Colors.grey,
+                color: isSelected ? kLegacyAccentColor : Colors.grey,
               ),
             ],
           ),

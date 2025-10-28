@@ -8,14 +8,7 @@ import 'package:pawscare/screens/application_detail_screen.dart';
 import 'dart:ui'; // For ImageFilter
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/widgets/animal_card.dart'; // For customCacheManager if needed
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class AllApplicationsScreen extends StatefulWidget {
   const AllApplicationsScreen({super.key});
@@ -121,99 +114,7 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
                   ),
                 ),
                 // Applications list
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                    stream: _statusFilter == null
-                        ? FirebaseFirestore.instance
-                              .collection('applications')
-                              .orderBy('appliedAt', descending: true)
-                              .snapshots()
-                        : FirebaseFirestore.instance
-                              .collection('applications')
-                              .where('status', isEqualTo: _statusFilter)
-                              .orderBy('appliedAt', descending: true)
-                              .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return const Center(
-                          child: Text(
-                            'Error loading applications',
-                            style: TextStyle(color: Colors.redAccent),
-                          ),
-                        );
-                      }
-
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: kPrimaryAccentColor,
-                          ),
-                        );
-                      }
-
-                      final applications = snapshot.data?.docs ?? [];
-
-                      if (applications.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            'No applications found',
-                            style: TextStyle(color: kSecondaryTextColor),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 90),
-                        itemCount: applications.length,
-                        physics: const BouncingScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          final applicationDoc = applications[index];
-                          final appData =
-                              applicationDoc.data() as Map<String, dynamic>;
-                          final petId = appData['petId'];
-
-                          if (petId == null) return const SizedBox();
-
-                          return FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance
-                                .collection('animals')
-                                .doc(petId)
-                                .get(),
-                            builder: (context, animalSnapshot) {
-                              if (animalSnapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const SizedBox(
-                                  height: 150,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      color: kPrimaryAccentColor,
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              if (!animalSnapshot.hasData ||
-                                  !animalSnapshot.data!.exists) {
-                                return const SizedBox();
-                              }
-
-                              final animalData =
-                                  animalSnapshot.data!.data()
-                                      as Map<String, dynamic>;
-
-                              return _StyledApplicationCard(
-                                applicationData: appData,
-                                animalData: animalData,
-                                applicationId: applicationDoc.id,
-                                showAdminActions: _isAdmin,
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
+                Expanded(child: _buildApplicationsList()),
               ],
             ),
           ),
@@ -284,6 +185,133 @@ class _AllApplicationsScreenState extends State<AllApplicationsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildApplicationsList() {
+    Query query = FirebaseFirestore.instance
+        .collection('applications')
+        .orderBy('appliedAt', descending: true);
+
+    if (_statusFilter != null) {
+      query = query.where('status', isEqualTo: _statusFilter);
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: query.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: kPrimaryAccentColor),
+          );
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inbox_outlined,
+                  size: 64,
+                  color: kSecondaryTextColor,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'No applications found.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: kSecondaryTextColor),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final applications = snapshot.data!.docs;
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 8, bottom: 90),
+          itemCount: applications.length,
+          physics: const BouncingScrollPhysics(),
+          itemBuilder: (context, index) {
+            final applicationDoc = applications[index];
+            final appData = applicationDoc.data() as Map<String, dynamic>;
+            final petId = appData['petId'];
+
+            if (petId == null) {
+              return Card(
+                color: kCardColor,
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: ListTile(
+                  title: Text(
+                    appData['petName'] ?? 'Unknown Pet',
+                    style: const TextStyle(color: kPrimaryTextColor),
+                  ),
+                  subtitle: const Text(
+                    'Error: Application is not linked to a pet correctly.',
+                    style: TextStyle(color: Colors.redAccent),
+                  ),
+                ),
+              );
+            }
+
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('animals')
+                  .doc(petId)
+                  .get(),
+              builder: (context, animalSnapshot) {
+                if (animalSnapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 150,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: kPrimaryAccentColor,
+                      ),
+                    ),
+                  );
+                }
+
+                if (!animalSnapshot.hasData || !animalSnapshot.data!.exists) {
+                  return Card(
+                    color: kCardColor,
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 16,
+                    ),
+                    child: ListTile(
+                      title: Text(
+                        appData['petName'] ?? 'Unknown Pet',
+                        style: const TextStyle(color: kPrimaryTextColor),
+                      ),
+                      subtitle: const Text(
+                        'Could not load pet details.',
+                        style: TextStyle(color: kSecondaryTextColor),
+                      ),
+                    ),
+                  );
+                }
+
+                final animalData =
+                    animalSnapshot.data!.data() as Map<String, dynamic>;
+                return _StyledApplicationCard(
+                  applicationData: appData,
+                  animalData: animalData,
+                  applicationId: applicationDoc.id,
+                  showAdminActions: _isAdmin,
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -5,15 +5,7 @@ import 'package:pawscare/screens/my_applications_screen.dart';
 import 'dart:ui'; // Import for ImageFilter
 import '../services/user_service.dart';
 import '../services/logging_service.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-// Using the same theme constants from PostAnimalScreen for consistency
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import '../constants/app_colors.dart';
 
 class AdoptionFormScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -123,7 +115,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         setState(() => _isLoading = false);
         return;
       }
-      
+
       try {
         // Check if there are existing applications for this pet
         final petId = widget.petData['id'] ?? widget.petData['name'];
@@ -132,9 +124,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
             .where('petId', isEqualTo: petId)
             .where('status', isEqualTo: 'Under Review')
             .get();
-        
-        final hasExistingApplications = existingApplicationsQuery.docs.isNotEmpty;
-        
+
+        final hasExistingApplications =
+            existingApplicationsQuery.docs.isNotEmpty;
+
         try {
           await UserService.updateUserProfile(
             uid: user.uid,
@@ -148,12 +141,14 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         } catch (e) {
           print('Warning: Failed to update user profile: $e');
         }
-        
+
         await FirebaseFirestore.instance.collection('applications').add({
           'userId': user.uid,
           'petId': petId,
           'petName': widget.petData['name'],
-          'petImage': widget.petData['imageUrls']?.isNotEmpty ?? false ? widget.petData['imageUrls'][0] : '',
+          'petImage': widget.petData['imageUrls']?.isNotEmpty ?? false
+              ? widget.petData['imageUrls'][0]
+              : '',
           'applicantName': _fullNameController.text.trim(),
           'applicantEmail': _emailController.text.trim(),
           'applicantPhone': _phoneNumberController.text.trim(),
@@ -183,16 +178,13 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           'appliedAt': FieldValue.serverTimestamp(),
           'adminMessage': '',
         });
-        
+
         // Log the application submission
         await LoggingService.logEvent(
           'adoption_application_submitted',
-          data: {
-            'petId': petId,
-            'petName': widget.petData['name'],
-          },
+          data: {'petId': petId, 'petName': widget.petData['name']},
         );
-        
+
         // Show appropriate message based on existing applications
         if (hasExistingApplications) {
           _showHeadsUpDialog();
@@ -201,7 +193,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
           Navigator.pop(context);
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
+            MaterialPageRoute(
+              builder: (context) => const MyApplicationsScreen(),
+            ),
           );
         }
       } catch (e) {
@@ -237,7 +231,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                 Navigator.pop(context); // Close adoption form
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const MyApplicationsScreen(),
+                  ),
                 );
               },
               child: const Text(
@@ -279,7 +275,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         title: const Text(
           'Adoption Application',
           style: TextStyle(
-              color: kPrimaryTextColor, fontWeight: FontWeight.bold),
+            color: kPrimaryTextColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.transparent, // Make AppBar transparent
         elevation: 0,
@@ -323,10 +321,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                           controller: _fullNameController,
                           label: 'Full Name',
                           hint: 'Enter your full name',
-                          validator: (value) =>
-                              (value == null || value.isEmpty)
-                                  ? 'Please enter your full name'
-                                  : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please enter your full name'
+                              : null,
                         ),
                         _buildTextField(
                           controller: _emailController,
@@ -335,8 +332,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                           keyboardType: TextInputType.emailAddress,
                           validator: (value) =>
                               (value == null || !value.contains('@'))
-                                  ? 'Enter a valid email'
-                                  : null,
+                              ? 'Enter a valid email'
+                              : null,
                         ),
                         _buildTextField(
                           controller: _phoneNumberController,
@@ -349,100 +346,101 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                           label: 'Address',
                           hint: 'Enter your full address',
                           maxLines: 3,
-                          validator: (value) =>
-                              (value == null || value.isEmpty)
-                                  ? 'Please enter your address'
-                                  : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please enter your address'
+                              : null,
                         ),
                       ],
                     ),
                     const SizedBox(height: 24),
                     _buildInfoCard(
-                        title: 'Pet History',
-                        icon: Icons.history,
-                        children: [
-                          _buildYesNoQuestion(
-                            'Do you currently have any pets?',
-                            _hasCurrentPets,
-                            (value) => setState(() => _hasCurrentPets = value),
+                      title: 'Pet History',
+                      icon: Icons.history,
+                      children: [
+                        _buildYesNoQuestion(
+                          'Do you currently have any pets?',
+                          _hasCurrentPets,
+                          (value) => setState(() => _hasCurrentPets = value),
+                        ),
+                        if (_hasCurrentPets == true)
+                          _buildTextField(
+                            controller: _currentPetsController,
+                            label: 'Current Pets Details',
+                            hint:
+                                'List species, age, and spayed/neutered status',
+                            maxLines: 3,
+                            validator: (value) =>
+                                (value == null || value.isEmpty)
+                                ? 'Please provide details for your current pets'
+                                : null,
                           ),
-                          if (_hasCurrentPets == true)
-                            _buildTextField(
-                              controller: _currentPetsController,
-                              label: 'Current Pets Details',
-                              hint:
-                                  'List species, age, and spayed/neutered status',
-                              maxLines: 3,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                      ? 'Please provide details for your current pets'
-                                      : null,
-                            ),
-                          _buildYesNoQuestion(
-                            'Have you had pets in the past?',
-                            _hasPastPets,
-                            (value) => setState(() => _hasPastPets = value),
+                        _buildYesNoQuestion(
+                          'Have you had pets in the past?',
+                          _hasPastPets,
+                          (value) => setState(() => _hasPastPets = value),
+                        ),
+                        if (_hasPastPets == true)
+                          _buildTextField(
+                            controller: _pastPetsController,
+                            label: 'Past Pets Details',
+                            hint:
+                                'Provide details (species, what happened to them?)',
+                            maxLines: 3,
+                            validator: (value) =>
+                                (value == null || value.isEmpty)
+                                ? 'Please provide details for your past pets'
+                                : null,
                           ),
-                          if (_hasPastPets == true)
-                            _buildTextField(
-                              controller: _pastPetsController,
-                              label: 'Past Pets Details',
-                              hint:
-                                  'Provide details (species, what happened to them?)',
-                              maxLines: 3,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                      ? 'Please provide details for your past pets'
-                                      : null,
-                            ),
-                          _buildYesNoQuestion(
-                            'Have you ever surrendered a pet?',
-                            _hasSurrenderedPets,
-                            (value) =>
-                                setState(() => _hasSurrenderedPets = value),
+                        _buildYesNoQuestion(
+                          'Have you ever surrendered a pet?',
+                          _hasSurrenderedPets,
+                          (value) =>
+                              setState(() => _hasSurrenderedPets = value),
+                        ),
+                        if (_hasSurrenderedPets == true)
+                          _buildTextField(
+                            controller: _surrenderedPetsController,
+                            label: 'Circumstance of Surrender',
+                            hint: 'Please explain the circumstance',
+                            maxLines: 3,
+                            validator: (value) =>
+                                (value == null || value.isEmpty)
+                                ? 'Please explain the circumstance'
+                                : null,
                           ),
-                          if (_hasSurrenderedPets == true)
-                            _buildTextField(
-                              controller: _surrenderedPetsController,
-                              label: 'Circumstance of Surrender',
-                              hint: 'Please explain the circumstance',
-                              maxLines: 3,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                      ? 'Please explain the circumstance'
-                                      : null,
-                            ),
-                        ]),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                     _buildInfoCard(
-                        title: 'Household Information',
-                        icon: Icons.group_outlined,
-                        children: [
-                          _buildDropdownQuestion(
-                            label: 'Do you own or rent your home?',
-                            value: _homeOwnership,
-                            items: ['Own', 'Rent'],
-                            onChanged: (value) =>
-                                setState(() => _homeOwnership = value),
-                            validator: (value) =>
-                                value == null ? 'Please select an option' : null,
-                          ),
-                          _buildNumberInput(
-                            'How many people live in your household?',
-                            _householdMembers,
-                            (value) => setState(() => _householdMembers = value),
-                          ),
-                          _buildYesNoQuestion(
-                            'Does anyone have allergies to animals?',
-                            _hasAllergies,
-                            (value) => setState(() => _hasAllergies = value),
-                          ),
-                          _buildYesNoQuestion(
-                            'Do all household members agree to the adoption?',
-                            _allMembersAgree,
-                            (value) => setState(() => _allMembersAgree = value),
-                          ),
-                        ]),
+                      title: 'Household Information',
+                      icon: Icons.group_outlined,
+                      children: [
+                        _buildDropdownQuestion(
+                          label: 'Do you own or rent your home?',
+                          value: _homeOwnership,
+                          items: ['Own', 'Rent'],
+                          onChanged: (value) =>
+                              setState(() => _homeOwnership = value),
+                          validator: (value) =>
+                              value == null ? 'Please select an option' : null,
+                        ),
+                        _buildNumberInput(
+                          'How many people live in your household?',
+                          _householdMembers,
+                          (value) => setState(() => _householdMembers = value),
+                        ),
+                        _buildYesNoQuestion(
+                          'Does anyone have allergies to animals?',
+                          _hasAllergies,
+                          (value) => setState(() => _hasAllergies = value),
+                        ),
+                        _buildYesNoQuestion(
+                          'Do all household members agree to the adoption?',
+                          _allMembersAgree,
+                          (value) => setState(() => _allMembersAgree = value),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                     _buildInfoCard(
                       title: 'Care and Responsibility',
@@ -454,10 +452,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                               'How many hours daily will the animal be alone?',
                           hint: 'e.g., 4',
                           keyboardType: TextInputType.number,
-                          validator: (value) =>
-                              (value == null || value.isEmpty)
-                                  ? 'Please provide the hours'
-                                  : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please provide the hours'
+                              : null,
                         ),
                         _buildTextField(
                           controller: _whereKeptWhenAloneController,
@@ -465,10 +462,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                               'Where will the animal be kept when you are not home?',
                           hint: 'e.g., Indoors, backyard, crate',
                           maxLines: 2,
-                          validator: (value) =>
-                              (value == null || value.isEmpty)
-                                  ? 'Please specify where the animal will be kept'
-                                  : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please specify where the animal will be kept'
+                              : null,
                         ),
                         _buildYesNoQuestion(
                           'Are you financially prepared for the animal’s needs?',
@@ -480,56 +476,58 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                     ),
                     const SizedBox(height: 24),
                     _buildInfoCard(
-                        title: 'Vet Care',
-                        icon: Icons.local_hospital_outlined,
-                        children: [
-                          _buildYesNoQuestion(
-                            'Do you have a veterinarian?',
-                            _hasVeterinarian,
-                            (value) =>
-                                setState(() => _hasVeterinarian = value),
-                          ),
-                          if (_hasVeterinarian == true)
-                            _buildTextField(
-                              controller: _vetContactController,
-                              label: 'Veterinarian Name and Contact',
-                              hint: 'e.g., Dr. Smith, 555-123-4567',
-                              maxLines: 2,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                      ? 'Please provide vet contact information'
-                                      : null,
-                            ),
-                          _buildYesNoQuestion(
-                            'Are you willing to provide regular vet care?',
-                            _willingToProvideVetCare,
-                            (value) =>
-                                setState(() => _willingToProvideVetCare = value),
-                          ),
-                        ]),
-                     const SizedBox(height: 24),
-                    _buildInfoCard(
-                        title: 'Commitment',
-                        icon: Icons.volunteer_activism_outlined,
-                        children: [
-                          _buildYesNoQuestion(
-                            'Are you prepared for a lifetime commitment?',
-                            _preparedForLifetimeCommitment,
-                            (value) => setState(
-                                () => _preparedForLifetimeCommitment = value),
-                          ),
+                      title: 'Vet Care',
+                      icon: Icons.local_hospital_outlined,
+                      children: [
+                        _buildYesNoQuestion(
+                          'Do you have a veterinarian?',
+                          _hasVeterinarian,
+                          (value) => setState(() => _hasVeterinarian = value),
+                        ),
+                        if (_hasVeterinarian == true)
                           _buildTextField(
-                            controller: _ifCannotKeepCareController,
-                            label:
-                                'What will you do if you can no longer care for the animal?',
-                             hint: 'e.g., Return to shelter, give to a trusted friend',
-                            maxLines: 3,
+                            controller: _vetContactController,
+                            label: 'Veterinarian Name and Contact',
+                            hint: 'e.g., Dr. Smith, 555-123-4567',
+                            maxLines: 2,
                             validator: (value) =>
                                 (value == null || value.isEmpty)
-                                    ? 'Please explain your plan'
-                                    : null,
+                                ? 'Please provide vet contact information'
+                                : null,
                           ),
-                        ]),
+                        _buildYesNoQuestion(
+                          'Are you willing to provide regular vet care?',
+                          _willingToProvideVetCare,
+                          (value) =>
+                              setState(() => _willingToProvideVetCare = value),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildInfoCard(
+                      title: 'Commitment',
+                      icon: Icons.volunteer_activism_outlined,
+                      children: [
+                        _buildYesNoQuestion(
+                          'Are you prepared for a lifetime commitment?',
+                          _preparedForLifetimeCommitment,
+                          (value) => setState(
+                            () => _preparedForLifetimeCommitment = value,
+                          ),
+                        ),
+                        _buildTextField(
+                          controller: _ifCannotKeepCareController,
+                          label:
+                              'What will you do if you can no longer care for the animal?',
+                          hint:
+                              'e.g., Return to shelter, give to a trusted friend',
+                          maxLines: 3,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please explain your plan'
+                              : null,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                     _buildTermsAndConditions(),
                     const SizedBox(height: 32),
@@ -690,10 +688,7 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(
-            color: kPrimaryAccentColor,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
         ),
         errorStyle: const TextStyle(color: Colors.redAccent),
       ),
@@ -767,12 +762,16 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               onTap: onTap,
               borderRadius: BorderRadius.circular(20.0),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : kPrimaryTextColor.withOpacity(0.8),
+                    color: isSelected
+                        ? Colors.white
+                        : kPrimaryTextColor.withOpacity(0.8),
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -811,18 +810,12 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(
-            color: kPrimaryAccentColor,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
         ),
         errorStyle: const TextStyle(color: Colors.redAccent),
       ),
       items: items.map<DropdownMenuItem<String>>((String item) {
-        return DropdownMenuItem<String>(
-          value: item,
-          child: Text(item),
-        );
+        return DropdownMenuItem<String>(value: item, child: Text(item));
       }).toList(),
       onChanged: onChanged,
       validator: validator,
@@ -847,50 +840,49 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         ),
         const SizedBox(height: 8),
         ClipRRect(
-            borderRadius: BorderRadius.circular(12.0),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-              child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12.0),
+          borderRadius: BorderRadius.circular(12.0),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: kPrimaryAccentColor,
+                    ),
+                    onPressed: () {
+                      if (currentValue > 1) onChanged(currentValue - 1);
+                    },
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.remove_circle_outline,
-                          color: kPrimaryAccentColor,
-                        ),
-                        onPressed: () {
-                          if (currentValue > 1) onChanged(currentValue - 1);
-                        },
-                      ),
-                      Text(
-                        currentValue.toString(),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: kPrimaryTextColor,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.add_circle_outline,
-                          color: kPrimaryAccentColor,
-                        ),
-                        onPressed: () {
-                          onChanged(currentValue + 1);
-                        },
-                      ),
-                    ],
+                  Text(
+                    currentValue.toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: kPrimaryTextColor,
+                    ),
                   ),
-                ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: kPrimaryAccentColor,
+                    ),
+                    onPressed: () {
+                      onChanged(currentValue + 1);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
+        ),
       ],
     );
   }
@@ -946,44 +938,50 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
 
   Widget _buildSubmitButton() {
     return _isLoading
-      ? const Center(
-          child: CircularProgressIndicator(color: kPrimaryAccentColor),
-        )
-      : ClipRRect(
-          borderRadius: BorderRadius.circular(50.0),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: _agreedToTerms ? kPrimaryAccentColor.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50.0),
-                border: Border.all(
-                  color: _agreedToTerms ? kPrimaryAccentColor.withOpacity(0.4) : Colors.grey.withOpacity(0.2),
-                  width: 1.5,
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _agreedToTerms ? _submitApplication : null,
+        ? const Center(
+            child: CircularProgressIndicator(color: kPrimaryAccentColor),
+          )
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(50.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _agreedToTerms
+                      ? kSubmitApplicationButtonColor.withOpacity(0.2)
+                      : Colors.grey.withOpacity(0.1), // Green
                   borderRadius: BorderRadius.circular(50.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Submit Application',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: _agreedToTerms ? Colors.white : kSecondaryTextColor,
-                        letterSpacing: 0.5,
+                  border: Border.all(
+                    color: _agreedToTerms
+                        ? kSubmitApplicationButtonColor.withOpacity(0.4)
+                        : Colors.grey.withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _agreedToTerms ? _submitApplication : null,
+                    borderRadius: BorderRadius.circular(50.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Submit Application',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _agreedToTerms
+                              ? Colors.white
+                              : kSecondaryTextColor,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        );
+          );
   }
 }

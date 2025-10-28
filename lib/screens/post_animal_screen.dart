@@ -15,14 +15,7 @@ import 'package:google_places_flutter/model/prediction.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:pawscare/models/animal_location.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class PostAnimalScreen extends StatefulWidget {
   final bool showAppBar;
@@ -41,6 +34,17 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
+
+  // GlobalKeys for scrolling to error fields
+  final _speciesKey = GlobalKey();
+  final _breedTypeKey = GlobalKey();
+  final _genderKey = GlobalKey();
+  final _sterilizedKey = GlobalKey();
+  final _vaccinatedKey = GlobalKey();
+  final _dewormedKey = GlobalKey();
+  final _locationKey = GlobalKey();
+  final _photosKey = GlobalKey();
 
   // --- FORM CONTROLLERS ---
   final _nameController = TextEditingController();
@@ -207,6 +211,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
   Widget _buildAddNewAnimalTab() {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(), // Added for a better scroll feel
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Form(
@@ -240,6 +245,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             ),
             const Divider(color: Colors.white12, height: 1),
             _buildChoiceChipQuestion(
+              key: _speciesKey,
               question: 'Species*',
               options: ['Dog', 'Cat', 'Other'],
               selectedValue: _species,
@@ -256,6 +262,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             ],
             const Divider(color: Colors.white12, height: 1),
             _buildChoiceChipQuestion(
+              key: _breedTypeKey,
               question: 'Breed Type*',
               options: ['Indie', 'Specific'],
               selectedValue: _breedType,
@@ -274,6 +281,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             _buildAgeField(),
             const Divider(color: Colors.white12, height: 1),
             _buildChoiceChipQuestion(
+              key: _genderKey,
               question: 'Gender*',
               options: ['Male', 'Female'],
               selectedValue: _gender,
@@ -290,21 +298,24 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             // --- Health & Wellness Section ---
             _buildSectionHeader('Health & Wellness'),
             _buildBinaryQuestion(
-              'Sterilized (Neutered/Spayed)?*',
-              _isSterilized,
-              (val) => setState(() => _isSterilized = val),
+              key: _sterilizedKey,
+              question: 'Sterilized (Neutered/Spayed)?*',
+              value: _isSterilized,
+              onChanged: (val) => setState(() => _isSterilized = val),
             ),
             const Divider(color: Colors.white12, height: 1),
             _buildBinaryQuestion(
-              'Vaccinations up to date?*',
-              _isVaccinated,
-              (val) => setState(() => _isVaccinated = val),
+              key: _vaccinatedKey,
+              question: 'Vaccinations up to date?*',
+              value: _isVaccinated,
+              onChanged: (val) => setState(() => _isVaccinated = val),
             ),
             const Divider(color: Colors.white12, height: 1),
             _buildBinaryQuestion(
-              'Dewormed recently?*',
-              _isDewormed,
-              (val) => setState(() => _isDewormed = val),
+              key: _dewormedKey,
+              question: 'Dewormed recently?*',
+              value: _isDewormed,
+              onChanged: (val) => setState(() => _isDewormed = val),
             ),
             const Divider(color: Colors.white12, height: 1),
             _buildTextField(
@@ -315,7 +326,10 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
 
             // --- Location, Contact & Story Section ---
             _buildSectionHeader('Location, Contact & Story'),
-            _buildPlacesAutocompleteField(),
+            Container(
+              key: _locationKey,
+              child: _buildPlacesAutocompleteField(),
+            ),
             const Divider(color: Colors.white12, height: 1),
             _buildTextField(
               _contactPhoneController,
@@ -333,7 +347,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             const Divider(color: Colors.white12, height: 1),
             _buildTextField(
               _rescueStoryController,
-              'Rescue Story / About the Animal',
+              'About the Animal',
               'Share their story...',
               maxLines: 5,
             ),
@@ -341,7 +355,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             // --- Photos Section ---
             _buildSectionHeader('Photos*'),
             const SizedBox(height: 8),
-            _buildImagePicker(),
+            Container(key: _photosKey, child: _buildImagePicker()),
             if (_images.isEmpty && _isSubmitting)
               const Padding(
                 padding: EdgeInsets.only(top: 8.0, left: 4.0),
@@ -357,15 +371,17 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: kSubmitReviewButtonColor.withOpacity(
+                      0.2,
+                    ), // Soft Orange
                     borderRadius: BorderRadius.circular(50.0),
                     border: Border.all(
-                      color: Colors.blue.withOpacity(0.4),
+                      color: kSubmitReviewButtonColor.withOpacity(0.4),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.withOpacity(0.2),
+                        color: kSubmitReviewButtonColor.withOpacity(0.2),
                         offset: const Offset(0, 4),
                         blurRadius: 12,
                       ),
@@ -393,9 +409,9 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 'Submit for Review',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -490,12 +506,14 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
   }
 
   Widget _buildChoiceChipQuestion({
+    Key? key,
     required String question,
     required List<String> options,
     required String? selectedValue,
     required ValueChanged<String> onSelected,
   }) {
     return ListTile(
+      key: key,
       contentPadding: const EdgeInsets.symmetric(
         vertical: 4.0,
         horizontal: 4.0,
@@ -561,12 +579,14 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  Widget _buildBinaryQuestion(
-    String question,
-    bool? value,
-    ValueChanged<bool> onChanged,
-  ) {
+  Widget _buildBinaryQuestion({
+    Key? key,
+    required String question,
+    required bool? value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return _buildChoiceChipQuestion(
+      key: key,
       question: question,
       options: ['Yes', 'No'],
       selectedValue: value == null ? null : (value ? 'Yes' : 'No'),
@@ -958,46 +978,52 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
         const SizedBox(height: 12),
         Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(50.0),
-                    border: Border.all(
-                      color: Colors.blue.withOpacity(0.4),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _pickImage(ImageSource.camera),
+            Flexible(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50.0),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: kCameraButtonColor.withOpacity(0.2), // Light Blue
                       borderRadius: BorderRadius.circular(50.0),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Camera',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                      border: Border.all(
+                        color: kCameraButtonColor.withOpacity(0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _pickImage(ImageSource.camera),
+                        borderRadius: BorderRadius.circular(50.0),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                color: Colors.grey, // Dark Grey
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'Camera',
+                                  style: TextStyle(
+                                    color: Colors.grey, // Dark Grey
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1006,46 +1032,52 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
               ),
             ),
             const SizedBox(width: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(50.0),
-                    border: Border.all(
-                      color: Colors.blue.withOpacity(0.4),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _pickImage(ImageSource.gallery),
+            Flexible(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(50.0),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: kGalleryButtonColor.withOpacity(0.2), // Lime Green
                       borderRadius: BorderRadius.circular(50.0),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(
-                              Icons.photo_library,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Gallery',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                      border: Border.all(
+                        color: kGalleryButtonColor.withOpacity(0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _pickImage(ImageSource.gallery),
+                        borderRadius: BorderRadius.circular(50.0),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.photo_library,
+                                color: Colors.grey, // Dark Grey
+                                size: 18,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  'Gallery',
+                                  style: TextStyle(
+                                    color: Colors.grey, // Dark Grey
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1053,15 +1085,38 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
                 ),
               ),
             ),
-            const Spacer(),
             if (_images.isNotEmpty) ...[
-              Text(
-                '${_images.length}/5 selected',
-                style: const TextStyle(color: kPrimaryTextColor),
-              ),
-              IconButton(
-                onPressed: () => setState(() => _images.clear()),
-                icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '${_images.length}/5',
+                        style: const TextStyle(
+                          color: kPrimaryTextColor,
+                          fontSize: 13,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => setState(() => _images.clear()),
+                        icon: const Icon(
+                          Icons.delete_forever,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ],
@@ -1080,23 +1135,81 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
     );
   }
 
-  Future<void> _submitForm() async {
-    setState(() {});
+  void _scrollToField(GlobalKey key) {
+    final context = key.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.2, // Scroll so the field is 20% from the top
+      );
+    }
+  }
 
-    // Validate form and check for images and location
-    if (!_formKey.currentState!.validate() ||
-        _images.isEmpty ||
-        _selectedLocation == null) {
-      String errorMsg =
-          'Please fill all required fields (*) and add at least one photo.';
-      if (_selectedLocation == null) {
-        errorMsg = 'Please select a location from the dropdown suggestions.';
-      }
-      _showSnackBar(errorMsg, isError: true);
+  Future<void> _submitForm() async {
+    setState(() => _isSubmitting = true);
+
+    // Check all required fields in order and scroll to first error
+
+    // Check for required choice chip selections
+    if (_species == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_speciesKey);
       return;
     }
 
-    setState(() => _isSubmitting = true);
+    if (_breedType == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_breedTypeKey);
+      return;
+    }
+
+    if (_gender == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_genderKey);
+      return;
+    }
+
+    if (_isSterilized == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_sterilizedKey);
+      return;
+    }
+
+    if (_isVaccinated == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_vaccinatedKey);
+      return;
+    }
+
+    if (_isDewormed == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_dewormedKey);
+      return;
+    }
+
+    // Check for location
+    if (_selectedLocation == null) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_locationKey);
+      return;
+    }
+
+    // Check for images
+    if (_images.isEmpty) {
+      setState(() => _isSubmitting = false);
+      _scrollToField(_photosKey);
+      return;
+    }
+
+    // Check text fields (they will auto-scroll via form validation)
+    final formValid = _formKey.currentState!.validate();
+    if (!formValid) {
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
     try {
       final years = _ageYearsController.text.trim();
       final months = _ageMonthsController.text.trim();
@@ -1488,83 +1601,215 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     final messageController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCardColor,
-        title: const Text(
-          'Approve Animal',
-          style: TextStyle(color: kPrimaryTextColor),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'This will make the animal visible for adoption.',
-              style: TextStyle(color: kPrimaryTextColor),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              style: const TextStyle(color: kPrimaryTextColor),
-              decoration: InputDecoration(
-                labelText: 'Optional Message',
-                hintText: 'Add any notes or comments (optional)',
-                labelStyle: const TextStyle(color: kPrimaryTextColor),
-                hintStyle: TextStyle(color: kPrimaryTextColor.withOpacity(0.5)),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey.shade800),
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: AlertDialog(
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(20.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(20.0),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.15),
+                    width: 1.5,
+                  ),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Approve Animal',
+                      style: TextStyle(
+                        color: kPrimaryTextColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'This will make the animal visible for adoption.',
+                      style: TextStyle(
+                        color: kSecondaryTextColor,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: messageController,
+                            style: const TextStyle(color: kPrimaryTextColor),
+                            decoration: InputDecoration(
+                              labelText: 'Optional Message',
+                              hintText: 'Add any notes or comments (optional)',
+                              labelStyle: TextStyle(
+                                color: kPrimaryTextColor.withOpacity(0.7),
+                              ),
+                              hintStyle: TextStyle(
+                                color: kPrimaryTextColor.withOpacity(0.3),
+                              ),
+                              filled: false,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(16.0),
+                            ),
+                            maxLines: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => Navigator.pop(context),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: kPrimaryTextColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.green.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.green.withOpacity(0.2),
+                                    offset: const Offset(0, 4),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () async {
+                                    try {
+                                      await AnimalService.approveAnimal(
+                                        animalId: animalId,
+                                        adminMessage: messageController.text
+                                            .trim(),
+                                      );
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Animal post approved successfully',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Error approving animal: $e',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    child: Text(
+                                      'Approve',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              maxLines: 3,
             ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: kPrimaryTextColor),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await AnimalService.approveAnimal(
-                  animalId: animalId,
-                  adminMessage: messageController.text.trim(),
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Animal post approved successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error approving animal: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              shape: const StadiumBorder(),
-            ),
-            child: const Text('Approve'),
-          ),
-        ],
       ),
     );
   }
@@ -1573,92 +1818,229 @@ class __PendingAnimalCardState extends State<_PendingAnimalCard> {
     final messageController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: kCardColor,
-        title: const Text(
-          'Reject Animal',
-          style: TextStyle(color: kPrimaryTextColor),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Please provide a reason for rejection. This will be visible to the person who posted the animal.',
-              style: TextStyle(fontSize: 14, color: kPrimaryTextColor),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              style: const TextStyle(color: kPrimaryTextColor),
-              decoration: InputDecoration(
-                labelText: 'Reason for Rejection *',
-                hintText: 'Explain why this post is being rejected',
-                labelStyle: const TextStyle(color: kPrimaryTextColor),
-                hintStyle: TextStyle(color: kPrimaryTextColor.withOpacity(0.5)),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey.shade800),
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: AlertDialog(
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          content: ClipRRect(
+            borderRadius: BorderRadius.circular(20.0),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(20.0),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.15),
+                    width: 1.5,
+                  ),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Reject Animal',
+                      style: TextStyle(
+                        color: kPrimaryTextColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Please provide a reason for rejection. This will be visible to the person who posted the animal.',
+                      style: TextStyle(
+                        color: kSecondaryTextColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12.0),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: messageController,
+                            style: const TextStyle(color: kPrimaryTextColor),
+                            decoration: InputDecoration(
+                              labelText: 'Reason for Rejection *',
+                              hintText:
+                                  'Explain why this post is being rejected',
+                              labelStyle: TextStyle(
+                                color: kPrimaryTextColor.withOpacity(0.7),
+                              ),
+                              hintStyle: TextStyle(
+                                color: kPrimaryTextColor.withOpacity(0.3),
+                              ),
+                              filled: false,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(16.0),
+                            ),
+                            maxLines: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => Navigator.pop(context),
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: kPrimaryTextColor,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(50.0),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 10.0,
+                              sigmaY: 10.0,
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(50.0),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.2),
+                                    offset: const Offset(0, 4),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (messageController.text.trim().isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please provide a reason for rejection',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    try {
+                                      await AnimalService.rejectAnimal(
+                                        animalId: animalId,
+                                        adminMessage: messageController.text
+                                            .trim(),
+                                      );
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Animal post rejected',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Error rejecting animal: $e',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  borderRadius: BorderRadius.circular(50.0),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    child: Text(
+                                      'Reject',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              maxLines: 3,
             ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: kPrimaryTextColor),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (messageController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please provide a reason for rejection'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-                return;
-              }
-              try {
-                await AnimalService.rejectAnimal(
-                  animalId: animalId,
-                  adminMessage: messageController.text.trim(),
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Animal post rejected'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error rejecting animal: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: const StadiumBorder(),
-            ),
-            child: const Text('Reject'),
-          ),
-        ],
       ),
     );
   }

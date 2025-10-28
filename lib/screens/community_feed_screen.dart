@@ -5,14 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/post_composer.dart';
 import '../widgets/post_card_widget.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import '../constants/app_colors.dart';
 
 class CommunityFeedScreen extends StatefulWidget {
   const CommunityFeedScreen({super.key});
@@ -128,6 +121,29 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                       child: Row(
                         children: _filters.map((filter) {
                           final selected = _selectedFilter == filter;
+
+                          // Category-specific colors
+                          Color filterColor;
+                          switch (filter) {
+                            case 'Success Story':
+                              filterColor = kFilterSuccessColor;
+                              break;
+                            case 'Concern':
+                              filterColor = kFilterConcernColor;
+                              break;
+                            case 'Question':
+                              filterColor = kFilterQuestionColor;
+                              break;
+                            case 'General':
+                              filterColor = kFilterGeneralColor;
+                              break;
+                            case 'All Posts':
+                            default:
+                              filterColor =
+                                  kInteractiveIconColor; // Primary accent
+                              break;
+                          }
+
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 4.0,
@@ -142,12 +158,12 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: selected
-                                        ? Colors.blue.withOpacity(0.2)
+                                        ? filterColor.withOpacity(0.3)
                                         : Colors.white.withOpacity(0.05),
                                     borderRadius: BorderRadius.circular(20.0),
                                     border: Border.all(
                                       color: selected
-                                          ? Colors.blue.withOpacity(0.4)
+                                          ? filterColor.withOpacity(0.6)
                                           : Colors.white.withOpacity(0.15),
                                       width: 1.5,
                                     ),

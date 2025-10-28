@@ -1,13 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:pawscare/services/cat_facts_service.dart';
-
-// Theme constants matching home screen
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import '../constants/app_colors.dart';
 
 class CatFactsScreen extends StatefulWidget {
   const CatFactsScreen({super.key});
@@ -100,66 +94,67 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
                     ),
                   )
                 : _errorMessage.isNotEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _errorMessage,
-                              style: const TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 16,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
-                            _buildNewFactButton(),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _errorMessage,
+                          style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16.0),
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                        const SizedBox(height: 24),
+                        _buildNewFactButton(),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Top content grouped together
+                                Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    // Top content grouped together
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        const SizedBox(height: 12),
-                                        _buildHeaderSection(),
-                                        const SizedBox(height: 24),
-                                        _buildCatImageCard(),
-                                        const SizedBox(height: 24),
-                                        _buildCatFactCard(),
-                                      ],
-                                    ),
-                                    // Button pushed to the bottom
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 32, bottom: 24),
-                                      child: _buildNewFactButton(),
-                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildHeaderSection(),
+                                    const SizedBox(height: 24),
+                                    _buildCatImageCard(),
+                                    const SizedBox(height: 24),
+                                    _buildCatFactCard(),
                                   ],
                                 ),
-                              ),
+                                // Button pushed to the bottom
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 32,
+                                    bottom: 24,
+                                  ),
+                                  child: _buildNewFactButton(),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
             // --- MODIFICATION END ---
           ),
         ],
@@ -213,7 +208,7 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
                           ? loadingProgress.cumulativeBytesLoaded /
-                              loadingProgress.expectedTotalBytes!
+                                loadingProgress.expectedTotalBytes!
                           : null,
                       color: kPrimaryAccentColor,
                     ),
