@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pawscare/widgets/glassmorphic_popup_menu.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 
@@ -86,48 +85,6 @@ List<Widget> _buildAppBarActions(
       tooltip: 'Cat Facts',
       onPressed: () {
         Navigator.of(context).pushNamed('/cat-facts');
-      },
-    ),
-    IconButton(
-      icon: const Icon(Icons.chat_bubble_outline, color: kPrimaryTextColor),
-      onPressed: () async {
-        const rawPhone = '917057517218';
-        const defaultMessage = '';
-        final whatsappAppUri = Uri.parse(
-          'whatsapp://send?phone=$rawPhone&text=${Uri.encodeComponent(defaultMessage)}',
-        );
-        final webUri = Uri.parse(
-          'https://wa.me/$rawPhone?text=${Uri.encodeComponent(defaultMessage)}',
-        );
-
-        try {
-          if (await canLaunchUrl(whatsappAppUri)) {
-            await launchUrl(
-              whatsappAppUri,
-              mode: LaunchMode.externalApplication,
-            );
-          } else if (await canLaunchUrl(webUri)) {
-            await launchUrl(webUri, mode: LaunchMode.externalApplication);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Could not open WhatsApp or web fallback.'),
-              ),
-            );
-          }
-        } catch (err) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error opening WhatsApp: $err')),
-          );
-        }
-      },
-    ),
-    IconButton(
-      icon: const Icon(Icons.notifications_none, color: kPrimaryTextColor),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notifications coming soon!')),
-        );
       },
     ),
     FutureBuilder<String>(
