@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/animal_service.dart';
 import '../screens/pet_detail_screen.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import '../constants/app_colors.dart';
 
 class AdminAnimalApprovalScreen extends StatelessWidget {
   const AdminAnimalApprovalScreen({super.key});
@@ -19,7 +12,10 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Animal Approvals', style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Animal Approvals',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         centerTitle: true,
         backgroundColor: kBackgroundColor,
         elevation: 0,
@@ -29,11 +25,18 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
         stream: AnimalService.getPendingAnimals(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)));
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: kPrimaryAccentColor));
+            return const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
           }
 
           final animals = snapshot.data?.docs ?? [];
@@ -43,7 +46,11 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, size: 64, color: Colors.green.shade700),
+                  Icon(
+                    Icons.check_circle,
+                    size: 64,
+                    color: Colors.green.shade700,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'No pending approvals!',
@@ -103,7 +110,11 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                               height: 200,
                               width: double.infinity,
                               color: Colors.grey.shade900,
-                              child: const Icon(Icons.pets, color: kSecondaryTextColor, size: 50),
+                              child: const Icon(
+                                Icons.pets,
+                                color: kSecondaryTextColor,
+                                size: 50,
+                              ),
                             );
                           },
                         ),
@@ -148,7 +159,8 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            if (animalData['rescueStory']?.isNotEmpty == true) ...[
+                            if (animalData['rescueStory']?.isNotEmpty ==
+                                true) ...[
                               const Text(
                                 'Rescue Story:',
                                 style: TextStyle(
@@ -188,25 +200,41 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => _showApproveDialog(context, animalId),
+                                    onPressed: () =>
+                                        _showApproveDialog(context, animalId),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green.shade800,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
                                     ),
-                                    child: const Text('Approve', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: const Text(
+                                      'Approve',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => _showRejectDialog(context, animalId),
+                                    onPressed: () =>
+                                        _showRejectDialog(context, animalId),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red.shade800,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
                                     ),
-                                    child: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: const Text(
+                                      'Reject',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -257,11 +285,17 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        title: const Text('Approve Animal', style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Approve Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('This animal will be visible to all users.', style: TextStyle(color: kSecondaryTextColor)),
+            const Text(
+              'This animal will be visible to all users.',
+              style: TextStyle(color: kSecondaryTextColor),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
@@ -270,9 +304,15 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                 labelText: 'Optional Message (for user)',
                 labelStyle: const TextStyle(color: kSecondaryTextColor),
                 hintText: 'e.g., Great job! This animal looks healthy.',
-                hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
-                border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade800)),
-                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: kPrimaryAccentColor)),
+                hintStyle: TextStyle(
+                  color: kSecondaryTextColor.withOpacity(0.5),
+                ),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -281,7 +321,10 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -308,7 +351,9 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade800,
+            ),
             child: const Text('Approve'),
           ),
         ],
@@ -323,22 +368,34 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kCardColor,
-        title: const Text('Reject Animal', style: TextStyle(color: kPrimaryTextColor)),
+        title: const Text(
+          'Reject Animal',
+          style: TextStyle(color: kPrimaryTextColor),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('This animal will not be visible to users.', style: TextStyle(color: kSecondaryTextColor)),
+            const Text(
+              'This animal will not be visible to users.',
+              style: TextStyle(color: kSecondaryTextColor),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: messageController,
               style: const TextStyle(color: kPrimaryTextColor),
               decoration: InputDecoration(
                 labelText: 'Reason for Rejection *',
-                 labelStyle: const TextStyle(color: kSecondaryTextColor),
+                labelStyle: const TextStyle(color: kSecondaryTextColor),
                 hintText: 'e.g., Incomplete information...',
-                 hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.5)),
-                border: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade800)),
-                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: kPrimaryAccentColor)),
+                hintStyle: TextStyle(
+                  color: kSecondaryTextColor.withOpacity(0.5),
+                ),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey.shade800),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: kPrimaryAccentColor),
+                ),
               ),
               maxLines: 3,
             ),
@@ -347,7 +404,10 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: kPrimaryTextColor)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: kPrimaryTextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -383,7 +443,9 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade800),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade800,
+            ),
             child: const Text('Reject'),
           ),
         ],
@@ -391,7 +453,7 @@ class AdminAnimalApprovalScreen extends StatelessWidget {
     );
   }
 
-String _formatDate(dynamic timestamp) {
+  String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'Unknown date';
 
     try {
@@ -405,4 +467,3 @@ String _formatDate(dynamic timestamp) {
     }
   }
 }
-  

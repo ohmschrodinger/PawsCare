@@ -7,14 +7,7 @@ import 'package:pawscare/services/user_service.dart';
 import 'package:pawscare/screens/terms_and_service.dart';
 import 'package:pawscare/screens/private_policy.dart'; // <-- Import added
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
-
-// --- Re-using the color palette for consistency ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -------------------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -129,7 +122,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _logout() async {
     await AuthService.signOut();
     if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
     }
   }
 
@@ -171,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 _isEditing ? 'Save' : 'Edit',
                 style: const TextStyle(
-                  color: kPrimaryAccentColor,
+                  color: Color.fromARGB(255, 255, 255, 255),
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -261,16 +256,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             endIndent: 16,
             color: kCardColor,
           ),
-          _buildNavigationTile(
-            'Saved Posts',
-            Icons.bookmark_border,
-            () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SavedPostsScreen()),
-              );
-            },
-          ),
-          
+          _buildNavigationTile('Saved Posts', Icons.bookmark_border, () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SavedPostsScreen()));
+          }),
+
           const SizedBox(height: 20),
           _buildSectionHeader('Preferences'),
           _buildSwitchTile(

@@ -3,12 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:pawscare/theme/typography.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui';
-
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});

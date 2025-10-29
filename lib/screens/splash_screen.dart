@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
+import '../services/navigation_guard.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,32 +22,17 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
-        final User? currentUser = AuthService.getCurrentUser();
-
-        if (currentUser != null) {
-          try {
-            await currentUser.getIdToken(true);
-
-            if (currentUser.emailVerified) {
-              Navigator.of(context).pushReplacementNamed('/main');
-            } else {
-              await AuthService.signOut();
-              Navigator.of(context).pushReplacementNamed('/welcome');
-            }
-          } catch (e) {
-            await AuthService.signOut();
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
-        } else {
-          Navigator.of(context).pushReplacementNamed('/welcome');
-        }
+        // Use NavigationGuard to determine where to go
+        final initialRoute = await NavigationGuard.getInitialRoute();
+        Navigator.of(context).pushReplacementNamed(initialRoute);
       }
     } catch (e) {
+      print('Error in splash screen: $e');
       try {
         await AuthService.signOut();
       } catch (_) {}
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/welcome');
+        Navigator.of(context).pushReplacementNamed('/entry-point');
       }
     }
   }

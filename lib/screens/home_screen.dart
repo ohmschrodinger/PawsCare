@@ -10,15 +10,7 @@ import 'package:pawscare/theme/typography.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-
-// -------------------- Color Palette --------------------
-// Note: kBackgroundColor is no longer used for the Scaffold background
-// but might be used by other components.
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
+import 'package:pawscare/constants/app_colors.dart';
 
 // -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
@@ -249,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: const TextStyle(
                                             fontSize: 32,
                                             fontWeight: FontWeight.bold,
-                                            color: kPrimaryAccentColor,
+                                            color: kLegacyAccentColor,
                                           ),
                                         ),
                                         const Text(
@@ -295,11 +287,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: const TextStyle(
                                             fontSize: 32,
                                             fontWeight: FontWeight.bold,
-                                            color: kPrimaryAccentColor,
+                                            color: kLegacyAccentColor,
                                           ),
                                         ),
                                         const Text(
-                                          'Pets\nposted so far',
+                                          'Pets\nAvailable for Adoption',
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: kSecondaryTextColor,
@@ -803,31 +795,53 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   _WelcomeSectionState()
     : _pageController = PageController(viewportFraction: 1.00);
 
+  // --- UPDATED DATA STRUCTURE ---
+  // Each map now contains a unique image path and custom glassmorphism settings.
   final List<Map<String, dynamic>> _infoPages = [
     {
       'title': 'Welcome to PawsCare',
       'text':
           'Your one-stop app for adopting, rescuing, and caring for animals in need. Whether you’re looking to adopt or just spread love, PawsCare connects you with pets who need a home.',
+      'imagePath': 'assets/images/beach.jpeg', // Custom image path
+      'sigmaX': 4.0, // Custom blur X
+      'sigmaY': 4.0, // Custom blur Y
+      'opacity': 0.35, // Custom opacity
     },
     {
-      'title': 'About PawsCare Animal Resq',
+      'title': 'About PawsCare',
       'text':
-          "Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think  you would be a good fit? See our contact page for more information!",
+          "Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!",
+      'imagePath': 'assets/images/back.jpg',
+      'sigmaX': 6.0,
+      'sigmaY': 6.0,
+      'opacity': 0.20,
     },
     {
       'title': 'What You Can Do in the App',
       'text':
-          'Discover animals up for adoption, share stories, or post your own rescues. PawsCare isn’t just an app it’s a community for animal lovers.',
+          'Discover animals up for adoption, share stories, or post your own rescues. PawsCare isn’t just an app—it’s a community for animal lovers.',
+      'imagePath': 'assets/images/postbg.png',
+      'sigmaX': 6.0,
+      'sigmaY': 6.0,
+      'opacity': 0.30,
     },
     {
       'title': 'Meet Our Happy Tails',
       'text':
-          'Over 100 pets have already found loving homes through PawsCare. Every adoption story inspires the next.\nyours could be next!',
+          'Over 100 pets have already found loving homes through PawsCare. Every adoption story inspires the next. Yours could be next!',
+      'imagePath': 'assets/images/t2.jpeg',
+      'sigmaX': 4.0,
+      'sigmaY': 4.0,
+      'opacity': 0.35,
     },
     {
       'title': 'Join the Mission',
       'text':
-          'Adopt, volunteer, or spread the word — every small action makes a big difference. Together, we can create a world where every animal is cared for and loved.',
+          'Adopt, volunteer, or spread the word—every small action makes a big difference. Together, we can create a world where every animal is cared for and loved.',
+      'imagePath': 'assets/images/t.jpeg',
+      'sigmaX': 6.0,
+      'sigmaY': 6.0,
+      'opacity': 0.15,
     },
   ];
 
@@ -835,9 +849,11 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   void initState() {
     super.initState();
     _pageController.addListener(() {
-      setState(() {
-        _currentPageValue = _pageController.page!;
-      });
+      if (_pageController.hasClients) {
+        setState(() {
+          _currentPageValue = _pageController.page!;
+        });
+      }
     });
   }
 
@@ -891,12 +907,18 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                 double delta = index - _currentPageValue;
                 double scale = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
 
+                // --- PASSING DATA FROM THE UPDATED MAP ---
+                final pageData = _infoPages[index];
+
                 return Transform.scale(
                   scale: scale,
                   child: _buildInfoPage(
-                    title: _infoPages[index]['title'],
-                    text: _infoPages[index]['text'],
-                    imagePath: 'assets/images/welcome${index + 1}.png',
+                    title: pageData['title'],
+                    text: pageData['text'],
+                    imagePath: pageData['imagePath'],
+                    sigmaX: pageData['sigmaX'],
+                    sigmaY: pageData['sigmaY'],
+                    opacity: pageData['opacity'],
                   ),
                 );
               },
@@ -909,10 +931,15 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
+  // --- UPDATED WIDGET METHOD ---
+  // Now accepts custom sigmaX, sigmaY, and opacity values.
   Widget _buildInfoPage({
     required String title,
     required String text,
     required String imagePath,
+    required double sigmaX,
+    required double sigmaY,
+    required double opacity,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -925,7 +952,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
           children: [
             // --- LAYER 1: BACKGROUND IMAGE ---
             Image.asset(
-              imagePath,
+              imagePath, // Uses the custom path
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -939,10 +966,10 @@ class _WelcomeSectionState extends State<WelcomeSection> {
               },
             ),
 
-            // --- LAYER 2: GLASSMORPHIC OVERLAY ---
+            // --- LAYER 2: GLASSMORPHIC OVERLAY (with custom values) ---
             BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-              child: Container(color: Colors.black.withOpacity(0.25)),
+              filter: ImageFilter.blur(sigmaX: sigmaX, sigmaY: sigmaY),
+              child: Container(color: Colors.black.withOpacity(opacity)),
             ),
 
             // --- LAYER 3: TEXT CONTENT ---
@@ -968,13 +995,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                   Text(
                     text,
                     textAlign: TextAlign.start,
-                    style: AppTypography.subhead.copyWith(
-                      color: kPrimaryTextColor,
-                      height: 1.4,
-                      shadows: const [
-                        Shadow(blurRadius: 4, color: Colors.black54),
-                      ],
-                    ),
+                    style: AppTypography.welcomeSubtext,
                   ),
                 ],
               ),
@@ -993,7 +1014,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
         effect: WormEffect(
           dotHeight: 8.0,
           dotWidth: 8.0,
-          activeDotColor: kPrimaryAccentColor,
+          activeDotColor: Colors.amber,
           dotColor: Colors.grey.shade800,
         ),
       ),

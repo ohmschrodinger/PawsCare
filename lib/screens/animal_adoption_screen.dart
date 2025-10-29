@@ -9,13 +9,7 @@ import 'package:pawscare/widgets/animal_card.dart';
 import 'package:pawscare/services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pawscare/screens/animal_map_screen.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-const Color kCardColor = Color(0xFF1E1E1E);
-// -----------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class AnimalAdoptionScreen extends StatefulWidget {
   const AnimalAdoptionScreen({super.key});

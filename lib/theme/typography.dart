@@ -158,7 +158,7 @@ class AppTypography {
   );
 
   static const TextStyle body = TextStyle(
-    fontSize:17 ,
+    fontSize: 17,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.41,
   );
@@ -173,6 +173,14 @@ class AppTypography {
     fontSize: 15,
     fontWeight: FontWeight.w400,
     letterSpacing: -0.24,
+  );
+
+  // Welcome subtext style used under the greeting on Home screen
+  static const TextStyle welcomeSubtext = TextStyle(
+    fontSize: 15,
+    height: 1.4,
+    color: Colors.white70,
+    shadows: <Shadow>[Shadow(blurRadius: 4, color: Colors.black54)],
   );
 
   static const TextStyle footnote = TextStyle(

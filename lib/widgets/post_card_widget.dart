@@ -9,16 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/current_user_cache.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// New avatar accent for anonymous/profile fallback (blueish)
-const Color kAvatarAccentColor = Colors.blueAccent;
-// -----------------------------------------
+import '../constants/app_colors.dart';
 
 class PostCardWidget extends StatefulWidget {
   final Map<String, dynamic> postData;

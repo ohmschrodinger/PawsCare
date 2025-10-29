@@ -9,14 +9,7 @@ import 'dart:ui'; // For ImageFilter
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/widgets/animal_card.dart'; // For customCacheManager if needed
 import 'package:pawscare/services/notification_badge_service.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -----------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});

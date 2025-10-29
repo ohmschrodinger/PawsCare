@@ -7,16 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/cupertino.dart';
 import '../services/current_user_cache.dart';
-
-// --- THEME CONSTANTS FOR THE DARK UI ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Color.fromARGB(255, 255, 193, 7);
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// --- NEW COLORS ---
-const Color kSuccessGreenColor = Color(0xFF6E8C6A); // Muted green from image
-const Color kAvatarAccentColor = Colors.blueAccent; // For avatar fallback
+import '../constants/app_colors.dart';
 
 class PostComposer extends StatefulWidget {
   const PostComposer({super.key});
@@ -345,12 +336,31 @@ class _PostComposerState extends State<PostComposer> {
             ),
           ),
         const SizedBox(height: 14),
-        // --- MODIFICATION: Green Glassmorphic Chips ---
+        // --- MODIFICATION: Category-specific Glassmorphic Chips ---
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: _categories.map((category) {
               final selected = _selectedCategory == category;
+
+              // Category-specific colors
+              Color categoryColor;
+              switch (category) {
+                case 'Success Story':
+                  categoryColor = kFilterSuccessColor;
+                  break;
+                case 'Concern':
+                  categoryColor = kFilterConcernColor;
+                  break;
+                case 'Question':
+                  categoryColor = kFilterQuestionColor;
+                  break;
+                case 'General':
+                default:
+                  categoryColor = kFilterGeneralColor;
+                  break;
+              }
+
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: ClipRRect(
@@ -360,12 +370,12 @@ class _PostComposerState extends State<PostComposer> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: selected
-                            ? Colors.green.withOpacity(0.2)
+                            ? categoryColor.withOpacity(0.3)
                             : Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(20.0),
                         border: Border.all(
                           color: selected
-                              ? Colors.green.withOpacity(0.4)
+                              ? categoryColor.withOpacity(0.6)
                               : Colors.white.withOpacity(0.15),
                           width: 1.5,
                         ),
@@ -410,15 +420,21 @@ class _PostComposerState extends State<PostComposer> {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.photo_camera_outlined),
+                  icon: const Icon(
+                    Icons.photo_camera_outlined,
+                    color: Colors.white,
+                  ),
                   onPressed: () => _pickImage(ImageSource.camera),
-                  color: kSecondaryTextColor,
+                  color: kCameraButtonColor,
                   tooltip: 'Camera',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.photo_library_outlined),
+                  icon: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Colors.white,
+                  ),
                   onPressed: () => _pickImage(ImageSource.gallery),
-                  color: kSecondaryTextColor,
+                  color: kGalleryButtonColor,
                   tooltip: 'Gallery',
                 ),
               ],
@@ -429,15 +445,15 @@ class _PostComposerState extends State<PostComposer> {
                 filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: kPostButtonColor.withOpacity(0.2), // Medium Blue
                     borderRadius: BorderRadius.circular(50.0),
                     border: Border.all(
-                      color: Colors.blue.withOpacity(0.4),
+                      color: kPostButtonColor.withOpacity(0.4),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.withOpacity(0.2),
+                        color: kPostButtonColor.withOpacity(0.2),
                         offset: const Offset(0, 4),
                         blurRadius: 12,
                       ),

@@ -10,14 +10,7 @@ import '../services/user_favorites_service.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import 'pet_detail_screen.dart';
-
-// --- Re-using the color palette for consistency ---
-const Color kBackgroundColor = Color(0xFF121212);
-const Color kCardColor = Color(0xFF1E1E1E);
-const Color kPrimaryAccentColor = Colors.amber;
-const Color kPrimaryTextColor = Colors.white;
-const Color kSecondaryTextColor = Color(0xFFB0B0B0);
-// -------------------------------------------------
+import 'package:pawscare/constants/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -144,9 +137,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 20),
                       const TabBar(
-                        labelColor: kPrimaryAccentColor,
+                        labelColor: Colors.amber,
                         unselectedLabelColor: kSecondaryTextColor,
-                        indicatorColor: kPrimaryAccentColor,
+                        indicatorColor: Colors.amber,
                         dividerColor: Colors.transparent,
                         tabs: [
                           Tab(text: 'My Posts'),
@@ -482,7 +475,7 @@ class _ProfileHeader extends StatelessWidget {
                       : const Icon(
                           Icons.camera_alt,
                           size: 20,
-                          color: kPrimaryAccentColor,
+                          color: Colors.grey,
                         ),
                 ),
               ),

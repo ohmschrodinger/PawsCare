@@ -49,13 +49,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
-    - assets/images/welcome1.png
-    - assets/images/welcome2.png
-    - assets/images/welcome3.png
-    - assets/images/welcome4.png
-    - assets/images/welcome5.png
-    - assets/images/pawscarelogo.svg   # ✅ added SVG logo
+    - assets/images/  # ✅ added SVG logo  # ✅ Get Started background image
     - lib/assets/pawscare_logo.png     # ✅ kept your existing logo
     - assets/.env                       # ✅ Environment variables
 
