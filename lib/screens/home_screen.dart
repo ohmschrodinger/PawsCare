@@ -11,6 +11,7 @@ import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:pawscare/constants/app_colors.dart';
+import 'package:pawscare/constants/animal_status.dart';
 
 // -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
@@ -568,14 +569,55 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () {
+                                      onTap: () async {
                                         if (fullPetData != null) {
+                                          Map<String, dynamic> latestData =
+                                              Map<String, dynamic>.from(
+                                                  fullPetData);
+
+                                          final String? petId =
+                                              fullPetData['id']?.toString();
+                                          if (petId != null && petId.isNotEmpty) {
+                                            try {
+                                              final doc = await FirebaseFirestore
+                                                  .instance
+                                                  .collection('animals')
+                                                  .doc(petId)
+                                                  .get();
+                                              if (doc.exists) {
+                                                final Map<String, dynamic> db =
+                                                    (doc.data() as Map<String, dynamic>);
+                                                latestData = {
+                                                  ...latestData,
+                                                  ...db,
+                                                  'id': petId,
+                                                };
+                                              }
+                                            } catch (_) {}
+                                          }
+
+                                          final String status =
+                                              latestData['status']
+                                                      ?.toString() ??
+                                                  '';
+                                          final bool isAdopted = status
+                                                  .toLowerCase() ==
+                                              AnimalStatus.adopted
+                                                  .toLowerCase();
+
+                                          final Map<String, dynamic>
+                                              petForDetails = {
+                                            ...latestData,
+                                            if (isAdopted)
+                                              'hideAdoptButton': true,
+                                          };
+
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
                                                   PetDetailScreen(
-                                                    petData: fullPetData,
+                                                    petData: petForDetails,
                                                   ),
                                             ),
                                           );
