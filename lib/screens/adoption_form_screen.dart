@@ -668,33 +668,51 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: const TextStyle(color: kSecondaryTextColor),
-        hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
-        filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: kPrimaryTextColor,
+          ),
+          softWrap: true,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none,
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.7)),
+            filled: true,
+            fillColor: Colors.black.withOpacity(0.3),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide:
+                  const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+            ),
+            errorStyle: const TextStyle(color: Colors.redAccent),
+          ),
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          validator: validator,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
-        ),
-        errorStyle: const TextStyle(color: Colors.redAccent),
-      ),
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      validator: validator,
+      ],
     );
   }
 
@@ -791,34 +809,52 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
     required ValueChanged<String?> onChanged,
     String? Function(String?)? validator,
   }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      dropdownColor: kCardColor,
-      style: const TextStyle(color: kPrimaryTextColor),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: kSecondaryTextColor),
-        filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: kPrimaryTextColor,
+          ),
+          softWrap: true,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none,
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          dropdownColor: kCardColor,
+          style: const TextStyle(color: kPrimaryTextColor),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black.withOpacity(0.3),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.0),
+              borderSide:
+                  const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+            ),
+            errorStyle: const TextStyle(color: Colors.redAccent),
+          ),
+          items: items.map<DropdownMenuItem<String>>((String item) {
+            return DropdownMenuItem<String>(value: item, child: Text(item));
+          }).toList(),
+          onChanged: onChanged,
+          validator: validator,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(color: kPrimaryAccentColor, width: 1.5),
-        ),
-        errorStyle: const TextStyle(color: Colors.redAccent),
-      ),
-      items: items.map<DropdownMenuItem<String>>((String item) {
-        return DropdownMenuItem<String>(value: item, child: Text(item));
-      }).toList(),
-      onChanged: onChanged,
-      validator: validator,
+      ],
     );
   }
 
