@@ -13,6 +13,7 @@ import '../screens/all_applications_screen.dart';
 import '../screens/admin_logs_screen.dart';
 import '../screens/contact_us_screen.dart';
 import '../screens/post_animal_screen.dart';
+import '../screens/about_developers_screen.dart';
 import '../services/notification_badge_service.dart';
 import '../constants/app_colors.dart';
 
@@ -156,6 +157,12 @@ List<Widget> _buildAppBarActions(
                               builder: (_) => const ContactUsScreen(),
                             ),
                           );
+                        } else if (value == 'about_developers') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AboutDevelopersScreen(),
+                            ),
+                          );
                         }
                         if (onMenuSelected != null) onMenuSelected(value);
                       },
@@ -260,6 +267,16 @@ List<Widget> _buildAppBarActions(
                               ),
                               SizedBox(width: 12),
                               Text('Contact Us', style: popupTextStyle),
+                            ],
+                          ),
+                        ),
+                        const GlassmorphicPopupMenuItem(
+                          value: 'about_developers',
+                          child: Row(
+                            children: [
+                              Icon(Icons.code, color: popupIconColor),
+                              SizedBox(width: 12),
+                              Text('About Developers', style: popupTextStyle),
                             ],
                           ),
                         ),

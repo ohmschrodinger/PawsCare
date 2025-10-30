@@ -5,8 +5,10 @@ import 'package:pawscare/screens/saved_posts_screen.dart';
 import 'package:pawscare/services/auth_service.dart';
 import 'package:pawscare/services/user_service.dart';
 import 'package:pawscare/screens/terms_and_service.dart';
-import 'package:pawscare/screens/private_policy.dart'; // <-- Import added
+import 'package:pawscare/screens/private_policy.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
+import 'package:pawscare/screens/contact_us_screen.dart';
+import 'package:pawscare/screens/about_developers_screen.dart';
 import 'package:pawscare/constants/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -26,7 +28,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isEditing = false;
   bool _isLoading = true;
   String _errorMessage = '';
-  bool _pushNotificationsEnabled = true;
 
   @override
   void initState() {
@@ -70,12 +71,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _lastNameController.text = data['lastName'] ?? '';
         _phoneController.text = data['phoneNumber'] ?? '';
         _addressController.text = data['address'] ?? '';
-        if (mounted) {
-          setState(() {
-            _pushNotificationsEnabled =
-                data['pushNotificationsEnabled'] ?? true;
-          });
-        }
       }
     } catch (e) {
       if (mounted) setState(() => _errorMessage = "Failed to load data.");
@@ -96,7 +91,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'lastName': _lastNameController.text.trim(),
       'phoneNumber': _phoneController.text.trim(),
       'address': _addressController.text.trim(),
-      'pushNotificationsEnabled': _pushNotificationsEnabled,
     };
 
     try {
@@ -265,16 +259,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }),
 
           const SizedBox(height: 20),
-          _buildSectionHeader('Preferences'),
-          _buildSwitchTile(
-            'Push Notifications',
-            Icons.notifications_outlined,
-            _pushNotificationsEnabled,
-            (value) {
-              setState(() => _pushNotificationsEnabled = value);
-              _saveProfile();
-            },
-          ),
+          _buildSectionHeader('Support'),
+          _buildNavigationTile('Contact Us', Icons.contact_support, () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ContactUsScreen()));
+          }),
           const SizedBox(height: 20),
           _buildSectionHeader('Legal'),
           _buildNavigationTile('Terms of Service', null, () {
@@ -294,6 +284,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (_) =>
                     const PrivatePolicyScreen(), // <-- Navigation fixed
               ),
+            );
+          }),
+          const SizedBox(height: 20),
+          _buildSectionHeader('Developers'),
+          _buildNavigationTile('About Developers', Icons.code, () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AboutDevelopersScreen()),
             );
           }),
           const SizedBox(height: 40),
@@ -439,25 +436,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Icon(Icons.chevron_right, color: kSecondaryTextColor)
           : null,
       onTap: onTap,
-    );
-  }
-
-  Widget _buildSwitchTile(
-    String title,
-    IconData icon,
-    bool value,
-    ValueChanged<bool> onChanged,
-  ) {
-    return SwitchListTile(
-      secondary: Icon(icon, color: kSecondaryTextColor),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 16, color: kPrimaryTextColor),
-      ),
-      value: value,
-      onChanged: onChanged,
-      activeColor: kPrimaryAccentColor,
-      inactiveTrackColor: Colors.grey.shade800,
     );
   }
 }

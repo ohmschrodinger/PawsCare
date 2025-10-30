@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/auth_error_messages.dart';
 import 'dart:async';
+
 class EmailVerificationScreen extends StatefulWidget {
   const EmailVerificationScreen({super.key});
 
@@ -53,26 +54,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
   Future<void> _onVerifiedButtonPressed() async {
     await _checkVerificationStatus();
-    if (!_isVerified && mounted) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF2C2C2E), // Dark theme
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: const Text('Not Verified', style: TextStyle(color: Colors.white)),
-          content: Text(
-            'Email not yet verified. Please check your inbox or try resending the email.',
-            style: TextStyle(color: Colors.grey.shade300),
-          ),
-          actions: [
-            TextButton(
-              child: const Text('OK', style: TextStyle(color: Colors.white)),
-              onPressed: () => Navigator.of(ctx).pop(),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   Future<void> _resendVerificationEmail() async {
@@ -126,8 +107,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF2C2C2E), // Dark theme
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            title: const Text('Cancel Verification?', style: TextStyle(color: Colors.white)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: const Text(
+              'Cancel Verification?',
+              style: TextStyle(color: Colors.white),
+            ),
             content: Text(
               'Are you sure you want to cancel email verification? You will be signed out.',
               style: TextStyle(color: Colors.grey.shade300),
@@ -135,7 +121,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Continue', style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
               TextButton(
                 onPressed: () async {
@@ -147,7 +136,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
                   }
                 },
-                child: Text('Cancel & Sign Out', style: TextStyle(color: Colors.red.shade300)),
+                child: Text(
+                  'Cancel & Sign Out',
+                  style: TextStyle(color: Colors.red.shade300),
+                ),
               ),
             ],
           ),
@@ -215,15 +207,24 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       children: [
                         if (_isLoading) ...[
                           const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Checking verification status...',
-                            style: TextStyle(color: Colors.grey.shade400, fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 16,
+                            ),
                           ),
                         ] else if (_isVerified) ...[
-                          Icon(Icons.verified_user, size: 80, color: Colors.green.shade400),
+                          Icon(
+                            Icons.verified_user,
+                            size: 80,
+                            color: Colors.green.shade400,
+                          ),
                           const SizedBox(height: 24),
                           Text(
                             'Email Verified!',
@@ -237,7 +238,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           Text(
                             'Redirecting to the app...',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade400,
+                            ),
                           ),
                         ] else ...[
                           Icon(
@@ -248,19 +252,31 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           const SizedBox(height: 24),
                           const Text(
                             'Verify Your Email',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'We\'ve sent a verification email to:',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade400,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2C2C2E), // Dark input style
+                              color: const Color(
+                                0xFF2C2C2E,
+                              ), // Dark input style
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -276,7 +292,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           Text(
                             'Please check your email and click the verification link to continue.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           // Primary gradient button
@@ -301,7 +320,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           Text(
                             '• Check your spam folder\n• Make sure the email address is correct',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.5),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              height: 1.5,
+                            ),
                           ),
                         ],
                       ],
@@ -326,11 +349,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         children: [
           // Back Button (triggers OnWillPop)
           IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-              size: 22,
-            ),
+            icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
             onPressed: _onWillPop,
           ),
           // Title
@@ -353,7 +372,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             },
             child: Text(
               'Sign Out',
-              style: TextStyle(color: Colors.blue.shade300, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.blue.shade300,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

@@ -439,20 +439,6 @@ class _NewSignInScreenState extends State<NewSignInScreen> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Arrow Icon
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            border:
-                                Border.all(color: Colors.white54, width: 1.5),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward,
-                            size: 18,
-                            color: Colors.white,
-                          ),
-                        ),
                         const SizedBox(width: 12),
                         const Text(
                           'Sign In',

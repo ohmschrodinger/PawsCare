@@ -848,7 +848,7 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     {
       'title': 'About PawsCare',
       'text':
-          "Founded in 2020, PawsCare began with a mission to provide onsite care for pets. Want to join us? Visit our contact page for more info!",
+          "Founded in 2022, PawsCare began with a mission to provide onsite care for pets. Want to join us? Visit our contact page for more info!",
       'imagePath': 'assets/images/welcome2.png',
     },
     {
