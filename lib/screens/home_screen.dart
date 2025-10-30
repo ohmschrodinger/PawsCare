@@ -573,20 +573,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                         if (fullPetData != null) {
                                           Map<String, dynamic> latestData =
                                               Map<String, dynamic>.from(
-                                                  fullPetData);
+                                                fullPetData,
+                                              );
 
                                           final String? petId =
                                               fullPetData['id']?.toString();
-                                          if (petId != null && petId.isNotEmpty) {
+                                          if (petId != null &&
+                                              petId.isNotEmpty) {
                                             try {
-                                              final doc = await FirebaseFirestore
-                                                  .instance
-                                                  .collection('animals')
-                                                  .doc(petId)
-                                                  .get();
+                                              final doc =
+                                                  await FirebaseFirestore
+                                                      .instance
+                                                      .collection('animals')
+                                                      .doc(petId)
+                                                      .get();
                                               if (doc.exists) {
                                                 final Map<String, dynamic> db =
-                                                    (doc.data() as Map<String, dynamic>);
+                                                    (doc.data()
+                                                        as Map<
+                                                          String,
+                                                          dynamic
+                                                        >);
                                                 latestData = {
                                                   ...latestData,
                                                   ...db,
@@ -598,15 +605,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                           final String status =
                                               latestData['status']
-                                                      ?.toString() ??
-                                                  '';
-                                          final bool isAdopted = status
-                                                  .toLowerCase() ==
+                                                  ?.toString() ??
+                                              '';
+                                          final bool isAdopted =
+                                              status.toLowerCase() ==
                                               AnimalStatus.adopted
                                                   .toLowerCase();
 
                                           final Map<String, dynamic>
-                                              petForDetails = {
+                                          petForDetails = {
                                             ...latestData,
                                             if (isAdopted)
                                               'hideAdoptButton': true,
@@ -837,53 +844,37 @@ class _WelcomeSectionState extends State<WelcomeSection> {
   _WelcomeSectionState()
     : _pageController = PageController(viewportFraction: 1.00);
 
-  // --- UPDATED DATA STRUCTURE ---
-  // Each map now contains a unique image path and custom glassmorphism settings.
+  // Info pages data structure - simplified
   final List<Map<String, dynamic>> _infoPages = [
     {
       'title': 'Welcome to PawsCare',
       'text':
-          'Your one-stop app for adopting, rescuing, and caring for animals in need. Whether you’re looking to adopt or just spread love, PawsCare connects you with pets who need a home.',
-      'imagePath': 'assets/images/beach.jpeg', // Custom image path
-      'sigmaX': 4.0, // Custom blur X
-      'sigmaY': 4.0, // Custom blur Y
-      'opacity': 0.35, // Custom opacity
+          'Every pet deserves a story that ends with love. With PawsCare, you can help pets find homes or bring one home yourself.',
+      'imagePath': 'assets/images/beach_blurred.png',
     },
     {
       'title': 'About PawsCare',
       'text':
-          "Our amazing team of volunteers are committed to helping animals in our community. We take our convictions and turn them into action. Think you would be a good fit? See our contact page for more information!",
-      'imagePath': 'assets/images/back.jpg',
-      'sigmaX': 6.0,
-      'sigmaY': 6.0,
-      'opacity': 0.20,
+          "Founded in 2020, PawsCare began with a mission to provide onsite care for pets. Want to join us? Visit our contact page for more info!",
+      'imagePath': 'assets/images/welcome2.png',
     },
     {
       'title': 'What You Can Do in the App',
       'text':
-          'Discover animals up for adoption, share stories, or post your own rescues. PawsCare isn’t just an app—it’s a community for animal lovers.',
-      'imagePath': 'assets/images/postbg.png',
-      'sigmaX': 6.0,
-      'sigmaY': 6.0,
-      'opacity': 0.30,
+          'Find pets looking for homes, share your rescue stories, and connect with fellow animal lovers by posting animals in need.',
+      'imagePath': 'assets/images/t_blurred.png',
     },
     {
-      'title': 'Meet Our Happy Tails',
+      'title': 'Meet our Happy Trails',
       'text':
-          'Over 100 pets have already found loving homes through PawsCare. Every adoption story inspires the next. Yours could be next!',
-      'imagePath': 'assets/images/t2.jpeg',
-      'sigmaX': 4.0,
-      'sigmaY': 4.0,
-      'opacity': 0.35,
+          'Thanks to our community, countless pets have found homes and care. Be part of the change, every action matters.',
+      'imagePath': 'assets/images/t2_blurred.png',
     },
     {
       'title': 'Join the Mission',
       'text':
-          'Adopt, volunteer, or spread the word—every small action makes a big difference. Together, we can create a world where every animal is cared for and loved.',
-      'imagePath': 'assets/images/t.jpeg',
-      'sigmaX': 6.0,
-      'sigmaY': 6.0,
-      'opacity': 0.15,
+          'Adopt, volunteer, or spread the word,every small action makes a big difference. Together, we can create a world where every animal is cared for and loved.',
+      'imagePath': 'assets/images/background_blurred.png',
     },
   ];
 
@@ -897,6 +888,15 @@ class _WelcomeSectionState extends State<WelcomeSection> {
         });
       }
     });
+    _preloadImages();
+  }
+
+  // Preload all carousel images in the background
+  Future<void> _preloadImages() async {
+    for (var page in _infoPages) {
+      final imagePath = page['imagePath'] as String;
+      await precacheImage(AssetImage(imagePath), context);
+    }
   }
 
   @override
@@ -949,7 +949,6 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                 double delta = index - _currentPageValue;
                 double scale = (1 - (delta.abs() * 0.15)).clamp(0.85, 1.0);
 
-                // --- PASSING DATA FROM THE UPDATED MAP ---
                 final pageData = _infoPages[index];
 
                 return Transform.scale(
@@ -958,9 +957,6 @@ class _WelcomeSectionState extends State<WelcomeSection> {
                     title: pageData['title'],
                     text: pageData['text'],
                     imagePath: pageData['imagePath'],
-                    sigmaX: pageData['sigmaX'],
-                    sigmaY: pageData['sigmaY'],
-                    opacity: pageData['opacity'],
                   ),
                 );
               },
@@ -973,15 +969,11 @@ class _WelcomeSectionState extends State<WelcomeSection> {
     );
   }
 
-  // --- UPDATED WIDGET METHOD ---
-  // Now accepts custom sigmaX, sigmaY, and opacity values.
+  // Simplified widget method - just image and text, no glassmorphism
   Widget _buildInfoPage({
     required String title,
     required String text,
     required String imagePath,
-    required double sigmaX,
-    required double sigmaY,
-    required double opacity,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5.0),
@@ -992,9 +984,9 @@ class _WelcomeSectionState extends State<WelcomeSection> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // --- LAYER 1: BACKGROUND IMAGE ---
+            // LAYER 1: BACKGROUND IMAGE
             Image.asset(
-              imagePath, // Uses the custom path
+              imagePath,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -1008,17 +1000,11 @@ class _WelcomeSectionState extends State<WelcomeSection> {
               },
             ),
 
-            // --- LAYER 2: GLASSMORPHIC OVERLAY (with custom values) ---
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: sigmaX, sigmaY: sigmaY),
-              child: Container(color: Colors.black.withOpacity(opacity)),
-            ),
-
-            // --- LAYER 3: TEXT CONTENT ---
+            // LAYER 2: TEXT CONTENT (directly on top)
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24.0,
-                vertical: 20.0,
+                vertical: 10.0,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
