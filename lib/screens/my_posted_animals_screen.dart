@@ -126,14 +126,11 @@ class _AnimalGridCard extends StatelessWidget {
   final Map<String, dynamic> pet;
   final VoidCallback onDelete;
 
-  const _AnimalGridCard({
-    required this.pet,
-    required this.onDelete,
-  });
+  const _AnimalGridCard({required this.pet, required this.onDelete});
 
   Future<void> _handleDelete(BuildContext context) async {
     final animalId = pet['id'] as String;
-    
+
     // Check if animal can be deleted
     final checkResult = await AnimalService.canDeleteAnimal(animalId);
     final canDelete = checkResult['canDelete'] as bool;
@@ -192,9 +189,7 @@ class _AnimalGridCard extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -214,12 +209,12 @@ class _AnimalGridCard extends StatelessWidget {
 
     try {
       await AnimalService.deleteAnimalPost(animalId);
-      
+
       if (!context.mounted) return;
-      
+
       // Close loading dialog
       Navigator.of(context).pop();
-      
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -227,15 +222,15 @@ class _AnimalGridCard extends StatelessWidget {
           backgroundColor: Colors.green,
         ),
       );
-      
+
       // Trigger refresh
       onDelete();
     } catch (e) {
       if (!context.mounted) return;
-      
+
       // Close loading dialog
       Navigator.of(context).pop();
-      
+
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -312,14 +307,15 @@ class _AnimalGridCard extends StatelessWidget {
                       ? Image.network(
                           pet['image'],
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: Colors.grey.shade900,
-                            child: const Icon(
-                              Icons.pets,
-                              color: kSecondaryTextColor,
-                              size: 40,
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: Colors.grey.shade900,
+                                child: const Icon(
+                                  Icons.pets,
+                                  color: kSecondaryTextColor,
+                                  size: 40,
+                                ),
+                              ),
                         )
                       : Container(
                           color: Colors.grey.shade900,

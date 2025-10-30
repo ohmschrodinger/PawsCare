@@ -256,14 +256,17 @@ class AnimalService {
       }
 
       // Get the animal document
-      final animalDoc = await _firestore.collection('animals').doc(animalId).get();
-      
+      final animalDoc = await _firestore
+          .collection('animals')
+          .doc(animalId)
+          .get();
+
       if (!animalDoc.exists) {
         throw Exception('Animal not found');
       }
 
       final animalData = animalDoc.data()!;
-      
+
       // Check if user is the owner
       if (animalData['postedBy'] != user.uid) {
         throw Exception('You can only delete your own posts');
@@ -277,7 +280,7 @@ class AnimalService {
 
       // Delete the document
       await _firestore.collection('animals').doc(animalId).delete();
-      
+
       // Log the deletion
       await LoggingService.logEvent(
         'animal_deleted',
@@ -287,7 +290,7 @@ class AnimalService {
           'status': status,
         },
       );
-      
+
       print('Animal deleted successfully: $animalId');
     } catch (e) {
       print('Error deleting animal: $e');
@@ -301,23 +304,20 @@ class AnimalService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        return {
-          'canDelete': false,
-          'reason': 'You must be logged in',
-        };
+        return {'canDelete': false, 'reason': 'You must be logged in'};
       }
 
-      final animalDoc = await _firestore.collection('animals').doc(animalId).get();
-      
+      final animalDoc = await _firestore
+          .collection('animals')
+          .doc(animalId)
+          .get();
+
       if (!animalDoc.exists) {
-        return {
-          'canDelete': false,
-          'reason': 'Animal not found',
-        };
+        return {'canDelete': false, 'reason': 'Animal not found'};
       }
 
       final animalData = animalDoc.data()!;
-      
+
       // Check if user is the owner
       if (animalData['postedBy'] != user.uid) {
         return {
@@ -331,14 +331,12 @@ class AnimalService {
       if (status == AnimalStatus.adopted) {
         return {
           'canDelete': false,
-          'reason': 'This animal has already been adopted and cannot be withdrawn',
+          'reason':
+              'This animal has already been adopted and cannot be withdrawn',
         };
       }
 
-      return {
-        'canDelete': true,
-        'reason': '',
-      };
+      return {'canDelete': true, 'reason': ''};
     } catch (e) {
       return {
         'canDelete': false,
