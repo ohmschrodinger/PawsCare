@@ -210,11 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildInfoTile('Email', email),
           _buildEditableTile(_firstNameController, 'First Name'),
           _buildEditableTile(_lastNameController, 'Last Name'),
-          _buildEditableTile(
-            _phoneController,
-            'Phone Number',
-            keyboardType: TextInputType.phone,
-          ),
+          _buildInfoTile('Phone Number', _phoneController.text),
           _buildEditableTile(
             _addressController,
             'Address',

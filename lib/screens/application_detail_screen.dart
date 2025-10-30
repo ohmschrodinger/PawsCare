@@ -151,12 +151,18 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
           (widget.applicationData['petId'] as String?) ??
           (widget.applicationData['animalId'] as String?);
       if (petId != null) {
+        // Store adopter information in the animal document
         await FirebaseFirestore.instance
             .collection('animals')
             .doc(petId)
             .update({
               'status': 'Adopted',
               'adoptedAt': FieldValue.serverTimestamp(),
+              'adoptedBy': widget.applicationData['userId'],
+              'adopterName': widget.applicationData['applicantName'],
+              'adopterEmail': widget.applicationData['applicantEmail'],
+              'adopterPhone': widget.applicationData['applicantPhone'],
+              'adopterAddress': widget.applicationData['applicantAddress'],
             });
 
         final QuerySnapshot others = await FirebaseFirestore.instance

@@ -348,11 +348,44 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
                               ? 'Enter a valid email'
                               : null,
                         ),
-                        _buildTextField(
-                          controller: _phoneNumberController,
-                          label: 'Phone Number',
-                          hint: 'Enter your 10-digit phone number',
-                          keyboardType: TextInputType.phone,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Phone Number',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: kPrimaryTextColor,
+                              ),
+                              softWrap: true,
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(12.0),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.1),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                _phoneNumberController.text.isEmpty
+                                    ? 'Not set'
+                                    : _phoneNumberController.text,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: kSecondaryTextColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         _buildTextField(
                           controller: _addressController,

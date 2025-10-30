@@ -89,6 +89,32 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
       vsync: this,
       initialIndex: widget.initialTab,
     );
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userData = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userData.exists && mounted) {
+          final data = userData.data();
+          final phoneNumber = data?['phoneNumber'] ?? '';
+          // Remove +91 prefix if present, as the TextField already shows it
+          final cleanPhone = phoneNumber.startsWith('+91')
+              ? phoneNumber.substring(3)
+              : phoneNumber;
+          setState(() {
+            _contactPhoneController.text = cleanPhone;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
   }
 
   @override

@@ -12,6 +12,7 @@ import '../screens/my_applications_screen.dart';
 import '../screens/all_applications_screen.dart';
 import '../screens/admin_logs_screen.dart';
 import '../screens/contact_us_screen.dart';
+import '../screens/post_animal_screen.dart';
 import '../services/notification_badge_service.dart';
 import '../constants/app_colors.dart';
 
@@ -96,144 +97,195 @@ List<Widget> _buildAppBarActions(
           builder: (context, badgeSnapshot) {
             final showBadge = badgeSnapshot.data ?? false;
 
-            return Stack(
-              clipBehavior: Clip.none,
-              children: [
-                GlassmorphicPopupMenu(
-                  icon: const Icon(Icons.more_vert, color: kPrimaryTextColor),
-                  onItemSelected: (value) {
-                    if (value == 'my_applications') {
-                      // Mark applications as seen when user opens My Applications
-                      if (!isAdmin) {
-                        final userId = FirebaseAuth.instance.currentUser?.uid;
-                        if (userId != null) {
-                          NotificationBadgeService.markApplicationsAsSeen(
-                            userId,
+            // For admins, also check if there are pending animals
+            return StreamBuilder<bool>(
+              stream: isAdmin
+                  ? NotificationBadgeService.hasPendingAnimals()
+                  : Stream.value(false),
+              builder: (context, pendingAnimalsSnapshot) {
+                final hasPendingAnimals = pendingAnimalsSnapshot.data ?? false;
+                final showMenuBadge = showBadge || hasPendingAnimals;
+
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    GlassmorphicPopupMenu(
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: kPrimaryTextColor,
+                      ),
+                      onItemSelected: (value) {
+                        if (value == 'my_applications') {
+                          // Mark applications as seen when user opens My Applications
+                          if (!isAdmin) {
+                            final userId =
+                                FirebaseAuth.instance.currentUser?.uid;
+                            if (userId != null) {
+                              NotificationBadgeService.markApplicationsAsSeen(
+                                userId,
+                              );
+                            }
+                          }
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MyApplicationsScreen(),
+                            ),
+                          );
+                        } else if (value == 'all_applications') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AllApplicationsScreen(),
+                            ),
+                          );
+                        } else if (value == 'pending_requests') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const PostAnimalScreen(initialTab: 0),
+                            ),
+                          );
+                        } else if (value == 'activity_logs') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const AdminLogsScreen(),
+                            ),
+                          );
+                        } else if (value == 'contact_us') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ContactUsScreen(),
+                            ),
                           );
                         }
-                      }
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const MyApplicationsScreen(),
-                        ),
-                      );
-                    } else if (value == 'all_applications') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllApplicationsScreen(),
-                        ),
-                      );
-                    } else if (value == 'profile') {
-                      mainNavKey.currentState?.selectTab(4);
-                    } else if (value == 'activity_logs') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AdminLogsScreen(),
-                        ),
-                      );
-                    } else if (value == 'contact_us') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ContactUsScreen(),
-                        ),
-                      );
-                    }
-                    if (onMenuSelected != null) onMenuSelected(value);
-                  },
-                  items: [
-                    const GlassmorphicPopupMenuItem(
-                      value: 'profile',
-                      child: Row(
-                        children: [
-                          Icon(Icons.person, color: popupIconColor),
-                          SizedBox(width: 12),
-                          Text('Profile', style: popupTextStyle),
-                        ],
-                      ),
-                    ),
-                    if (isAdmin) ...[
-                      GlassmorphicPopupMenuItem(
-                        value: 'all_applications',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.list_alt, color: popupIconColor),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'All Applications',
-                              style: popupTextStyle,
-                            ),
-                            const SizedBox(width: 8),
-                            if (showBadge)
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
+                        if (onMenuSelected != null) onMenuSelected(value);
+                      },
+                      items: [
+                        if (isAdmin) ...[
+                          GlassmorphicPopupMenuItem(
+                            value: 'pending_requests',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.pending_actions,
+                                  color: popupIconColor,
                                 ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const GlassmorphicPopupMenuItem(
-                        value: 'activity_logs',
-                        child: Row(
-                          children: [
-                            Icon(Icons.history, color: popupIconColor),
-                            SizedBox(width: 12),
-                            Text('Activity Logs', style: popupTextStyle),
-                          ],
-                        ),
-                      ),
-                    ],
-                    GlassmorphicPopupMenuItem(
-                      value: 'my_applications',
-                      child: Row(
-                        children: [
-                          const Icon(Icons.assignment, color: popupIconColor),
-                          const SizedBox(width: 12),
-                          const Text('My Applications', style: popupTextStyle),
-                          const SizedBox(width: 8),
-                          if (!isAdmin && showBadge)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Pending Requests',
+                                  style: popupTextStyle,
+                                ),
+                                const SizedBox(width: 8),
+                                if (hasPendingAnimals)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
                             ),
+                          ),
+                          GlassmorphicPopupMenuItem(
+                            value: 'all_applications',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.list_alt,
+                                  color: popupIconColor,
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'All Applications',
+                                  style: popupTextStyle,
+                                ),
+                                const SizedBox(width: 8),
+                                if (showBadge)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const GlassmorphicPopupMenuItem(
+                            value: 'activity_logs',
+                            child: Row(
+                              children: [
+                                Icon(Icons.history, color: popupIconColor),
+                                SizedBox(width: 12),
+                                Text('Activity Logs', style: popupTextStyle),
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
+                        GlassmorphicPopupMenuItem(
+                          value: 'my_applications',
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.assignment,
+                                color: popupIconColor,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'My Applications',
+                                style: popupTextStyle,
+                              ),
+                              const SizedBox(width: 8),
+                              if (!isAdmin && showBadge)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const GlassmorphicPopupMenuItem(
+                          value: 'contact_us',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.contact_support,
+                                color: popupIconColor,
+                              ),
+                              SizedBox(width: 12),
+                              Text('Contact Us', style: popupTextStyle),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const GlassmorphicPopupMenuItem(
-                      value: 'contact_us',
-                      child: Row(
-                        children: [
-                          Icon(Icons.contact_support, color: popupIconColor),
-                          SizedBox(width: 12),
-                          Text('Contact Us', style: popupTextStyle),
-                        ],
+                    // Red dot notification badge
+                    if (showMenuBadge)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: kBackgroundColor,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
                   ],
-                ),
-                // Red dot notification badge
-                if (showBadge)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: kBackgroundColor, width: 1.5),
-                      ),
-                    ),
-                  ),
-              ],
+                );
+              },
             );
           },
         );

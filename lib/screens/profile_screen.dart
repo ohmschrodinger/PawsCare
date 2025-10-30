@@ -245,7 +245,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) async {
     final firstNameController = TextEditingController(text: initialFirstName);
     final lastNameController = TextEditingController(text: initialLastName);
-    final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(text: initialAddress);
 
     darkInputDecoration(String label) => InputDecoration(
@@ -324,11 +323,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: darkInputDecoration('Last Name'),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: phoneController,
-                      style: const TextStyle(color: kPrimaryTextColor),
-                      decoration: darkInputDecoration('Phone Number'),
-                      keyboardType: TextInputType.phone,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Phone Number',
+                          style: TextStyle(
+                            color: kSecondaryTextColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 12.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          child: Text(
+                            initialPhone.isEmpty ? 'Not set' : initialPhone,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: kSecondaryTextColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -351,7 +375,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 data: {
                                   'firstName': firstNameController.text.trim(),
                                   'lastName': lastNameController.text.trim(),
-                                  'phoneNumber': phoneController.text.trim(),
                                   'address': addressController.text.trim(),
                                   'profileCompleted': true,
                                 },

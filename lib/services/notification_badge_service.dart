@@ -12,6 +12,15 @@ class NotificationBadgeService {
         .map((snapshot) => snapshot.docs.isNotEmpty);
   }
 
+  /// Check if there are any pending animal posts for admins
+  static Stream<bool> hasPendingAnimals() {
+    return _firestore
+        .collection('animals')
+        .where('approvalStatus', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.isNotEmpty);
+  }
+
   /// Check if the current user has any application status updates they haven't seen
   static Stream<bool> hasNewApplicationUpdates(String userId) {
     return _firestore

@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pawscare/screens/adoption_form_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pawscare/constants/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -17,6 +19,45 @@ class PetDetailScreen extends StatefulWidget {
 class _PetDetailScreenState extends State<PetDetailScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isAdmin = false;
+  bool _isPoster = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserPermissions();
+  }
+
+  Future<void> _checkUserPermissions() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    try {
+      // Check if user is admin
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final role = userDoc.data()?['role'] as String?;
+      final isAdmin = role == 'admin' || role == 'superadmin';
+
+      // Check if user is the poster
+      final postedBy = widget.petData['postedBy'] as String?;
+      final isPoster = currentUser.uid == postedBy;
+
+      if (mounted) {
+        setState(() {
+          _isAdmin = isAdmin;
+          _isPoster = isPoster;
+        });
+      }
+    } catch (e) {
+      print('Error checking user permissions: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -324,6 +365,11 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      // Show adopter information if user is admin or poster and animal is adopted
+                      if (isAdopted && (_isAdmin || _isPoster))
+                        _buildAdopterCard(),
+                      if (isAdopted && (_isAdmin || _isPoster))
+                        const SizedBox(height: 12),
                       _buildDetailCard(
                         title: 'Contact & Location',
                         children: [
@@ -690,6 +736,25 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAdopterCard() {
+    final adopterName = widget.petData['adopterName']?.toString() ?? 'N/A';
+    final adopterEmail = widget.petData['adopterEmail']?.toString() ?? '';
+    final adopterPhone = widget.petData['adopterPhone']?.toString() ?? '';
+    final adopterAddress = widget.petData['adopterAddress']?.toString() ?? '';
+
+    return _buildDetailCard(
+      title: 'Adopter Information',
+      children: [
+        _buildInfoRow(Icons.person, 'Name:', adopterName),
+        if (adopterEmail.isNotEmpty)
+          _buildInfoRow(Icons.email, 'Email:', adopterEmail),
+        if (adopterPhone.isNotEmpty) _buildPhoneRow(adopterPhone),
+        if (adopterAddress.isNotEmpty)
+          _buildInfoRow(Icons.home, 'Address:', adopterAddress),
+      ],
     );
   }
 
