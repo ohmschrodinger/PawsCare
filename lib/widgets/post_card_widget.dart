@@ -190,11 +190,25 @@ class _PostCardWidgetState extends State<PostCardWidget>
           .doc(userId)
           .get();
       final data = doc.data();
-      final candidate = data == null
-          ? null
-          : (data['fullName'] ?? data['name'] ?? data['displayName']);
-      if (candidate != null && candidate.toString().trim().isNotEmpty) {
-        setState(() => _resolvedAuthorName = candidate.toString().trim());
+
+      String? candidate;
+      if (data != null) {
+        // Try to build full name from firstName and lastName
+        final firstName = data['firstName']?.toString().trim() ?? '';
+        final lastName = data['lastName']?.toString().trim() ?? '';
+        final fullName = '$firstName $lastName'.trim();
+
+        if (fullName.isNotEmpty) {
+          candidate = fullName;
+        } else {
+          // Fallback to legacy fields
+          candidate =
+              data['name']?.toString() ?? data['displayName']?.toString();
+        }
+      }
+
+      if (candidate != null && candidate.trim().isNotEmpty) {
+        setState(() => _resolvedAuthorName = candidate!.trim());
       } else {
         // If user doc doesn't contain a name, try to fallback to auth user displayName
         try {
@@ -239,11 +253,24 @@ class _PostCardWidgetState extends State<PostCardWidget>
           .doc(authUser.uid)
           .get();
       final data = doc.data();
-      final candidate = data == null
-          ? null
-          : (data['fullName'] ?? data['name'] ?? data['displayName']);
-      if (candidate != null && candidate.toString().trim().isNotEmpty)
-        return candidate.toString().trim();
+
+      if (data != null) {
+        // Try to build full name from firstName and lastName
+        final firstName = data['firstName']?.toString().trim() ?? '';
+        final lastName = data['lastName']?.toString().trim() ?? '';
+        final fullName = '$firstName $lastName'.trim();
+
+        if (fullName.isNotEmpty) {
+          return fullName;
+        }
+
+        // Fallback to legacy fields
+        final candidate =
+            data['name']?.toString() ?? data['displayName']?.toString();
+        if (candidate != null && candidate.trim().isNotEmpty) {
+          return candidate.trim();
+        }
+      }
     } catch (_) {}
     return 'User ${authUser.uid.substring(authUser.uid.length - 4)}';
   }

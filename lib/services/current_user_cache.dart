@@ -53,13 +53,23 @@ class CurrentUserCache {
           .get(const GetOptions(source: Source.server));
 
       final data = doc.data();
-      final candidate = data == null
-          ? null
-          : (data['fullName'] ?? data['name'] ?? data['displayName']);
+      if (data != null) {
+        // Try to build full name from firstName and lastName
+        final firstName = data['firstName']?.toString().trim() ?? '';
+        final lastName = data['lastName']?.toString().trim() ?? '';
+        final fullName = '$firstName $lastName'.trim();
 
-      if (candidate != null && candidate.toString().trim().isNotEmpty) {
-        _cachedDisplayName = candidate.toString().trim();
-        return _cachedDisplayName!;
+        if (fullName.isNotEmpty) {
+          _cachedDisplayName = fullName;
+          return _cachedDisplayName!;
+        }
+
+        // Fallback to legacy fields
+        final candidate = data['name'] ?? data['displayName'];
+        if (candidate != null && candidate.toString().trim().isNotEmpty) {
+          _cachedDisplayName = candidate.toString().trim();
+          return _cachedDisplayName!;
+        }
       }
     } catch (e) {
       print('Error fetching user display name: $e');

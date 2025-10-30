@@ -36,10 +36,10 @@ class GreetingService {
       if (!doc.exists) return null;
 
       final userData = doc.data();
-      final fullName = userData?['fullName'] as String?;
-      if (fullName == null || fullName.isEmpty) return null;
+      final firstName = userData?['firstName'] as String?;
+      if (firstName == null || firstName.isEmpty) return null;
 
-      return fullName.split(' ')[0]; // Get first name only
+      return firstName;
     } catch (e) {
       print('Error getting user first name: $e');
       return null;

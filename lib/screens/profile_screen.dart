@@ -95,7 +95,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }
 
                   final data = snapshot.data?.data() as Map<String, dynamic>?;
-                  final fullName = data?['fullName']?.toString().trim() ?? '';
+                  final firstName = data?['firstName']?.toString().trim() ?? '';
+                  final lastName = data?['lastName']?.toString().trim() ?? '';
+                  final fullName = '$firstName $lastName'.trim();
                   final email = user.email ?? data?['email']?.toString() ?? '';
                   final phone = data?['phoneNumber']?.toString() ?? '';
                   final address = data?['address']?.toString() ?? '';
@@ -113,7 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onEditProfile: () => _showEditProfileSheet(
                           context: context,
                           uid: user.uid,
-                          initialFullName: fullName,
+                          initialFirstName: firstName,
+                          initialLastName: lastName,
                           initialPhone: phone,
                           initialAddress: address,
                         ),
@@ -235,11 +238,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _showEditProfileSheet({
     required BuildContext context,
     required String uid,
-    required String initialFullName,
+    required String initialFirstName,
+    required String initialLastName,
     required String initialPhone,
     required String initialAddress,
   }) async {
-    final fullNameController = TextEditingController(text: initialFullName);
+    final firstNameController = TextEditingController(text: initialFirstName);
+    final lastNameController = TextEditingController(text: initialLastName);
     final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(text: initialAddress);
 
@@ -308,9 +313,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
-                      controller: fullNameController,
+                      controller: firstNameController,
                       style: const TextStyle(color: kPrimaryTextColor),
-                      decoration: darkInputDecoration('Full Name'),
+                      decoration: darkInputDecoration('First Name'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: lastNameController,
+                      style: const TextStyle(color: kPrimaryTextColor),
+                      decoration: darkInputDecoration('Last Name'),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -338,7 +349,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               await UserService.updateUserProfile(
                                 uid: uid,
                                 data: {
-                                  'fullName': fullNameController.text.trim(),
+                                  'firstName': firstNameController.text.trim(),
+                                  'lastName': lastNameController.text.trim(),
                                   'phoneNumber': phoneController.text.trim(),
                                   'address': addressController.text.trim(),
                                   'profileCompleted': true,

@@ -68,8 +68,13 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
       if (user != null) {
         final userData = await UserService.getUserData(user.uid);
         if (userData != null && mounted) {
+          // Combine firstName and lastName for the full name field
+          final firstName = userData['firstName'] ?? '';
+          final lastName = userData['lastName'] ?? '';
+          final fullName = '$firstName $lastName'.trim();
+
           setState(() {
-            _fullNameController.text = userData['fullName'] ?? '';
+            _fullNameController.text = fullName;
             _emailController.text = userData['email'] ?? '';
             _phoneNumberController.text = userData['phoneNumber'] ?? '';
             _addressController.text = userData['address'] ?? '';
@@ -129,10 +134,18 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
             existingApplicationsQuery.docs.isNotEmpty;
 
         try {
+          // Split the full name from the form into first and last name
+          final fullNameParts = _fullNameController.text.trim().split(' ');
+          final firstName = fullNameParts.isNotEmpty ? fullNameParts.first : '';
+          final lastName = fullNameParts.length > 1
+              ? fullNameParts.sublist(1).join(' ')
+              : '';
+
           await UserService.updateUserProfile(
             uid: user.uid,
             data: {
-              'fullName': _fullNameController.text.trim(),
+              'firstName': firstName,
+              'lastName': lastName,
               'phoneNumber': _phoneNumberController.text.trim(),
               'address': _addressController.text.trim(),
               'profileCompleted': true,
@@ -703,8 +716,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide:
-                  const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+              borderSide: const BorderSide(
+                color: kPrimaryAccentColor,
+                width: 1.5,
+              ),
             ),
             errorStyle: const TextStyle(color: Colors.redAccent),
           ),
@@ -843,8 +858,10 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide:
-                  const BorderSide(color: kPrimaryAccentColor, width: 1.5),
+              borderSide: const BorderSide(
+                color: kPrimaryAccentColor,
+                width: 1.5,
+              ),
             ),
             errorStyle: const TextStyle(color: Colors.redAccent),
           ),

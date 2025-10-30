@@ -18,7 +18,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _fullNameController;
+  late TextEditingController _firstNameController;
+  late TextEditingController _lastNameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
 
@@ -30,7 +31,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController();
+    _firstNameController = TextEditingController();
+    _lastNameController = TextEditingController();
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
     _loadUserData();
@@ -38,7 +40,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -63,7 +66,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .get();
       if (doc.exists) {
         final data = doc.data()!;
-        _fullNameController.text = data['fullName'] ?? '';
+        _firstNameController.text = data['firstName'] ?? '';
+        _lastNameController.text = data['lastName'] ?? '';
         _phoneController.text = data['phoneNumber'] ?? '';
         _addressController.text = data['address'] ?? '';
         if (mounted) {
@@ -88,7 +92,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     final user = AuthService.getCurrentUser()!;
     final data = {
-      'fullName': _fullNameController.text.trim(),
+      'firstName': _firstNameController.text.trim(),
+      'lastName': _lastNameController.text.trim(),
       'phoneNumber': _phoneController.text.trim(),
       'address': _addressController.text.trim(),
       'pushNotificationsEnabled': _pushNotificationsEnabled,
@@ -179,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading && _fullNameController.text.isEmpty) {
+    if (_isLoading && _firstNameController.text.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: kPrimaryAccentColor),
       );
@@ -203,7 +208,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildSectionHeader('Account'),
           _buildInfoTile('Email', email),
-          _buildEditableTile(_fullNameController, 'Full Name'),
+          _buildEditableTile(_firstNameController, 'First Name'),
+          _buildEditableTile(_lastNameController, 'Last Name'),
           _buildEditableTile(
             _phoneController,
             'Phone Number',
