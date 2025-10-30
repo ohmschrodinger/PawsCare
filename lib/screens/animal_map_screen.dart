@@ -239,9 +239,6 @@ class _AnimalMapScreenState extends State<AnimalMapScreen> {
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
 
-    // Apply dark theme to map if needed
-    // controller.setMapStyle('''[{"elementType":"geometry","stylers":[{"color":"#212121"}]}]''');
-
     if (_markers.isNotEmpty) {
       _fitMapToMarkers();
     }
@@ -325,6 +322,7 @@ class _AnimalMapScreenState extends State<AnimalMapScreen> {
                   zoomControlsEnabled: false,
                   mapToolbarEnabled: false,
                   compassEnabled: true,
+                  mapType: MapType.normal,
                 ),
 
                 // Legend

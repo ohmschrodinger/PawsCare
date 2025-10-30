@@ -43,16 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Positioned.fill(
               child: Image.asset(
-                'assets/images/background.png',
+                'assets/images/app_wallpaper_blurred.png',
                 fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.2),
-                colorBlendMode: BlendMode.darken,
-              ),
-            ),
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
             const Center(
@@ -79,17 +71,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // --- LAYER 1: The background image ---
             Positioned.fill(
               child: Image.asset(
-                'assets/images/background.png',
+                'assets/images/app_wallpaper_blurred.png',
                 fit: BoxFit.cover,
-                color: Colors.black.withOpacity(0.2),
-                colorBlendMode: BlendMode.darken,
-              ),
-            ),
-            // --- LAYER 2: The blur overlay ---
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(color: Colors.black.withOpacity(0.5)),
               ),
             ),
             // --- LAYER 3: Your original screen content inside a SafeArea ---

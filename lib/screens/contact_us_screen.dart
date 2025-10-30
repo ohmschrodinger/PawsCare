@@ -95,21 +95,10 @@ class ContactUsScreen extends StatelessWidget {
           // --- LAYER 1: The background image ---
           Positioned.fill(
             child: Image.asset(
-              'assets/images/background.png',
+              'assets/images/app_wallpaper_blurred.png',
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.2),
-              colorBlendMode: BlendMode.darken,
             ),
           ),
-
-          // --- LAYER 2: The blur overlay ---
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-              child: Container(color: Colors.black.withOpacity(0.5)),
-            ),
-          ),
-
           // --- LAYER 3: Your original screen content, now inside a SafeArea ---
           SafeArea(
             child: SingleChildScrollView(
@@ -250,7 +239,7 @@ class ContactUsScreen extends StatelessWidget {
                           color: kPrimaryAccentColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(icon, color: kPrimaryAccentColor, size: 28),
+                        child: Icon(icon, color:Colors.white, size: 20),
                       ),
                       const SizedBox(width: 16),
                       Expanded(

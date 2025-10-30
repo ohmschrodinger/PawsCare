@@ -68,18 +68,8 @@ class _CatFactsScreenState extends State<CatFactsScreen> {
           // Background image layer
           Positioned.fill(
             child: Image.asset(
-              'assets/images/catfacts.jpeg',
+              'assets/images/app_wallpaper_blurred.png',
               fit: BoxFit.cover,
-              color: Colors.black.withOpacity(0.2),
-              colorBlendMode: BlendMode.darken,
-            ),
-          ),
-
-          // Blur overlay
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-              child: Container(color: Colors.black.withOpacity(0.5)),
             ),
           ),
 
