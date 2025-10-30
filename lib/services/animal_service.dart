@@ -244,6 +244,109 @@ class AnimalService {
     }
   }
 
+  /// Delete animal post
+  /// Only allows deletion if:
+  /// 1. User is the owner of the post
+  /// 2. Animal is still available for adoption (not adopted)
+  static Future<void> deleteAnimalPost(String animalId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User must be logged in to delete an animal post');
+      }
+
+      // Get the animal document
+      final animalDoc = await _firestore.collection('animals').doc(animalId).get();
+      
+      if (!animalDoc.exists) {
+        throw Exception('Animal not found');
+      }
+
+      final animalData = animalDoc.data()!;
+      
+      // Check if user is the owner
+      if (animalData['postedBy'] != user.uid) {
+        throw Exception('You can only delete your own posts');
+      }
+
+      // Check if animal is already adopted
+      final status = animalData['status'] as String?;
+      if (status == AnimalStatus.adopted) {
+        throw Exception('Cannot delete an adopted animal');
+      }
+
+      // Delete the document
+      await _firestore.collection('animals').doc(animalId).delete();
+      
+      // Log the deletion
+      await LoggingService.logEvent(
+        'animal_deleted',
+        data: {
+          'animalId': animalId,
+          'name': animalData['name'],
+          'status': status,
+        },
+      );
+      
+      print('Animal deleted successfully: $animalId');
+    } catch (e) {
+      print('Error deleting animal: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if an animal can be deleted
+  /// Returns a map with 'canDelete' (bool) and 'reason' (String)
+  static Future<Map<String, dynamic>> canDeleteAnimal(String animalId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return {
+          'canDelete': false,
+          'reason': 'You must be logged in',
+        };
+      }
+
+      final animalDoc = await _firestore.collection('animals').doc(animalId).get();
+      
+      if (!animalDoc.exists) {
+        return {
+          'canDelete': false,
+          'reason': 'Animal not found',
+        };
+      }
+
+      final animalData = animalDoc.data()!;
+      
+      // Check if user is the owner
+      if (animalData['postedBy'] != user.uid) {
+        return {
+          'canDelete': false,
+          'reason': 'You can only delete your own posts',
+        };
+      }
+
+      // Check if animal is already adopted
+      final status = animalData['status'] as String?;
+      if (status == AnimalStatus.adopted) {
+        return {
+          'canDelete': false,
+          'reason': 'This animal has already been adopted and cannot be withdrawn',
+        };
+      }
+
+      return {
+        'canDelete': true,
+        'reason': '',
+      };
+    } catch (e) {
+      return {
+        'canDelete': false,
+        'reason': 'Error checking delete permission: $e',
+      };
+    }
+  }
+
   /// Search animals by species
   static Stream<QuerySnapshot> searchAnimalsBySpecies(String species) {
     return _firestore
