@@ -4,9 +4,45 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pawscare/constants/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:pawscare/services/contact_info_service.dart';
+import 'package:pawscare/models/contact_info_model.dart';
 
-class AboutDevelopersScreen extends StatelessWidget {
+class AboutDevelopersScreen extends StatefulWidget {
   const AboutDevelopersScreen({super.key});
+
+  @override
+  State<AboutDevelopersScreen> createState() => _AboutDevelopersScreenState();
+}
+
+class _AboutDevelopersScreenState extends State<AboutDevelopersScreen> {
+  ContactInfo? _contactInfo;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContactInfo();
+  }
+
+  Future<void> _loadContactInfo() async {
+    try {
+      final contactInfo = await ContactInfoService.getContactInfo();
+      if (mounted) {
+        setState(() {
+          _contactInfo = contactInfo;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +63,67 @@ class AboutDevelopersScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: _buildBody(),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            )
+          : _errorMessage != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Failed to load developer information',
+                      style: TextStyle(
+                        color: kPrimaryTextColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Please check your internet connection and try again.',
+                      style: TextStyle(
+                        color: kSecondaryTextColor,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _isLoading = true;
+                          _errorMessage = null;
+                        });
+                        _loadContactInfo();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryAccentColor,
+                      ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _contactInfo == null
+          ? const Center(
+              child: Text(
+                'No developer information available',
+                style: TextStyle(color: kPrimaryTextColor),
+              ),
+            )
+          : _buildBody(),
     );
   }
 
@@ -45,24 +141,24 @@ class AboutDevelopersScreen extends StatelessWidget {
           _buildContent('This app was designed and developed by:'),
           const SizedBox(height: 16),
           _buildDeveloperCard(
-            name: 'Om Dhamame',
-            role: 'Lead Developer',
-            linkedInUrl: 'https://www.linkedin.com/in/ohmschrodinger/',
-            githubUrl: 'https://github.com/ohmschrodinger',
+            name: _contactInfo!.developer1Name,
+            role: _contactInfo!.developer1Role,
+            linkedInUrl: _contactInfo!.developer1Linkedin,
+            githubUrl: _contactInfo!.developer1Github,
           ),
           const SizedBox(height: 16),
           _buildDeveloperCard(
-            name: 'Mahi Sharma',
-            role: 'Developer',
-            linkedInUrl: 'https://www.linkedin.com/in/mahisharma',
-            githubUrl: 'https://github.com/mahisharma',
+            name: _contactInfo!.developer2Name,
+            role: _contactInfo!.developer2Role,
+            linkedInUrl: _contactInfo!.developer2Linkedin,
+            githubUrl: _contactInfo!.developer2Github,
           ),
           const SizedBox(height: 16),
           _buildDeveloperCard(
-            name: 'Kushagra Goyal',
-            role: 'Developer',
-            linkedInUrl: 'https://www.linkedin.com/in/kushagra',
-            githubUrl: 'https://github.com/kushagragoyal',
+            name: _contactInfo!.developer3Name,
+            role: _contactInfo!.developer3Role,
+            linkedInUrl: _contactInfo!.developer3Linkedin,
+            githubUrl: _contactInfo!.developer3Github,
           ),
           const SizedBox(height: 24),
           _buildContent(
@@ -167,8 +263,9 @@ class AboutDevelopersScreen extends StatelessWidget {
   }) {
     // Authentic brand colors
     final bool isLinkedIn = label.toLowerCase().contains('linkedin');
-    final Color iconColor =
-        isLinkedIn ? const Color(0xFF0077B5) : Colors.white; // LinkedIn Blue / White
+    final Color iconColor = isLinkedIn
+        ? const Color(0xFF0077B5)
+        : Colors.white; // LinkedIn Blue / White
 
     return InkWell(
       onTap: () => _launchUrl(url),
@@ -192,7 +289,8 @@ class AboutDevelopersScreen extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 13,
-                color: Colors.white, // ✅ White text for both LinkedIn and GitHub
+                color:
+                    Colors.white, // ✅ White text for both LinkedIn and GitHub
                 fontWeight: FontWeight.w500,
               ),
             ),

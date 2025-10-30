@@ -4,9 +4,45 @@ import 'package:pawscare/theme/typography.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui';
 import 'package:pawscare/constants/app_colors.dart';
+import 'package:pawscare/services/contact_info_service.dart';
+import 'package:pawscare/models/contact_info_model.dart';
 
-class ContactUsScreen extends StatelessWidget {
+class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
+
+  @override
+  State<ContactUsScreen> createState() => _ContactUsScreenState();
+}
+
+class _ContactUsScreenState extends State<ContactUsScreen> {
+  ContactInfo? _contactInfo;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContactInfo();
+  }
+
+  Future<void> _loadContactInfo() async {
+    try {
+      final contactInfo = await ContactInfoService.getContactInfo();
+      if (mounted) {
+        setState(() {
+          _contactInfo = contactInfo;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   Future<void> _launchUrl(String url, BuildContext context) async {
     final uri = Uri.parse(url);
@@ -30,16 +66,23 @@ class ContactUsScreen extends StatelessWidget {
   }
 
   Future<void> _launchEmail(BuildContext context) async {
+    if (_contactInfo == null) return;
+
     final uri = Uri(
       scheme: 'mailto',
-      path: 'pawscareanimalresq@gmail.com',
+      path: _contactInfo!.pawscareEmail,
       query: 'subject=Contact from PawsCare App',
     );
     await _launchUrl(uri.toString(), context);
   }
 
   Future<void> _launchWhatsApp(BuildContext context) async {
-    const rawPhone = '917057517218';
+    if (_contactInfo == null) return;
+
+    final rawPhone = _contactInfo!.pawscareWhatsapp.replaceAll(
+      RegExp(r'[^\d]'),
+      '',
+    );
     final whatsappAppUri = Uri.parse('whatsapp://send?phone=$rawPhone');
     final webUri = Uri.parse('https://wa.me/$rawPhone');
 
@@ -101,100 +144,164 @@ class ContactUsScreen extends StatelessWidget {
           ),
           // --- LAYER 3: Your original screen content, now inside a SafeArea ---
           SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Text(
-                      'Get in Touch',
-                      style: AppTypography.title1.copyWith(
-                        color: kPrimaryTextColor,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: kPrimaryAccentColor,
+                    ),
+                  )
+                : _errorMessage != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Failed to load contact information',
+                            style: AppTypography.title3.copyWith(
+                              color: kPrimaryTextColor,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Please check your internet connection and try again.',
+                            style: AppTypography.body.copyWith(
+                              color: kSecondaryTextColor,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLoading = true;
+                                _errorMessage = null;
+                              });
+                              _loadContactInfo();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryAccentColor,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'We\'d love to hear from you!',
-                      style: AppTypography.body.copyWith(
-                        color: kSecondaryTextColor,
+                  )
+                : _contactInfo == null
+                ? const Center(
+                    child: Text(
+                      'No contact information available',
+                      style: TextStyle(color: kPrimaryTextColor),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header
+                          Text(
+                            'Get in Touch',
+                            style: AppTypography.title1.copyWith(
+                              color: kPrimaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'We\'d love to hear from you!',
+                            style: AppTypography.body.copyWith(
+                              color: kSecondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Contact Us Section
+                          Text(
+                            'Contact us on',
+                            style: AppTypography.title3.copyWith(
+                              color: kPrimaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Email Card
+                          _buildGlassmorphicContactCard(
+                            context: context,
+                            icon: Icons.email_outlined,
+                            title: 'Email',
+                            subtitle: _contactInfo!.pawscareEmail,
+                            onTap: () => _launchEmail(context),
+                            onCopy: () => _copyToClipboard(
+                              _contactInfo!.pawscareEmail,
+                              context,
+                            ),
+                          ),
+
+                          // WhatsApp Card
+                          _buildGlassmorphicContactCard(
+                            context: context,
+                            icon: Icons.chat,
+                            title: 'WhatsApp',
+                            subtitle: _contactInfo!.pawscareWhatsapp,
+                            onTap: () => _launchWhatsApp(context),
+                            onCopy: () => _copyToClipboard(
+                              _contactInfo!.pawscareWhatsapp,
+                              context,
+                            ),
+                          ),
+
+                          // LinkedIn Card
+                          _buildGlassmorphicContactCard(
+                            context: context,
+                            icon: Icons.business,
+                            title: 'LinkedIn',
+                            subtitle: 'PawsCare',
+                            onTap: () => _launchUrl(
+                              _contactInfo!.pawscareLinkedin,
+                              context,
+                            ),
+                            onCopy: () => _copyToClipboard(
+                              _contactInfo!.pawscareLinkedin,
+                              context,
+                            ),
+                          ),
+
+                          // Instagram Card
+                          _buildGlassmorphicContactCard(
+                            context: context,
+                            icon: Icons.photo_camera,
+                            title: 'Instagram',
+                            subtitle: _contactInfo!.pawscareInsta,
+                            onTap: () => _launchUrl(
+                              _contactInfo!.pawscareInsta,
+                              context,
+                            ),
+                            onCopy: () => _copyToClipboard(
+                              _contactInfo!.pawscareInsta,
+                              context,
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // Volunteer Section
+                          _buildVolunteerSection(context),
+                          const SizedBox(height: 90),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 32),
-
-                    // Contact Us Section
-                    Text(
-                      'Contact us on',
-                      style: AppTypography.title3.copyWith(
-                        color: kPrimaryTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Email Card
-                    _buildGlassmorphicContactCard(
-                      context: context,
-                      icon: Icons.email_outlined,
-                      title: 'Email',
-                      subtitle: 'pawscareanimalresq@gmail.com',
-                      onTap: () => _launchEmail(context),
-                      onCopy: () => _copyToClipboard(
-                        'pawscareanimalresq@gmail.com',
-                        context,
-                      ),
-                    ),
-
-                    // WhatsApp Card
-                    _buildGlassmorphicContactCard(
-                      context: context,
-                      icon: Icons.chat,
-                      title: 'WhatsApp',
-                      subtitle: '+91 7057517218',
-                      onTap: () => _launchWhatsApp(context),
-                      onCopy: () => _copyToClipboard('+91 7057517218', context),
-                    ),
-
-                    // LinkedIn Card
-                    _buildGlassmorphicContactCard(
-                      context: context,
-                      icon: Icons.business,
-                      title: 'LinkedIn',
-                      subtitle: 'PawsCare',
-                      onTap: () => _launchUrl(
-                        'https://www.linkedin.com/company/pawscare/',
-                        context,
-                      ),
-                      onCopy: () => _copyToClipboard(
-                        'https://www.linkedin.com/company/pawscare/',
-                        context,
-                      ),
-                    ),
-
-                    // Instagram Card
-                    _buildGlassmorphicContactCard(
-                      context: context,
-                      icon: Icons.photo_camera,
-                      title: 'Instagram',
-                      subtitle: '@pawscareanimalresq',
-                      onTap: () => _launchUrl(
-                        'https://www.instagram.com/pawscareanimalresq/',
-                        context,
-                      ),
-                      onCopy: () =>
-                          _copyToClipboard('pawscareanimalresq', context),
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Volunteer Section
-                    _buildVolunteerSection(context),
-                    const SizedBox(height: 90),
-                  ],
-                ),
-              ),
-            ),
+                  ),
           ),
         ],
       ),
@@ -239,7 +346,7 @@ class ContactUsScreen extends StatelessWidget {
                           color: kPrimaryAccentColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(icon, color:Colors.white, size: 20),
+                        child: Icon(icon, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -358,7 +465,7 @@ class ContactUsScreen extends StatelessWidget {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () => _launchUrl(
-                                'https://docs.google.com/forms/d/e/1FAIpQLSduQq2bKmfyvKAkZPOeWR0ZqboNr0hMW2xyUW4geYIidSvxJg/viewform',
+                                _contactInfo!.pawscareVolunteerform,
                                 context,
                               ),
                               borderRadius: BorderRadius.circular(50.0),

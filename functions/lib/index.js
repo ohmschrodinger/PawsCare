@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logGeneralToSheet = exports.logNotificationToSheet = exports.logEmailToSheet = exports.logApplicationToSheet = exports.logAnimalToSheet = exports.logUserToSheet = exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserCreated = exports.sendEmail = exports.refreshPetOfTheDay = exports.updatePetOfTheDay = void 0;
+exports.logGeneralToSheet = exports.logNotificationToSheet = exports.logEmailToSheet = exports.logApplicationToSheet = exports.logAnimalToSheet = exports.logUserToSheet = exports.onNewAnimalPostRequest = exports.onAdoptionApplicationSubmitted = exports.onAdoptionApplicationRejected = exports.onAdoptionApplicationApproved = exports.onNewAnimalApproved = exports.onAnimalPostApproved = exports.onUserEmailVerified = exports.sendEmail = exports.refreshPetOfTheDay = exports.updatePetOfTheDay = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const nodemailer = __importStar(require("nodemailer"));
@@ -282,6 +282,27 @@ const emailTemplates = {
         <p>Best regards,<br>The PawsCare Team</p>
       </div>
     `
+    },
+    new_post_request_admin: {
+        subject: '🐾 New Animal Post Request - PawsCare Admin',
+        template: (data) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #FF9800;">🐾 New Animal Post Pending Approval</h2>
+        <p>Hello Admin,</p>
+        <p>A new animal post has been submitted and is pending your approval.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Post Details:</strong></p>
+          <p>Animal Name: ${data.animalName}</p>
+          <p>Species: ${data.animalSpecies}</p>
+          <p>Breed: ${data.breed || 'Not specified'}</p>
+          <p>Age: ${data.age || 'Not specified'}</p>
+          <p>Posted by: ${data.postedByEmail}</p>
+          <p>Posted at: ${new Date(data.postedAt).toLocaleString()}</p>
+        </div>
+        <p>Please log in to the admin panel to review and approve or reject this post.</p>
+        <p>Best regards,<br>The PawsCare System</p>
+      </div>
+    `
     }
 };
 // HTTP Cloud Function to send emails
@@ -338,36 +359,43 @@ exports.sendEmail = functions.https.onRequest((request, response) => {
         }
     });
 });
-// Auth trigger for new user welcome email
-exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
-    try {
-        const gmailEmail = functions.config().gmail?.email;
-        const gmailPassword = functions.config().gmail?.password;
-        if (!gmailEmail || !gmailPassword) {
-            console.log('Gmail not configured, skipping welcome email');
-            return;
-        }
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: gmailEmail,
-                pass: gmailPassword
+// Firestore trigger for sending welcome email after email verification
+exports.onUserEmailVerified = functions.firestore
+    .document('users/{userId}')
+    .onUpdate(async (change, context) => {
+    const beforeData = change.before.data();
+    const afterData = change.after.data();
+    // Check if email verification status changed from false to true
+    if (!beforeData.isEmailVerified && afterData.isEmailVerified) {
+        try {
+            const gmailEmail = functions.config().gmail?.email;
+            const gmailPassword = functions.config().gmail?.password;
+            if (!gmailEmail || !gmailPassword) {
+                console.log('Gmail not configured, skipping welcome email');
+                return;
             }
-        });
-        const mailOptions = {
-            from: gmailEmail,
-            to: user.email,
-            subject: 'Welcome to PawsCare! 🐾',
-            html: emailTemplates.welcome.template({
-                userName: user.displayName || 'User',
-                userEmail: user.email
-            })
-        };
-        await transporter.sendMail(mailOptions);
-        console.log('Welcome email sent to:', user.email);
-    }
-    catch (error) {
-        console.error('Error sending welcome email:', error);
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: gmailEmail,
+                    pass: gmailPassword
+                }
+            });
+            const mailOptions = {
+                from: gmailEmail,
+                to: afterData.email,
+                subject: 'Welcome to PawsCare! 🐾',
+                html: emailTemplates.welcome.template({
+                    userName: afterData.displayName || `${afterData.firstName} ${afterData.lastName}` || 'User',
+                    userEmail: afterData.email
+                })
+            };
+            await transporter.sendMail(mailOptions);
+            console.log('Welcome email sent to:', afterData.email);
+        }
+        catch (error) {
+            console.error('Error sending welcome email:', error);
+        }
     }
 });
 // Firestore trigger for when animal post is approved
@@ -580,6 +608,8 @@ exports.onAdoptionApplicationRejected = functions.firestore
     // Check if status changed from pending to rejected
     if (beforeData.status === 'pending' && afterData.status === 'rejected') {
         try {
+            const gmailEmail = functions.config().gmail?.email;
+            const gmailPassword = functions.config().gmail?.password;
             // Get user data
             const userDoc = await admin.firestore()
                 .collection('users')
@@ -590,12 +620,50 @@ exports.onAdoptionApplicationRejected = functions.firestore
                 return;
             }
             const userData = userDoc.data();
+            const userEmail = userData?.email || afterData.userEmail;
             // Get animal data
             const animalDoc = await admin.firestore()
                 .collection('animals')
                 .doc(afterData.animalId)
                 .get();
             const animalData = animalDoc.exists ? animalDoc.data() : {};
+            // Send email notification
+            if (gmailEmail && gmailPassword && userEmail) {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: gmailEmail,
+                        pass: gmailPassword
+                    }
+                });
+                const mailOptions = {
+                    from: gmailEmail,
+                    to: userEmail,
+                    subject: 'Adoption Application Update - PawsCare',
+                    html: emailTemplates.adoption_rejected.template({
+                        userName: userData?.fullName || 'User',
+                        animalName: animalData?.name || 'Animal',
+                        animalSpecies: animalData?.species || 'Pet',
+                        adminMessage: afterData.adminMessage || 'Your application has been reviewed.'
+                    })
+                };
+                await transporter.sendMail(mailOptions);
+                console.log('Adoption rejection email sent to:', userEmail);
+                // Log to Firestore
+                await admin.firestore().collection('email_logs').add({
+                    type: 'adoption_rejected',
+                    recipientEmail: userEmail,
+                    data: {
+                        applicationId: context.params.applicationId,
+                        animalId: afterData.animalId,
+                        animalName: animalData?.name,
+                        animalSpecies: animalData?.species,
+                        adminMessage: afterData.adminMessage
+                    },
+                    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                    status: 'sent'
+                });
+            }
             // Send push notification if user has adoption notifications enabled
             if (userData?.adoptionNotifications !== false) {
                 await sendPushNotification({
@@ -615,6 +683,182 @@ exports.onAdoptionApplicationRejected = functions.firestore
         catch (error) {
             console.error('Error sending adoption rejection notification:', error);
         }
+    }
+});
+// Firestore trigger for when a new adoption application is submitted
+exports.onAdoptionApplicationSubmitted = functions.firestore
+    .document('applications/{applicationId}')
+    .onCreate(async (snapshot, context) => {
+    const applicationData = snapshot.data();
+    try {
+        const gmailEmail = functions.config().gmail?.email;
+        const gmailPassword = functions.config().gmail?.password;
+        if (!gmailEmail || !gmailPassword) {
+            console.log('Gmail not configured, skipping adoption application submitted email');
+            return;
+        }
+        // Get user data
+        const userDoc = await admin.firestore()
+            .collection('users')
+            .doc(applicationData.userId)
+            .get();
+        if (!userDoc.exists) {
+            console.log('User document not found for adoption application submitted email');
+            return;
+        }
+        const userData = userDoc.data();
+        const userEmail = userData?.email || applicationData.applicantEmail;
+        if (!userEmail) {
+            console.log('User email not found for adoption application submitted email');
+            return;
+        }
+        // Get animal data
+        const animalDoc = await admin.firestore()
+            .collection('animals')
+            .doc(applicationData.petId || applicationData.animalId)
+            .get();
+        const animalData = animalDoc.exists ? animalDoc.data() : {};
+        // Send email notification to user
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: gmailEmail,
+                pass: gmailPassword
+            }
+        });
+        const mailOptions = {
+            from: gmailEmail,
+            to: userEmail,
+            subject: 'Adoption Application Submitted - PawsCare',
+            html: emailTemplates.adoption_applied.template({
+                userName: userData?.fullName || applicationData.applicantName || 'User',
+                animalName: animalData?.name || applicationData.petName || 'Animal',
+                animalSpecies: animalData?.species || 'Pet',
+                applicationId: context.params.applicationId,
+                appliedAt: applicationData.appliedAt || new Date()
+            })
+        };
+        await transporter.sendMail(mailOptions);
+        console.log('Adoption application submitted email sent to:', userEmail);
+        // Send push notification if user has adoption notifications enabled
+        if (userData?.adoptionNotifications !== false) {
+            await sendPushNotification({
+                userId: applicationData.userId,
+                title: '📝 Application Submitted',
+                body: `Your adoption application for ${animalData?.name || 'the animal'} has been submitted successfully!`,
+                data: {
+                    type: 'adoption_submitted',
+                    applicationId: context.params.applicationId,
+                    animalId: applicationData.petId || applicationData.animalId,
+                    animalName: animalData?.name || 'Animal'
+                }
+            });
+        }
+        // Log to Firestore
+        await admin.firestore().collection('email_logs').add({
+            type: 'adoption_submitted',
+            recipientEmail: userEmail,
+            data: {
+                applicationId: context.params.applicationId,
+                animalId: applicationData.petId || applicationData.animalId,
+                animalName: animalData?.name,
+                animalSpecies: animalData?.species,
+            },
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'sent'
+        });
+    }
+    catch (error) {
+        console.error('Error sending adoption application submitted notification:', error);
+    }
+});
+// Firestore trigger for when a new animal post is created (pending approval)
+exports.onNewAnimalPostRequest = functions.firestore
+    .document('animals/{animalId}')
+    .onCreate(async (snapshot, context) => {
+    const animalData = snapshot.data();
+    // Only notify admins if the post is pending approval
+    if (animalData.approvalStatus !== 'pending') {
+        return;
+    }
+    try {
+        const gmailEmail = functions.config().gmail?.email;
+        const gmailPassword = functions.config().gmail?.password;
+        if (!gmailEmail || !gmailPassword) {
+            console.log('Gmail not configured, skipping new animal post request notification');
+            return;
+        }
+        // Get all admin users
+        const adminsSnapshot = await admin.firestore()
+            .collection('users')
+            .where('role', '==', 'admin')
+            .get();
+        if (adminsSnapshot.empty) {
+            console.log('No admin users found to notify about new animal post');
+            return;
+        }
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: gmailEmail,
+                pass: gmailPassword
+            }
+        });
+        // Send email and push notification to each admin
+        const notificationPromises = adminsSnapshot.docs.map(async (adminDoc) => {
+            const adminData = adminDoc.data();
+            const adminEmail = adminData?.email;
+            if (!adminEmail) {
+                console.log('Admin email not found for admin:', adminDoc.id);
+                return;
+            }
+            // Send email to admin
+            const mailOptions = {
+                from: gmailEmail,
+                to: adminEmail,
+                subject: '🐾 New Animal Post Request - PawsCare Admin',
+                html: emailTemplates.new_post_request_admin.template({
+                    animalName: animalData.name || 'Unknown',
+                    animalSpecies: animalData.species || 'Unknown',
+                    breed: animalData.breed,
+                    age: animalData.age,
+                    postedByEmail: animalData.postedByEmail || 'Unknown',
+                    postedAt: animalData.postedAt || new Date()
+                })
+            };
+            await transporter.sendMail(mailOptions);
+            console.log('New animal post request email sent to admin:', adminEmail);
+            // Send push notification to admin
+            await sendPushNotification({
+                userId: adminDoc.id,
+                title: '🐾 New Animal Post Request',
+                body: `New post for ${animalData.name || 'an animal'} is pending your approval`,
+                data: {
+                    type: 'new_animal_post_request',
+                    animalId: context.params.animalId,
+                    animalName: animalData.name || 'Animal',
+                    postedBy: animalData.postedByEmail || 'User'
+                }
+            });
+            // Log to Firestore
+            await admin.firestore().collection('email_logs').add({
+                type: 'new_post_request_admin',
+                recipientEmail: adminEmail,
+                data: {
+                    animalId: context.params.animalId,
+                    animalName: animalData.name,
+                    animalSpecies: animalData.species,
+                    postedByEmail: animalData.postedByEmail
+                },
+                sentAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: 'sent'
+            });
+        });
+        await Promise.all(notificationPromises);
+        console.log(`New animal post request notifications sent to ${adminsSnapshot.docs.length} admins`);
+    }
+    catch (error) {
+        console.error('Error sending new animal post request notification:', error);
     }
 });
 /**

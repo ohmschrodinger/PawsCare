@@ -22,6 +22,8 @@ class CountryCode {
 /// Popular country codes
 class CountryCodes {
   static const List<CountryCode> countries = [
+    // India as the first/default option
+    CountryCode(name: 'India', code: 'IN', dialCode: '+91', flag: '🇮🇳'),
     CountryCode(
       name: 'United States',
       code: 'US',
@@ -37,7 +39,6 @@ class CountryCodes {
     ),
     CountryCode(name: 'Australia', code: 'AU', dialCode: '+61', flag: '🇦🇺'),
     CountryCode(name: 'Philippines', code: 'PH', dialCode: '+63', flag: '🇵🇭'),
-    CountryCode(name: 'India', code: 'IN', dialCode: '+91', flag: '🇮🇳'),
     CountryCode(name: 'Germany', code: 'DE', dialCode: '+49', flag: '🇩🇪'),
     CountryCode(name: 'France', code: 'FR', dialCode: '+33', flag: '🇫🇷'),
     CountryCode(name: 'Spain', code: 'ES', dialCode: '+34', flag: '🇪🇸'),
@@ -69,7 +70,7 @@ class CountryCodes {
     CountryCode(name: 'Egypt', code: 'EG', dialCode: '+20', flag: '🇪🇬'),
   ];
 
-  static CountryCode get defaultCountry => countries[0]; // US
+  static CountryCode get defaultCountry => countries[0]; // India
 }
 
 /// Step 2: Phone Number Input
@@ -191,8 +192,9 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
                     title: Text(
                       country.name,
                       style: TextStyle(
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                         color: Colors.white,
                       ),
                     ),
@@ -202,8 +204,9 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
                         color: isSelected
                             ? const Color(0xFF2196F3) // Kept original blue
                             : Colors.grey.shade400,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                     selected: isSelected,
@@ -406,18 +409,24 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
                       filled: true,
                       fillColor: const Color(0xFF2C2C2E),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 18),
+                        horizontal: 20,
+                        vertical: 18,
+                      ),
                       // Error styling for dark theme
                       errorStyle: TextStyle(color: Colors.red.shade300),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
-                        borderSide:
-                            BorderSide(color: Colors.red.shade300, width: 1),
+                        borderSide: BorderSide(
+                          color: Colors.red.shade300,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(30),
-                        borderSide:
-                            BorderSide(color: Colors.red.shade300, width: 2),
+                        borderSide: BorderSide(
+                          color: Colors.red.shade300,
+                          width: 2,
+                        ),
                       ),
                     ),
                     keyboardType: TextInputType.phone,
@@ -523,8 +532,9 @@ class _PhoneNumberStepState extends State<PhoneNumberStep> {
           child: Container(
             decoration: BoxDecoration(
               // Dark button color, matching fields
-              color:
-                  _isLoading ? const Color(0xFF1A1A1A) : const Color(0xFF2C2C2E),
+              color: _isLoading
+                  ? const Color(0xFF1A1A1A)
+                  : const Color(0xFF2C2C2E),
               borderRadius: BorderRadius.circular(28),
             ),
             child: Center(

@@ -121,7 +121,7 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
     );
   }
 
-  Future<void> _checkEmailVerification() async {
+  Future<void> _checkEmailVerification({bool showError = false}) async {
     if (_isCheckingVerification) return;
 
     setState(() {
@@ -149,8 +149,8 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
           widget.onVerified();
         }
       } else {
-        // Show error if not verified
-        if (mounted) {
+        // Only show error if explicitly requested (manual check)
+        if (showError && mounted) {
           setState(() {
             _errorMessage =
                 'Email not verified yet. Please check your inbox and click the verification link.';
@@ -395,7 +395,7 @@ class _EmailVerificationStepState extends State<EmailVerificationStep> {
         child: InkWell(
           onTap: _isLoading || _isCheckingVerification
               ? null
-              : _checkEmailVerification,
+              : () => _checkEmailVerification(showError: true),
           borderRadius: BorderRadius.circular(28),
           child: Container(
             decoration: BoxDecoration(
