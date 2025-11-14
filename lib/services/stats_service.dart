@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'adoption_counter_service.dart';
 
 class StatsService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -7,18 +8,15 @@ class StatsService {
   static Timer? _timer;
   static Map<String, int>? _cachedStats;
 
-  /// Get adoption statistics - optimized version
+  /// Get adoption statistics - optimized version with permanent counter
   static Future<Map<String, int>> getAdoptionStats() async {
     try {
-      final now = DateTime.now();
-      
       // Run queries in parallel for better performance
       final futures = await Future.wait([
-        // Get all adopted animals
-        _firestore
-            .collection('animals')
-            .where('status', isEqualTo: 'Adopted')
-            .get(),
+        // Get TOTAL adoptions from permanent counter (never decreases)
+        AdoptionCounterService.getTotalAdoptions(),
+        // Get adoptions this month
+        AdoptionCounterService.getAdoptionsThisMonth(),
         // Get available animals
         _firestore
             .collection('animals')
@@ -35,46 +33,28 @@ class StatsService {
             .get(),
       ]);
 
-      final adoptedQuery = futures[0];
-      final availableQuery = futures[1];
-      final pendingQuery = futures[2];
-
-      // Count adopted this month - optimized filtering
-      int adoptedThisMonth = 0;
-      for (final doc in adoptedQuery.docs) {
-        final adoptedAt = doc.data()['adoptedAt'];
-        if (adoptedAt != null) {
-          DateTime adoptedDate;
-          if (adoptedAt is Timestamp) {
-            adoptedDate = adoptedAt.toDate();
-          } else if (adoptedAt is DateTime) {
-            adoptedDate = adoptedAt;
-          } else {
-            continue;
-          }
-          
-          // Quick month check
-          if (adoptedDate.year == now.year && adoptedDate.month == now.month) {
-            adoptedThisMonth++;
-          }
-        }
-      }
+      final totalAdoptions = futures[0] as int;
+      final adoptedThisMonth = futures[1] as int;
+      final availableQuery = futures[2] as QuerySnapshot;
+      final pendingQuery = futures[3] as QuerySnapshot;
 
       final activeRescues = availableQuery.docs.length + pendingQuery.docs.length;
 
       final stats = {
+        'totalAdoptions': totalAdoptions, // This is the permanent counter
         'adoptedThisMonth': adoptedThisMonth,
         'activeRescues': activeRescues,
       };
 
       // Cache the results
       _cachedStats = stats;
-      print('DEBUG: Stats - Adopted this month: $adoptedThisMonth, Active rescues: $activeRescues');
+      print('DEBUG: Stats - Total adoptions: $totalAdoptions, This month: $adoptedThisMonth, Active rescues: $activeRescues');
 
       return stats;
     } catch (e) {
       print('Error fetching adoption stats: $e');
       return {
+        'totalAdoptions': 0,
         'adoptedThisMonth': 0,
         'activeRescues': 0,
       };

@@ -4,6 +4,7 @@ import 'dart:ui'; // Import for ImageFilter
 import '../services/animal_service.dart';
 import '../services/logging_service.dart';
 import '../constants/app_colors.dart';
+import '../services/adoption_counter_service.dart';
 
 class ApplicationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> applicationData;
@@ -164,6 +165,9 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
               'adopterPhone': widget.applicationData['applicantPhone'],
               'adopterAddress': widget.applicationData['applicantAddress'],
             });
+
+        // Increment the permanent adoption counter
+        await AdoptionCounterService.incrementCounter();
 
         final QuerySnapshot others = await FirebaseFirestore.instance
             .collection('applications')

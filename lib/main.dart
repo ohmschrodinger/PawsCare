@@ -15,6 +15,7 @@ import 'screens/email_verification_screen.dart';
 import 'screens/cat_facts_screen.dart';
 import 'main_navigation_screen.dart';
 import 'services/notification_service.dart';
+import 'services/adoption_counter_service.dart';
 
 // main.dart
 // This file initializes Firebase and handles the main app routing based on authentication state.
@@ -48,6 +49,9 @@ void main() async {
 
     // Initialize notification service
     await NotificationService.initialize();
+    
+    // Initialize adoption counter (creates document if doesn't exist)
+    await AdoptionCounterService.initializeCounter();
   } catch (e) {
     // If Firebase is already initialized, ignore the error
     if (e.toString().contains('duplicate-app')) {

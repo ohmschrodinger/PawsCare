@@ -204,11 +204,15 @@ Widget _buildQuickActionsSection() {
                       }
 
                       final stats = snapshot.data ??
-                          {'adoptedThisMonth': 0, 'activeRescues': 0};
+                          {
+                            'totalAdoptions': 0,
+                            'adoptedThisMonth': 0,
+                            'activeRescues': 0
+                          };
 
                       return Row(
                         children: [
-                          // First stats card (still has its own BackdropFilter)
+                          // First stats card - Total Adoptions (Permanent Counter)
                           Expanded(
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
@@ -232,7 +236,7 @@ Widget _buildQuickActionsSection() {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '${stats['adoptedThisMonth']}',
+                                        '${stats['totalAdoptions']}',
                                         style: const TextStyle(
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
