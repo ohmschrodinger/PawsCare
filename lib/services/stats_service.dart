@@ -38,7 +38,8 @@ class StatsService {
       final availableQuery = futures[2] as QuerySnapshot;
       final pendingQuery = futures[3] as QuerySnapshot;
 
-      final activeRescues = availableQuery.docs.length + pendingQuery.docs.length;
+      final activeRescues =
+          availableQuery.docs.length + pendingQuery.docs.length;
 
       final stats = {
         'totalAdoptions': totalAdoptions, // This is the permanent counter
@@ -48,32 +49,30 @@ class StatsService {
 
       // Cache the results
       _cachedStats = stats;
-      print('DEBUG: Stats - Total adoptions: $totalAdoptions, This month: $adoptedThisMonth, Active rescues: $activeRescues');
+      print(
+        'DEBUG: Stats - Total adoptions: $totalAdoptions, This month: $adoptedThisMonth, Active rescues: $activeRescues',
+      );
 
       return stats;
     } catch (e) {
       print('Error fetching adoption stats: $e');
-      return {
-        'totalAdoptions': 0,
-        'adoptedThisMonth': 0,
-        'activeRescues': 0,
-      };
+      return {'totalAdoptions': 0, 'adoptedThisMonth': 0, 'activeRescues': 0};
     }
   }
 
   /// Get stream of adoption statistics for real-time updates
   static Stream<Map<String, int>> getAdoptionStatsStream() {
     print('DEBUG: StatsService.getAdoptionStatsStream() called');
-    
+
     // Create broadcast stream controller if it doesn't exist
     _statsController ??= StreamController<Map<String, int>>.broadcast();
-    
+
     // Send cached data immediately if available
     if (_cachedStats != null) {
       print('DEBUG: Sending cached stats immediately: $_cachedStats');
       _statsController!.add(_cachedStats!);
     }
-    
+
     // Start timer if not already running - reduced interval for faster updates
     _timer ??= Timer.periodic(const Duration(seconds: 15), (_) async {
       print('DEBUG: Timer triggered - fetching stats');

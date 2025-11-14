@@ -49,7 +49,7 @@ void main() async {
 
     // Initialize notification service
     await NotificationService.initialize();
-    
+
     // Initialize adoption counter (creates document if doesn't exist)
     await AdoptionCounterService.initializeCounter();
   } catch (e) {

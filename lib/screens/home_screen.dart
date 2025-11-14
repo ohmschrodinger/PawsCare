@@ -61,260 +61,263 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // -------------------- Quick Actions Section --------------------
 
-// -------------------- Quick Actions Section (Corrected) --------------------
-Widget _buildQuickActionsSection() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-    child: Column(
-      children: [
-        // Header with title and menu (No changes here)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Quick Actions',
-                  style: AppTypography.title3.copyWith(
-                    color: kPrimaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Small ways to help pets',
-                  style: AppTypography.subhead.copyWith(
-                    color: kSecondaryTextColor,
-                  ),
-                ),
-              ],
-            ),
-            PopupMenuTheme(
-              data: PopupMenuThemeData(
-                color: kCardColor.withOpacity(0.75),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  side: BorderSide(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_horiz, color: kPrimaryTextColor),
-                tooltip: "More actions",
-                onSelected: (value) {
-                  if (value == 'post') {
-                    mainNavKey.currentState?.selectTab(2);
-                  } else if (value == 'adopt') {
-                    mainNavKey.currentState?.selectTab(1);
-                  }
-                },
-                itemBuilder: (BuildContext context) => [
-                  const PopupMenuItem<String>(
-                    value: 'post',
-                    child: Row(
-                      children: [
-                        Icon(Icons.add, size: 22, color: kPrimaryTextColor),
-                        SizedBox(width: 12),
-                        Text(
-                          'Post New Pet',
-                          style: TextStyle(color: kPrimaryTextColor),
-                        ),
-                      ],
+  // -------------------- Quick Actions Section (Corrected) --------------------
+  Widget _buildQuickActionsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        children: [
+          // Header with title and menu (No changes here)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quick Actions',
+                    style: AppTypography.title3.copyWith(
+                      color: kPrimaryTextColor,
                     ),
                   ),
-                  const PopupMenuItem<String>(
-                    value: 'adopt',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.favorite,
-                          size: 20,
-                          color: kPrimaryTextColor,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Adopt Pet',
-                          style: TextStyle(color: kPrimaryTextColor),
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'Small ways to help pets',
+                    style: AppTypography.subhead.copyWith(
+                      color: kSecondaryTextColor,
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Glassmorphic section
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              // Bottom layer: background image (This will now be clearly visible)
-              Positioned.fill(
-                child: Image.asset(
-                  'assets/images/statsbg_blurred.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              // --- CHANGE IS HERE ---
-              // Middle layer: This is now just a semi-transparent overlay,
-              // NOT a blur filter. The BackdropFilter has been removed.
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.25), // The dark tint
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
-                    width: 1.5,
+              PopupMenuTheme(
+                data: PopupMenuThemeData(
+                  color: kCardColor.withOpacity(0.75),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    side: BorderSide(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
                 ),
-              ),
-
-              // Top layer: two inner stats cards (These still have their blur)
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: StreamBuilder<Map<String, int>>(
-                    stream: StatsService.getAdoptionStatsStream(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return const Center(
-                          child: Text(
-                            'Error loading stats',
-                            style: TextStyle(color: Colors.redAccent),
-                          ),
-                        );
-                      }
-
-                      if (snapshot.connectionState == ConnectionState.waiting &&
-                          !snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: kPrimaryAccentColor,
-                          ),
-                        );
-                      }
-
-                      final stats = snapshot.data ??
-                          {
-                            'totalAdoptions': 0,
-                            'adoptedThisMonth': 0,
-                            'activeRescues': 0
-                          };
-
-                      return Row(
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz, color: kPrimaryTextColor),
+                  tooltip: "More actions",
+                  onSelected: (value) {
+                    if (value == 'post') {
+                      mainNavKey.currentState?.selectTab(2);
+                    } else if (value == 'adopt') {
+                      mainNavKey.currentState?.selectTab(1);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem<String>(
+                      value: 'post',
+                      child: Row(
                         children: [
-                          // First stats card - Total Adoptions (Permanent Counter)
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: 10,
-                                  sigmaY: 10,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.08),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${stats['totalAdoptions']}',
-                                        style: const TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: kLegacyAccentColor,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'Pets\nAdopted so Far',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: kSecondaryTextColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Second stats card (still has its own BackdropFilter)
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(
-                                  sigmaX: 10,
-                                  sigmaY: 10,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.08),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${stats['activeRescues']}',
-                                        style: const TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: kLegacyAccentColor,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'Pets\nAvailable for Adoption',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: kSecondaryTextColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                          Icon(Icons.add, size: 22, color: kPrimaryTextColor),
+                          SizedBox(width: 12),
+                          Text(
+                            'Post New Pet',
+                            style: TextStyle(color: kPrimaryTextColor),
                           ),
                         ],
-                      );
-                    },
-                  ),
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'adopt',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.favorite,
+                            size: 20,
+                            color: kPrimaryTextColor,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Adopt Pet',
+                            style: TextStyle(color: kPrimaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 12),
+
+          // Glassmorphic section
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Stack(
+              children: [
+                // Bottom layer: background image (This will now be clearly visible)
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/images/statsbg_blurred.png',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                // --- CHANGE IS HERE ---
+                // Middle layer: This is now just a semi-transparent overlay,
+                // NOT a blur filter. The BackdropFilter has been removed.
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.25), // The dark tint
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.1),
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+
+                // Top layer: two inner stats cards (These still have their blur)
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: StreamBuilder<Map<String, int>>(
+                      stream: StatsService.getAdoptionStatsStream(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Center(
+                            child: Text(
+                              'Error loading stats',
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
+                          );
+                        }
+
+                        if (snapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            !snapshot.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: kPrimaryAccentColor,
+                            ),
+                          );
+                        }
+
+                        final stats =
+                            snapshot.data ??
+                            {
+                              'totalAdoptions': 0,
+                              'adoptedThisMonth': 0,
+                              'activeRescues': 0,
+                            };
+
+                        return Row(
+                          children: [
+                            // First stats card - Total Adoptions (Permanent Counter)
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 10,
+                                    sigmaY: 10,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.08),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${stats['totalAdoptions']}',
+                                          style: const TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            color: kLegacyAccentColor,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Pets\nAdopted so Far',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: kSecondaryTextColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            // Second stats card (still has its own BackdropFilter)
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 10,
+                                    sigmaY: 10,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.08),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${stats['activeRescues']}',
+                                          style: const TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.bold,
+                                            color: kLegacyAccentColor,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Pets\nAvailable for Adoption',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: kSecondaryTextColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // -------------------- Pet of the Day Section --------------------
   Widget _buildPetOfTheDay() {
     return Padding(

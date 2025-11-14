@@ -887,10 +887,19 @@ exports.logUserToSheet = functions
         // Fields we track (and the column order after uid)
         const trackedFields = [
             "email",
-            "fullName",
-            "role",
+            "firstName",
+            "lastName",
             "phoneNumber",
             "address",
+            "role",
+            "isActive",
+            "profileCompleted",
+            "isEmailVerified",
+            "isPhoneVerified",
+            "signInMethod",
+            "fcmToken",
+            "createdAt",
+            "updatedAt"
         ];
         const normalize = (val) => {
             if (val === null || val === undefined)
@@ -941,14 +950,23 @@ exports.logUserToSheet = functions
             return null;
         }
         // Build the row in requested order:
-        // uid, email, Fullname, role, phonenumber, address, field_updated, timestamp
+        // uid, email, firstName, lastName, phoneNumber, address, role, isActive, profileCompleted, isEmailVerified, isPhoneVerified, signInMethod, fcmToken, createdAt, updatedAt, field_updated, timestamp
         const rowValues = [
             uid,
             afterNormalized["email"] || "",
-            afterNormalized["fullName"] || "",
-            afterNormalized["role"] || "",
+            afterNormalized["firstName"] || "",
+            afterNormalized["lastName"] || "",
             afterNormalized["phoneNumber"] || "",
             afterNormalized["address"] || "",
+            afterNormalized["role"] || "",
+            afterNormalized["isActive"] || "",
+            afterNormalized["profileCompleted"] || "",
+            afterNormalized["isEmailVerified"] || "",
+            afterNormalized["isPhoneVerified"] || "",
+            afterNormalized["signInMethod"] || "",
+            afterNormalized["fcmToken"] || "",
+            afterNormalized["createdAt"] || "",
+            afterNormalized["updatedAt"] || ""
         ];
         const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
         const timestampISO = new Date().toISOString();
@@ -996,19 +1014,35 @@ exports.logAnimalToSheet = functions
         // ignore deletes
         if (before && !after)
             return null;
-        // Fields to track and log
+        // Fields to track and log (updated to match actual schema)
         const trackedFields = [
             "name",
             "species",
+            "breedType",
             "breed",
             "age",
             "gender",
             "status",
+            "sterilization",
+            "vaccination",
+            "deworming",
+            "motherStatus",
+            "medicalIssues",
+            "location",
+            "latitude",
+            "longitude",
+            "contactPhone",
+            "rescueStory",
             "approvalStatus",
             "postedBy",
-            "description",
-            "images",
-            "adminMessage"
+            "postedByEmail",
+            "postedByName",
+            "imageUrls",
+            "adminMessage",
+            "isActive",
+            "approvedAt",
+            "approvedBy",
+            "postedAt"
         ];
         const normalize = (val) => {
             if (val === null || val === undefined)
@@ -1061,20 +1095,36 @@ exports.logAnimalToSheet = functions
             return null;
         }
         // Build the row in requested order:
-        // animalId, name, species, breed, age, gender, status, approvalStatus, postedBy, description, images, adminMessage, field_updated, timestamp
+        // animalId, name, species, breedType, breed, age, gender, status, sterilization, vaccination, deworming, motherStatus, medicalIssues, location, latitude, longitude, contactPhone, rescueStory, approvalStatus, postedBy, postedByEmail, postedByName, imageUrls, adminMessage, isActive, approvedAt, approvedBy, postedAt, field_updated, timestamp
         const rowValues = [
             animalId,
             afterNormalized["name"] || "",
             afterNormalized["species"] || "",
+            afterNormalized["breedType"] || "",
             afterNormalized["breed"] || "",
             afterNormalized["age"] || "",
             afterNormalized["gender"] || "",
             afterNormalized["status"] || "",
+            afterNormalized["sterilization"] || "",
+            afterNormalized["vaccination"] || "",
+            afterNormalized["deworming"] || "",
+            afterNormalized["motherStatus"] || "",
+            afterNormalized["medicalIssues"] || "",
+            afterNormalized["location"] || "",
+            afterNormalized["latitude"] || "",
+            afterNormalized["longitude"] || "",
+            afterNormalized["contactPhone"] || "",
+            afterNormalized["rescueStory"] || "",
             afterNormalized["approvalStatus"] || "",
             afterNormalized["postedBy"] || "",
-            afterNormalized["description"] || "",
-            afterNormalized["images"] || "",
-            afterNormalized["adminMessage"] || ""
+            afterNormalized["postedByEmail"] || "",
+            afterNormalized["postedByName"] || "",
+            afterNormalized["imageUrls"] || "",
+            afterNormalized["adminMessage"] || "",
+            afterNormalized["isActive"] || "",
+            afterNormalized["approvedAt"] || "",
+            afterNormalized["approvedBy"] || "",
+            afterNormalized["postedAt"] || ""
         ];
         const fieldUpdated = isCreate ? "new_animal" : changedFields.join(", ");
         const timestampISO = new Date().toISOString();
@@ -1122,46 +1172,24 @@ exports.logApplicationToSheet = functions
         // ignore deletes
         if (before && !after)
             return null;
-        // Fields to track and log (order matches your list)
+        // Core fields to track in dedicated columns (simplified for performance)
         const trackedFields = [
-            "adminMessage",
-            "allMembersAgree",
-            "applicantAddress",
-            "applicantEmail",
-            "applicantName",
-            "applicantPhone",
-            "appliedAt",
-            "currentPetsDetails",
-            "financiallyPrepared",
-            "hasAllergies",
-            "hasCurrentPets",
-            "hasPastPets",
-            "hasSurrenderedPets",
-            "hasVeterinarian",
-            "homeOwnership",
-            "hoursLeftAlone",
-            "householdMembers",
-            "ifCannotKeepCare",
-            "pastPetsDetails",
-            "petId",
-            "petImage",
-            "petName",
-            "petTypeLookingFor",
-            "preferenceForBreedAgeGender",
-            "preparedForLifetimeCommitment",
-            "reviewedAt",
-            "status",
-            "surrenderedPetsCircumstance",
             "userId",
-            "vetContactInfo",
-            "whereKeptWhenAlone",
-            "whyAdoptPet",
-            "willingToProvideVetCare"
+            "petId",
+            "petName",
+            "applicantName",
+            "applicantEmail",
+            "applicantPhone",
+            "status",
+            "appliedAt",
+            "reviewedAt",
+            "adminMessage"
         ];
-        // Header row for the sheet
+        // Header row for the sheet - includes applicationData for full details
         const headerRow = [
             "applicationId",
             ...trackedFields,
+            "applicationData",
             "field_updated",
             "timestamp"
         ];
@@ -1220,11 +1248,14 @@ exports.logApplicationToSheet = functions
             return null;
         }
         // Build the row in requested order:
-        // applicationId, ...fields..., field_updated, timestamp
+        // applicationId, userId, petId, petName, applicantName, applicantEmail, applicantPhone, status, appliedAt, reviewedAt, adminMessage, applicationData (full JSON), field_updated, timestamp
         const rowValues = [
             applicationId,
             ...trackedFields.map(f => afterNormalized[f] || ""),
         ];
+        // Add full application data as JSON for detailed analysis
+        const applicationDataJson = after ? JSON.stringify(after) : "";
+        rowValues.push(applicationDataJson);
         const fieldUpdated = isCreate ? "new_application" : changedFields.join(", ");
         const timestampISO = new Date().toISOString();
         rowValues.push(fieldUpdated || "none", timestampISO);
@@ -1287,10 +1318,6 @@ exports.logEmailToSheet = functions
         const trackedFields = [
             "type",
             "recipientEmail",
-            "animalId",
-            "animalName",
-            "animalSpecies",
-            "adminMessage",
             "sentAt",
             "status",
             "data"
@@ -1392,13 +1419,11 @@ exports.logNotificationToSheet = functions
             "userId",
             "title",
             "body",
-            "animalId",
-            "animalName",
-            "animalSpecies",
             "type",
             "messageId",
             "sentAt",
             "status",
+            "error",
             "data"
         ];
         const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
@@ -1474,12 +1499,12 @@ exports.logNotificationToSheet = functions
     }
 });
 /**
-* Append to general_log sheet:
-* [logId, userId, userEmail, animalId, eventType, adminMessage, createdAt, data, field_updated, timestamp]
-*/
+ * Append to logs sheet (general activity log from LoggingService):
+ * [logId, eventType, userId, userEmail, data, createdAt, field_updated, timestamp]
+ */
 exports.logGeneralToSheet = functions
     .region("us-central1")
-    .firestore.document("general_logs/{logId}")
+    .firestore.document("logs/{logId}")
     .onWrite(async (change, context) => {
     try {
         const cfg = functions.config();
@@ -1495,13 +1520,11 @@ exports.logGeneralToSheet = functions
         if (!after)
             return null;
         const trackedFields = [
+            "eventType",
             "userId",
             "userEmail",
-            "animalId",
-            "eventType",
-            "adminMessage",
-            "createdAt",
-            "data"
+            "data",
+            "createdAt"
         ];
         const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
         const normalize = (val) => {
@@ -1555,18 +1578,18 @@ exports.logGeneralToSheet = functions
             logId,
             ...trackedFields.map(f => afterNormalized[f] || ""),
         ];
-        const fieldUpdated = isCreate ? "new_general_log" : changedFields.join(", ");
+        const fieldUpdated = isCreate ? "new_log" : changedFields.join(", ");
         const timestampISO = new Date().toISOString();
         rowValues.push(fieldUpdated || "none", timestampISO);
         const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
         const jwt = new googleapis_1.google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
         await jwt.authorize();
         const sheets = googleapis_1.google.sheets({ version: "v4", auth: jwt });
-        const getSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1:Z1" });
+        const getSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: "logs!A1:Z1" });
         if (!getSheet.data.values || getSheet.data.values.length === 0) {
-            await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [headerRow] }, });
+            await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "logs!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [headerRow] }, });
         }
-        await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "general_log!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [rowValues] }, });
+        await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: "logs!A1", valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: [rowValues] }, });
         console.log(`logGeneralToSheet: appended for logId=${logId} fieldUpdated=${fieldUpdated}`);
         return null;
     }

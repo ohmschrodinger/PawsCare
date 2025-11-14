@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// This counter NEVER decreases, even if adopted animals are deleted
 class AdoptionCounterService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   // Document path for the counter
   static const String _countersCollection = 'app_statistics';
   static const String _counterDocId = 'adoption_counter';
@@ -29,13 +29,16 @@ class AdoptionCounterService {
             .collection(_countersCollection)
             .doc(_counterDocId)
             .set({
-          'totalAdoptions': adoptedAnimals.docs.length,
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'description': 'Permanent counter for total adoptions (never decreases)',
-        });
+              'totalAdoptions': adoptedAnimals.docs.length,
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+              'description':
+                  'Permanent counter for total adoptions (never decreases)',
+            });
 
-        print('AdoptionCounter initialized with ${adoptedAnimals.docs.length} adoptions');
+        print(
+          'AdoptionCounter initialized with ${adoptedAnimals.docs.length} adoptions',
+        );
       } else {
         print('AdoptionCounter already exists: ${doc.data()}');
       }
@@ -61,7 +64,8 @@ class AdoptionCounterService {
             'totalAdoptions': 1,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
-            'description': 'Permanent counter for total adoptions (never decreases)',
+            'description':
+                'Permanent counter for total adoptions (never decreases)',
           });
         } else {
           // Increment the counter
@@ -91,13 +95,13 @@ class AdoptionCounterService {
       if (!doc.exists) {
         print('Counter document does not exist, initializing...');
         await initializeCounter();
-        
+
         // Fetch again after initialization
         final newDoc = await _firestore
             .collection(_countersCollection)
             .doc(_counterDocId)
             .get();
-        
+
         return (newDoc.data()?['totalAdoptions'] ?? 0) as int;
       }
 
@@ -128,14 +132,12 @@ class AdoptionCounterService {
   /// Use with caution!
   static Future<void> setCounterManually(int count) async {
     try {
-      await _firestore
-          .collection(_countersCollection)
-          .doc(_counterDocId)
-          .set({
+      await _firestore.collection(_countersCollection).doc(_counterDocId).set({
         'totalAdoptions': count,
         'updatedAt': FieldValue.serverTimestamp(),
         'manuallyAdjusted': true,
-        'description': 'Permanent counter for total adoptions (never decreases)',
+        'description':
+            'Permanent counter for total adoptions (never decreases)',
       }, SetOptions(merge: true));
 
       print('Adoption counter manually set to $count');
@@ -154,7 +156,10 @@ class AdoptionCounterService {
       final snapshot = await _firestore
           .collection('animals')
           .where('status', isEqualTo: 'Adopted')
-          .where('adoptedAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where(
+            'adoptedAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
+          )
           .get();
 
       return snapshot.docs.length;

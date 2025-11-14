@@ -206,37 +206,45 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                 : SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0,
+                        vertical: 20.0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header
+                          // Header with better hierarchy
                           Text(
                             'Get in Touch',
                             style: AppTypography.title1.copyWith(
                               color: kPrimaryTextColor,
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Text(
                             'We\'d love to hear from you!',
                             style: AppTypography.body.copyWith(
-                              color: kSecondaryTextColor,
+                              color: kSecondaryTextColor.withOpacity(0.8),
+                              fontSize: 16,
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 40),
 
                           // Contact Us Section
                           Text(
                             'Contact us on',
                             style: AppTypography.title3.copyWith(
                               color: kPrimaryTextColor,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 20),
 
-                          // Email Card
-                          _buildGlassmorphicContactCard(
+                          // Email Card - Using ListTile for better alignment
+                          _buildContactListTile(
                             context: context,
                             icon: Icons.email_outlined,
                             title: 'Email',
@@ -247,11 +255,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                               context,
                             ),
                           ),
+                          const SizedBox(height: 12),
 
                           // WhatsApp Card
-                          _buildGlassmorphicContactCard(
+                          _buildContactListTile(
                             context: context,
-                            icon: Icons.chat,
+                            icon: Icons.chat_outlined,
                             title: 'WhatsApp',
                             subtitle: _contactInfo!.pawscareWhatsapp,
                             onTap: () => _launchWhatsApp(context),
@@ -260,11 +269,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                               context,
                             ),
                           ),
+                          const SizedBox(height: 12),
 
                           // LinkedIn Card
-                          _buildGlassmorphicContactCard(
+                          _buildContactListTile(
                             context: context,
-                            icon: Icons.business,
+                            icon: Icons.business_outlined,
                             title: 'LinkedIn',
                             subtitle: 'PawsCare',
                             onTap: () => _launchUrl(
@@ -276,11 +286,12 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                               context,
                             ),
                           ),
+                          const SizedBox(height: 12),
 
                           // Instagram Card
-                          _buildGlassmorphicContactCard(
+                          _buildContactListTile(
                             context: context,
-                            icon: Icons.photo_camera,
+                            icon: Icons.photo_camera_outlined,
                             title: 'Instagram',
                             subtitle: _contactInfo!.pawscareInsta,
                             onTap: () => _launchUrl(
@@ -293,7 +304,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 48),
 
                           // Volunteer Section
                           _buildVolunteerSection(context),
@@ -308,7 +319,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     );
   }
 
-  Widget _buildGlassmorphicContactCard({
+  Widget _buildContactListTile({
     required BuildContext context,
     required IconData icon,
     required String title,
@@ -317,7 +328,6 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
     required VoidCallback onCopy,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.1), width: 1.5),
@@ -333,53 +343,44 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
             ),
             child: Material(
               color: Colors.transparent,
-              child: InkWell(
+              child: ListTile(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: kPrimaryAccentColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(icon, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: AppTypography.headline.copyWith(
-                                color: kPrimaryTextColor,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              style: AppTypography.subhead.copyWith(
-                                color: kSecondaryTextColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.copy,
-                          color: kSecondaryTextColor,
-                          size: 20,
-                        ),
-                        onPressed: onCopy,
-                        tooltip: 'Copy to clipboard',
-                      ),
-                    ],
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kPrimaryAccentColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Icon(icon, color: Colors.white, size: 24),
+                ),
+                title: Text(
+                  title,
+                  style: AppTypography.headline.copyWith(
+                    color: kPrimaryTextColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    subtitle,
+                    style: AppTypography.subhead.copyWith(
+                      color: kSecondaryTextColor,
+                    ),
+                  ),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(
+                    Icons.copy_outlined,
+                    color: kSecondaryTextColor,
+                    size: 22,
+                  ),
+                  onPressed: onCopy,
+                  tooltip: 'Copy to clipboard',
                 ),
               ),
             ),
@@ -421,7 +422,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(
-                          Icons.volunteer_activism,
+                          Icons.volunteer_activism_outlined,
                           color: kPrimaryAccentColor,
                           size: 28,
                         ),
@@ -432,20 +433,22 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                           'Want to Volunteer?',
                           style: AppTypography.title2.copyWith(
                             color: kPrimaryTextColor,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(
                     'Join our community of passionate volunteers who make a difference in the lives of animals every day. Your time and dedication can help save lives!',
                     style: AppTypography.subhead.copyWith(
                       color: kSecondaryTextColor,
-                      height: 1.5,
+                      height: 1.6,
+                      fontSize: 15,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: ClipRRect(
