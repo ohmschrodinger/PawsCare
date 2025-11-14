@@ -6,6 +6,7 @@ import 'package:pawscare/screens/profile_screen.dart';
 import 'package:pawscare/screens/community_feed_screen.dart';
 import 'package:pawscare/screens/animal_adoption_screen.dart';
 import 'package:pawscare/constants/app_colors.dart';
+import 'package:pawscare/services/notification_service.dart';
 
 final mainNavKey = GlobalKey<_MainNavigationScreenState>();
 
@@ -31,6 +32,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   final PageStorageBucket _bucket = PageStorageBucket();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize notifications for logged-in user
+    NotificationService.initializeForUser();
+  }
 
   void _onItemTapped(int index) {
     if (_selectedIndex != index) {

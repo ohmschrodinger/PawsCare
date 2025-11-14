@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/post_composer.dart';
 import '../widgets/post_card_widget.dart';
 import '../constants/app_colors.dart';
+import '../services/data_cache_service.dart';
 
 class CommunityFeedScreen extends StatefulWidget {
   const CommunityFeedScreen({super.key});
@@ -24,31 +25,73 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
     'General',
   ];
 
-  late Stream<QuerySnapshot<Map<String, dynamic>>> _postsStream;
+  final ScrollController _scrollController = ScrollController();
+  final DataCacheService _cacheService = DataCacheService();
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _postsStream = _getPostsStream();
+    _scrollController.addListener(_onScroll);
+    _loadInitialData();
   }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> _getPostsStream() {
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('community_posts')
-        .orderBy('postedAt', descending: true);
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-    if (_selectedFilter != 'All Posts') {
-      query = query.where('category', isEqualTo: _selectedFilter);
+  Future<void> _loadInitialData() async {
+    if (_cacheService.cachedPosts.isEmpty) {
+      await _cacheService.loadInitialPosts(category: _selectedFilter);
     }
-    return query.snapshots();
+    if (mounted) {
+      setState(() {
+        _isInitialized = true;
+      });
+    }
   }
 
-  void _updateFilter(String filter) {
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
+      _loadMorePosts();
+    }
+  }
+
+  Future<void> _loadMorePosts() async {
+    if (!_cacheService.isLoadingPosts && _cacheService.hasMorePosts) {
+      await _cacheService.loadMorePosts(category: _selectedFilter);
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _updateFilter(String filter) async {
     if (_selectedFilter != filter) {
       setState(() {
         _selectedFilter = filter;
-        _postsStream = _getPostsStream();
+        _isInitialized = false;
       });
+
+      // Clear and reload with new filter
+      await _cacheService.refreshPosts(category: filter);
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await _cacheService.refreshPosts(category: _selectedFilter);
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -194,57 +237,64 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
 
                   // Post list
                   Expanded(
-                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                      stream: _postsStream,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
+                    child: !_isInitialized
+                        ? const Center(
                             child: CircularProgressIndicator(
                               color: kPrimaryAccentColor,
                             ),
-                          );
-                        }
-                        if (snapshot.hasError) {
-                          return Center(
-                            child: Text(
-                              'Error: ${snapshot.error}',
-                              style: const TextStyle(color: Colors.redAccent),
-                            ),
-                          );
-                        }
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _onRefresh,
+                            color: kPrimaryAccentColor,
+                            child: _cacheService.cachedPosts.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No posts found for this category.',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: kSecondaryTextColor,
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    controller: _scrollController,
+                                    padding: const EdgeInsets.only(
+                                      top: 4,
+                                      bottom: 90,
+                                    ),
+                                    physics: const BouncingScrollPhysics(),
+                                    itemCount:
+                                        _cacheService.cachedPosts.length +
+                                        (_cacheService.hasMorePosts ? 1 : 0),
+                                    itemBuilder: (context, index) {
+                                      // Show loading indicator at the end
+                                      if (index ==
+                                          _cacheService.cachedPosts.length) {
+                                        return const Padding(
+                                          padding: EdgeInsets.all(16.0),
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              color: kPrimaryAccentColor,
+                                            ),
+                                          ),
+                                        );
+                                      }
 
-                        final posts = snapshot.data?.docs ?? [];
-                        if (posts.isEmpty) {
-                          return const Center(
-                            child: Text(
-                              'No posts found for this category.',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: kSecondaryTextColor,
-                              ),
-                            ),
-                          );
-                        }
+                                      final postDoc =
+                                          _cacheService.cachedPosts[index];
+                                      final data =
+                                          postDoc.data()
+                                              as Map<String, dynamic>;
+                                      final postId = postDoc.id;
 
-                        return ListView.builder(
-                          padding: const EdgeInsets.only(top: 4, bottom: 90),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: posts.length,
-                          itemBuilder: (context, index) {
-                            final data = posts[index].data();
-                            final postId = posts[index].id;
-                            // NOTE: Ensure your `PostCardWidget` is updated with the dark theme colors.
-                            // IMPORTANT: Use Key to prevent widget recycling issues with state
-                            return PostCardWidget(
-                              key: ValueKey(postId),
-                              postData: data,
-                              postId: postId,
-                            );
-                          },
-                        );
-                      },
-                    ),
+                                      return PostCardWidget(
+                                        key: ValueKey(postId),
+                                        postData: data,
+                                        postId: postId,
+                                      );
+                                    },
+                                  ),
+                          ),
                   ),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'user_service.dart';
 import 'current_user_cache.dart';
+import 'notification_service.dart';
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -163,8 +164,13 @@ class AuthService {
 
   /// Sign out
   static Future<void> signOut() async {
+    // Clear FCM token and disable notifications
+    await NotificationService.clearTokenOnLogout();
+
     // Clear the user cache on sign out
     CurrentUserCache().clearCache();
+
+    // Sign out from Firebase Auth
     await _auth.signOut();
   }
 

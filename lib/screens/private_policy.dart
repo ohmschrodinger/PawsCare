@@ -35,60 +35,160 @@ class PrivatePolicyScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Effective Date'),
-          _buildContent('October 3, 2025'),
-          _buildSectionHeader('Introduction'),
+          _buildSectionHeader('Last Updated'),
+          _buildContent('November 14, 2025'),
+
+          _buildSectionHeader('Developer/Company'),
           _buildContent(
-            'This Privacy Policy explains how PawsCare collects, uses, and shares information about you when you use the PawsCare mobile application (the "Service").',
+            'PawsCare Team\nContact Email: pawscareanimalresq@gmail.com',
           ),
+
+          _buildContent(
+            'PawsCare ("we", "our", "us") operates the PawsCare mobile application ("App"). This Privacy Policy explains how we collect, use, store, and protect your information when you use our services.\n\nBy using PawsCare, you agree to the practices described in this Privacy Policy.',
+          ),
+
           _buildSectionHeader('1. Information We Collect'),
+
+          _buildSubheader('1.1 Personal Information'),
           _buildContent(
-            'a) Information You Provide to Us:\n'
-            '- Account Information: When you register, we collect your authentication information (such as an email address) via Firebase Authentication. We also assign you a "user" role.\n'
-            '- Adoption Application Data: When you apply to adopt, we collect the information you provide in the form, which may include your name, contact information, pet ownership experience, home environment details, and reason for adoption.\n'
-            '- Animal Submission Data: When you submit an animal for listing, we collect the information you provide, including the animal\'s name, bio, rescue story, health status, and images.\n\n'
-            'b) Information We Collect Automatically:\n'
-            '- Usage Information: We collect your Firebase User ID to associate you with your data.\n'
-            '- Device Information: We use Firebase Cloud Messaging to send notifications. To do this, we may collect a device token or similar identifier.',
+            'When creating or updating an account, we may collect:\n'
+            '• Full name\n'
+            '• Email address\n'
+            '• Phone number\n'
+            '• Address (optional)\n'
+            '• Profile photo',
           ),
+
+          _buildSubheader('1.2 User-Generated Content'),
+          _buildContent(
+            'We collect content you upload or create in the app, including:\n'
+            '• Pet photos\n'
+            '• Adoption listings\n'
+            '• Posts, comments, likes\n'
+            '• Community interactions',
+          ),
+
+          _buildSubheader('1.3 Authentication Information'),
+          _buildContent(
+            'Authentication is handled securely through Firebase Authentication, which may collect:\n'
+            '• Email/password\n'
+            '• Google login credentials\n'
+            '• Phone number for OTP verification',
+          ),
+
+          _buildSubheader('1.4 Device & Diagnostic Data'),
+          _buildContent(
+            'We automatically collect:\n'
+            '• Device ID\n'
+            '• Crash logs\n'
+            '• App performance data\n'
+            '• Analytics and usage statistics',
+          ),
+
+          _buildSubheader('1.5 Location Information'),
+          _buildContent(
+            'With your permission, we may collect:\n'
+            '• Approximate location\n'
+            '• Precise GPS location\n\n'
+            'Used for improving adoption relevance and app experience.',
+          ),
+
           _buildSectionHeader('2. How We Use Your Information'),
           _buildContent(
-            'We use the information we collect to:\n'
-            '- Create and manage your account and role within the app.\n'
-            '- Process your adoption applications and share them with Admins for review.\n'
-            '- Review and manage your animal submissions.\n'
-            '- Display approved animal listings publicly on the Service.\n'
-            '- Communicate with you by sending notifications about the status of your applications and submissions.\n'
-            '- Operate, maintain, and improve the Service.',
+            'Your information is used to:\n'
+            '• Create and manage user accounts\n'
+            '• Display and manage adoption listings\n'
+            '• Provide community features (posts, comments, likes)\n'
+            '• Maintain platform safety through moderation\n'
+            '• Improve and develop new features\n'
+            '• Analyze app performance and usage\n'
+            '• Maintain internal logs (via Google Sheets API) for record-keeping\n'
+            '• Ensure authentication and security\n\n'
+            'We do NOT use your information for advertising or marketing.',
           ),
-          _buildSectionHeader('3. How We Share Your Information'),
+
+          _buildSectionHeader('3. Data Sharing'),
           _buildContent(
-            'Your information is shared in the following ways:\n'
-            '- With Admins: Your account details and the full contents of your adoption applications are shared with Admins to allow them to make informed decisions.\n'
-            '- With the Public: When your animal submission is approved, the animal\'s profile (including its story, bio, and images) is made public.\n'
-            '- Important Note: Your workflow mentions "Contact info" on the Pet Detail Page. You must decide if this will be the NGO\'s contact info or the submitting user\'s info. We strongly recommend against making a user\'s personal contact information public. This policy assumes only non-personal information is displayed.\n'
-            '- For Legal Reasons: We may disclose your information if required to do so by law or in response to a valid request from a law enforcement or governmental authority.',
+            'We do NOT sell or share your data with third parties for advertising.\n\n'
+            'We only share data with trusted service providers necessary for app functionality:',
           ),
-          _buildSectionHeader('4. Data Security'),
+
+          _buildSubheader('3.1 Firebase Services'),
           _buildContent(
-            'We use services like Firebase that provide industry-standard security measures to protect your information. However, no electronic transmission or storage is 100% secure, and we cannot guarantee absolute security.',
+            '• Firebase Authentication\n'
+            '• Firestore Database\n'
+            '• Firebase Storage',
           ),
-          _buildSectionHeader('5. Your Rights and Choices'),
+
+          _buildSubheader('3.2 Google APIs'),
           _buildContent(
-            'You can review and update your information through the "My History" section of the app, which includes "My Applications" and "My Listings." You can also edit or delete your own animal submissions as permitted by the app\'s functionality. To delete your entire account and associated data, please contact us at [Your Support Email Address].',
+            '• Google Analytics\n'
+            '• Google Sheets API (for logging internal app activity)\n\n'
+            'These services process data on our behalf and follow strict security measures.\n\n'
+            'We do NOT share data with NGOs, external partners, or advertisers.',
           ),
-          _buildSectionHeader('6. Children\'s Privacy'),
+
+          _buildSectionHeader('4. Data Storage & Security'),
           _buildContent(
-            'The Service is not intended for individuals under the age of 18. We do not knowingly collect personal information from children under 18.',
+            'Your data is securely stored using:\n'
+            '• Firebase Firestore\n'
+            '• Firebase Storage\n'
+            '• Firebase Authentication\n\n'
+            'We apply industry-standard security measures to protect your data, including encryption and secure access protocols.\n\n'
+            'However, no method of electronic transmission is 100% secure, and we cannot guarantee absolute protection.',
           ),
-          _buildSectionHeader('7. Changes to this Privacy Policy'),
+
+          _buildSectionHeader('5. Children\'s Privacy'),
           _buildContent(
-            'We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy within the app.',
+            'PawsCare is intended for users aged 13 and above.\n\n'
+            'We do not knowingly collect personal information from children under 13. If we discover such information, we will delete it immediately.',
           ),
-          _buildSectionHeader('8. Contact Us'),
+
+          _buildSectionHeader('6. Your Rights'),
           _buildContent(
-            'If you have any questions about this Privacy Policy, please contact us at: pawscareanimalresq@gmail.com',
+            'You have the right to:\n'
+            '• Access your personal data\n'
+            '• Update or correct your information\n'
+            '• Withdraw permissions (location, camera, etc.)\n'
+            '• Request deletion of your data\n'
+            '• Delete your account\n\n'
+            'To exercise any rights, contact us at pawscareanimalresq@gmail.com.',
           ),
+
+          _buildSectionHeader('7. Permissions Used by the App'),
+          _buildContent(
+            'PawsCare may request the following permissions:\n'
+            '• Camera – for capturing pet images\n'
+            '• Storage/Photos – for uploading images\n'
+            '• Location (approximate & precise) – for improving adoption relevance\n'
+            '• Internet access – for app functionality\n\n'
+            'Permissions are used only for their intended purpose.',
+          ),
+
+          _buildSectionHeader('8. Account Deletion'),
+          _buildContent(
+            'PawsCare provides an in-app Delete Account feature.\n\n'
+            'When you delete your account:\n'
+            '• Your personal information (name, email, phone, profile photo, address) is permanently deleted from Firebase Authentication and Firestore.\n'
+            '• Your listings, posts, and comments may be deleted or anonymized depending on moderation needs.\n'
+            '• Internal logs stored via Google Sheets API may be retained for security, fraud prevention, or operational purposes unless removal is required by law.\n'
+            '• Your app access is permanently removed.\n\n'
+            'You may delete your account anytime from within the app or by contacting us at pawscareanimalresq@gmail.com.',
+          ),
+
+          _buildSectionHeader('9. Changes to This Privacy Policy'),
+          _buildContent(
+            'We may update this Privacy Policy from time to time. Any changes will be posted inside the app, and the "Last Updated" date will be revised.\n\n'
+            'Continued use of the app after changes indicates acceptance of the updated policy.',
+          ),
+
+          _buildSectionHeader('10. Contact Us'),
+          _buildContent(
+            'For questions, concerns, or privacy requests, contact us:\n\n'
+            '📧 pawscareanimalresq@gmail.com\n'
+            '👥 PawsCare Team',
+          ),
+
           const SizedBox(height: 40),
         ],
       ),
@@ -104,6 +204,20 @@ class PrivatePolicyScreen extends StatelessWidget {
           color: kPrimaryTextColor,
           fontWeight: FontWeight.bold,
           fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubheader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 4.0, left: 8.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: kPrimaryTextColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
         ),
       ),
     );

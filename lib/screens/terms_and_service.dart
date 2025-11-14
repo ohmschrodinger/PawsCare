@@ -35,65 +35,160 @@ class TermsAndServiceScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Effective Date'),
-          _buildContent('October 3, 2025'),
+          _buildSectionHeader('Last Updated'),
+          _buildContent('November 14, 2025'),
+
+          _buildSectionHeader('Developer/Company'),
+          _buildContent(
+            'PawsCare Team\nContact Email: pawscareanimalresq@gmail.com',
+          ),
+
           _buildSectionHeader('Welcome to PawsCare!'),
           _buildContent(
-            'These Terms of Service ("Terms") govern your use of the PawsCare mobile application (the "Service"), operated by PawsCare. By creating an account or using our Service, you agree to be bound by these Terms.',
+            'These Terms of Service ("Terms") govern your use of the PawsCare mobile application (the "App", "Service"), operated by PawsCare Team. By downloading, accessing, or using the PawsCare mobile application, you agree to be bound by these Terms of Service.\n\nIf you do not agree with these Terms, please do not use the App.',
           ),
-          _buildSectionHeader('1. The PawsCare Service'),
+
+          _buildSectionHeader('1. Eligibility'),
           _buildContent(
-            'PawsCare is a platform designed to connect potential adopters with animals in need of a home. The Service allows users to browse animals, apply for adoption, and submit animals for adoption, subject to approval by our administrators ("Admins").',
+            'You must:\n'
+            '• Be at least 13 years old\n'
+            '• Agree to these Terms\n'
+            '• Use the app in compliance with applicable laws\n\n'
+            'If you are under 18, you confirm that you have parental or guardian consent to use the app.',
           ),
-          _buildSectionHeader('2. User Accounts & Roles'),
+
+          _buildSectionHeader('2. Your Account'),
           _buildContent(
-            'Account Creation: You must register for an account using Firebase Authentication to use most features of the Service. You agree to provide accurate and complete information and to keep this information up to date.\n\n'
-            'Roles: The service has two roles: "Users" (general public, potential adopters) and "Admins" (NGO staff, moderators). Your permissions are determined by your assigned role.\n\n'
-            'Account Security: You are responsible for safeguarding your account password and for all activities that occur under your account. You must notify us immediately of any unauthorized use of your account.',
+            'To use certain features, you must create an account using:\n'
+            '• Email/password\n'
+            '• Google login\n'
+            '• Phone number (OTP login)\n\n'
+            'You agree to:\n'
+            '• Provide accurate and truthful information\n'
+            '• Keep your login credentials secure\n'
+            '• Be responsible for all activity under your account\n\n'
+            'We are not liable for unauthorized access resulting from your failure to secure your device or credentials.',
           ),
-          _buildSectionHeader('3. User-Generated Content (UGC)'),
+
+          _buildSectionHeader('3. User Content'),
           _buildContent(
-            'This refers to any content you submit to the Service, such as animal profiles, images, and rescue stories.\n\n'
-            'Animal Submissions: Users may submit animal profiles for listing on the platform. All submissions are subject to review and approval by our Admins.\n\n'
-            'Responsibility: You are solely responsible for the UGC you submit. You warrant that you have all necessary rights to post the content and that it is accurate, truthful, and not misleading.\n\n'
-            'Our Rights: We reserve the right, in our sole discretion, to review, approve, reject, edit, or remove any UGC at any time and for any reason. A rejection may be accompanied by a reason to allow for resubmission.\n\n'
-            'License: By posting UGC, you grant PawsCare a worldwide, non-exclusive, royalty-free license to use, reproduce, display, and distribute your content in connection with the Service.',
+            'You may upload various forms of content, including:\n'
+            '• Animal photos\n'
+            '• Adoption listings\n'
+            '• Posts, comments, likes\n'
+            '• Profile information\n\n'
+            'By uploading content, you grant PawsCare:\n'
+            '• A non-exclusive, worldwide license to store, display, and process your content only within the platform for adoption and community-related purposes.\n\n'
+            'You retain ownership of your content.\n\n'
+            'We reserve the right to remove any content that:\n'
+            '• Violates these Terms\n'
+            '• Is harmful, abusive, misleading, or inappropriate\n'
+            '• Poses risks to the community or animals\n'
+            '• Violates laws or copyright rules',
           ),
-          _buildSectionHeader('4. Adoption Application Process'),
+
+          _buildSectionHeader('4. Posting Adoption Listings'),
           _buildContent(
-            'Submitting an Application: When you apply to adopt an animal, you agree to provide truthful and complete information in the adoption form.\n\n'
-            'No Guarantee: Submitting an application does not guarantee adoption. Our Admins review all applications and make decisions based on the best interest of the animal.\n\n'
-            'Decision: The Admin\'s decision to accept or reject an application is final. You will be notified of the decision via in-app or push notifications.',
+            'When creating animal adoption listings, you agree that:\n'
+            '• You have the legal right to post the animal for adoption\n'
+            '• The information you provide is accurate and truthful\n'
+            '• You are responsible for any communication or arrangements made between you and adopters\n\n'
+            'PawsCare is NOT responsible for:\n'
+            '• Verifying accuracy of listings\n'
+            '• Communication between users\n'
+            '• Any disputes or issues arising from adoption outside the app\n\n'
+            'All adoption decisions and communication are your responsibility.',
           ),
-          _buildSectionHeader('5. Prohibited Conduct'),
+
+          _buildSectionHeader('5. Prohibited Activities'),
           _buildContent(
-            'You agree not to:\n'
-            '- Use the Service for any illegal purpose or in violation of any local, state, national, or international law.\n'
-            '- Provide false or fraudulent information in your account, animal submissions, or adoption applications.\n'
-            '- Harass, threaten, or defraud other users or Admins.\n'
-            '- Reverse engineer, decompile, or otherwise attempt to discover the source code of the Service.\n'
-            '- Interfere with the proper working of the Service.',
+            'You agree NOT to:\n'
+            '• Upload harmful, abusive, illegal, or misleading content\n'
+            '• Post animals that you do not own or have rights to list\n'
+            '• Impersonate others\n'
+            '• Harass or abuse users\n'
+            '• Attempt to hack, disrupt, or reverse engineer the App\n'
+            '• Use the App for commercial advertising or spam\n'
+            '• Upload copyrighted content without permission\n\n'
+            'Violation may result in account suspension or permanent ban.',
           ),
-          _buildSectionHeader('6. Termination'),
+
+          _buildSectionHeader('6. Third-Party Services'),
           _buildContent(
-            'We may terminate or suspend your account, without prior notice, for conduct that we believe violates these Terms or is otherwise harmful to other users of the Service, us, or third parties. You may terminate your account at any time by contacting us at pawscareanimalresq@gmail.com.',
+            'PawsCare uses third-party services to operate:\n'
+            '• Firebase Authentication\n'
+            '• Firestore Database\n'
+            '• Firebase Storage\n'
+            '• Google Analytics\n'
+            '• Google Sheets API\n\n'
+            'By using the app, you also agree to their respective terms and policies.\n\n'
+            'PawsCare is not responsible for issues arising from third-party services.',
           ),
-          _buildSectionHeader('7. Disclaimers'),
+
+          _buildSectionHeader('7. Account Deletion'),
           _buildContent(
-            'The Service is provided "AS IS" without warranties of any kind. We do not guarantee that the Service will be uninterrupted, secure, or error-free. We are not responsible for the conduct of any user or the health and temperament of any animal listed.',
+            'You may delete your account at any time using the Delete Account feature in the app.\n\n'
+            'When your account is deleted:\n'
+            '• Your personal information is permanently removed from Firebase systems\n'
+            '• Your posts, comments, and listings may be removed or anonymized\n'
+            '• Certain data may be retained for security, fraud prevention, or operational obligations\n'
+            '• You lose access to all app features permanently\n\n'
+            'We are not responsible for data loss resulting from account deletion.',
           ),
-          _buildSectionHeader('8. Limitation of Liability'),
+
+          _buildSectionHeader('8. Intellectual Property'),
           _buildContent(
-            'To the fullest extent permitted by law, PawsCare shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, resulting from your use of the Service.',
+            'All app content, design, features, logos, and code are the property of PawsCare Team.\n\n'
+            'You may not:\n'
+            '• Copy, distribute, or modify the app\n'
+            '• Reverse-engineer or attempt to extract source code\n'
+            '• Use the app\'s branding without permission',
           ),
-          _buildSectionHeader('9. Governing Law'),
+
+          _buildSectionHeader('9. Limitation of Liability'),
           _buildContent(
-            'These Terms shall be governed by the laws of India. Any disputes arising from these Terms shall be subject to the exclusive jurisdiction of the courts located in Mumbai, Maharashtra.',
+            'To the fullest extent permitted by law, PawsCare Team is NOT liable for:\n'
+            '• Any damages from the use or inability to use the app\n'
+            '• User interactions, conflicts, or adoption arrangements\n'
+            '• Loss of data or unauthorized access\n'
+            '• Errors, bugs, outages, or service interruptions\n'
+            '• Inaccurate or misleading content posted by users\n\n'
+            'You use the app at your own risk.',
           ),
-          _buildSectionHeader('10. Contact Us'),
+
+          _buildSectionHeader('10. Disclaimer'),
           _buildContent(
-            'If you have any questions about these Terms, please contact us at: pawscareanimalresq@gmail.com',
+            'PawsCare is a platform that facilitates animal adoption.\n'
+            'We do not:\n'
+            '• Guarantee successful adoptions\n'
+            '• Verify user identities or animal ownership\n'
+            '• Provide warranties of any kind\n\n'
+            'All user-generated content is the responsibility of the user who created it.',
           ),
+
+          _buildSectionHeader('11. Termination'),
+          _buildContent(
+            'We may suspend or terminate your account if you:\n'
+            '• Violate these Terms\n'
+            '• Post harmful or inappropriate content\n'
+            '• Abuse or disrupt the Service\n'
+            '• Engage in fraudulent or unsafe behavior\n\n'
+            'We may also modify or discontinue the Service at any time.',
+          ),
+
+          _buildSectionHeader('12. Changes to These Terms'),
+          _buildContent(
+            'We may update these Terms periodically. Updated Terms will be posted inside the app and take effect upon posting.\n\n'
+            'Continued use of the app means you accept the updated Terms.',
+          ),
+
+          _buildSectionHeader('13. Contact Us'),
+          _buildContent(
+            'For any questions, issues, or requests related to these Terms:\n\n'
+            '📧 pawscareanimalresq@gmail.com\n'
+            '👥 PawsCare Team',
+          ),
+
           const SizedBox(height: 40),
         ],
       ),

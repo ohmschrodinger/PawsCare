@@ -23,18 +23,20 @@ void main() async {
   // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hide the system navigation bar and make it immersive
+  // Hide the system navigation bar (immersiveSticky = auto-hides after swipe up)
   SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
-    overlays: [SystemUiOverlay.top],
+    SystemUiMode.immersiveSticky,
+    overlays: [],
   );
 
-  // Set the system UI overlay style
+  // Set the system UI overlay style for transparent navigation bar
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarDividerColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.light,
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
     ),
   );
 
@@ -63,6 +65,12 @@ class PawsCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Re-apply immersive mode when app resumes
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.immersiveSticky,
+      overlays: [],
+    );
+
     const primaryColor = Color(0xFF5AC8F2);
 
     return MaterialApp(

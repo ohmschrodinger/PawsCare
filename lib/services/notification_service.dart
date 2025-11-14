@@ -6,7 +6,7 @@ import 'dart:io';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  static final FlutterLocalNotificationsPlugin _localNotifications = 
+  static final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -24,16 +24,31 @@ class NotificationService {
       // Request permission for notifications
       await _requestPermission();
 
-      // Get FCM token and save it
-      await _saveFCMToken();
-
-      // Configure message handlers
+      // Configure message handlers (but won't save token until user logs in)
       await _configureMessageHandlers();
 
       _isInitialized = true;
       print('NotificationService initialized successfully');
     } catch (e) {
       print('Error initializing NotificationService: $e');
+    }
+  }
+
+  /// Initialize notifications for a logged-in user
+  static Future<void> initializeForUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('Cannot initialize notifications - no user logged in');
+        return;
+      }
+
+      // Save FCM token for this user
+      await _saveFCMToken();
+
+      print('Notifications initialized for user: ${user.uid}');
+    } catch (e) {
+      print('Error initializing notifications for user: $e');
     }
   }
 
@@ -44,16 +59,16 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
 
     await _localNotifications.initialize(
       initializationSettings,
@@ -72,7 +87,8 @@ class NotificationService {
 
       await _localNotifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(channel);
     }
   }
@@ -120,22 +136,32 @@ class NotificationService {
     // Handle background messages
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Handle foreground messages
+    // Handle foreground messages - ONLY show if user is logged in
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Received foreground message: ${message.messageId}');
-      _showLocalNotification(message);
+      final user = _auth.currentUser;
+      if (user != null) {
+        print('Received foreground message: ${message.messageId}');
+        _showLocalNotification(message);
+      } else {
+        print('Ignored notification - user not logged in');
+      }
     });
 
     // Handle notification taps when app is in background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Notification tapped: ${message.messageId}');
-      _handleNotificationTap(message);
+      final user = _auth.currentUser;
+      if (user != null) {
+        print('Notification tapped: ${message.messageId}');
+        _handleNotificationTap(message);
+      }
     });
 
     // Handle notification taps when app is terminated
     final initialMessage = await _messaging.getInitialMessage();
-    if (initialMessage != null) {
-      print('App opened from terminated state via notification: ${initialMessage.messageId}');
+    if (initialMessage != null && _auth.currentUser != null) {
+      print(
+        'App opened from terminated state via notification: ${initialMessage.messageId}',
+      );
       _handleNotificationTap(initialMessage);
     }
   }
@@ -154,7 +180,8 @@ class NotificationService {
           android: AndroidNotificationDetails(
             'pawscare_notifications',
             'PawsCare Notifications',
-            channelDescription: 'Notifications for adoption updates and new animals',
+            channelDescription:
+                'Notifications for adoption updates and new animals',
             importance: Importance.high,
             priority: Priority.high,
             icon: android?.smallIcon,
@@ -227,6 +254,27 @@ class NotificationService {
   /// Refresh FCM token
   static Future<void> refreshToken() async {
     await _saveFCMToken();
+  }
+
+  /// Clear FCM token on logout
+  static Future<void> clearTokenOnLogout() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // Clear FCM token from Firestore
+      await _firestore.collection('users').doc(user.uid).update({
+        'fcmToken': FieldValue.delete(),
+        'notificationsEnabled': false,
+      });
+
+      // Delete the token from Firebase Messaging
+      await _messaging.deleteToken();
+
+      print('FCM token cleared on logout');
+    } catch (e) {
+      print('Error clearing FCM token: $e');
+    }
   }
 }
 

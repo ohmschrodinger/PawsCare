@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
 import '../services/navigation_guard.dart';
+import '../services/data_cache_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,7 +20,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _checkAuthState() async {
     try {
-      await Future.delayed(const Duration(seconds: 2));
+      // Start preloading data in background while splash screen shows
+      final preloadFuture = DataCacheService().preloadData();
+
+      // Show splash for minimum 2 seconds
+      final splashFuture = Future.delayed(const Duration(seconds: 2));
+
+      // Wait for both to complete
+      await Future.wait([splashFuture, preloadFuture]);
 
       if (mounted) {
         // Use NavigationGuard to determine where to go
