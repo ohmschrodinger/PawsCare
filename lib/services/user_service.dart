@@ -221,4 +221,51 @@ class UserService {
       print('Error ensuring user document exists: $e');
     }
   }
+
+  /// Delete all user data from Firestore
+  static Future<void> deleteUserData(String uid) async {
+    try {
+      // Delete user document
+      await _firestore.collection('users').doc(uid).delete();
+      print('User document deleted for UID: $uid');
+
+      // Delete user's animals (posted animals)
+      final animalsQuery = await _firestore
+          .collection('animals')
+          .where('postedBy', isEqualTo: uid)
+          .get();
+
+      for (var doc in animalsQuery.docs) {
+        await doc.reference.delete();
+      }
+      print('Deleted ${animalsQuery.docs.length} animal posts for UID: $uid');
+
+      // Delete user's applications
+      final applicationsQuery = await _firestore
+          .collection('applications')
+          .where('userId', isEqualTo: uid)
+          .get();
+
+      for (var doc in applicationsQuery.docs) {
+        await doc.reference.delete();
+      }
+      print(
+        'Deleted ${applicationsQuery.docs.length} applications for UID: $uid',
+      );
+
+      // Delete user's favorites/saved posts
+      final favoritesQuery = await _firestore
+          .collection('favorites')
+          .where('userId', isEqualTo: uid)
+          .get();
+
+      for (var doc in favoritesQuery.docs) {
+        await doc.reference.delete();
+      }
+      print('Deleted ${favoritesQuery.docs.length} favorites for UID: $uid');
+    } catch (e) {
+      print('Error deleting user data: $e');
+      throw Exception('Failed to delete user data: $e');
+    }
+  }
 }

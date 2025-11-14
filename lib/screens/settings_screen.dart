@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
 import 'package:pawscare/screens/saved_posts_screen.dart';
 import 'package:pawscare/services/auth_service.dart';
@@ -124,6 +125,194 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
+    }
+  }
+
+  Future<void> _showDeleteAccountDialog() async {
+    final TextEditingController confirmController = TextEditingController();
+
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: kCardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          title: const Text(
+            'Delete Account',
+            style: TextStyle(
+              color: kPrimaryTextColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '⚠️ Warning: This action cannot be undone!',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Deleting your account will permanently remove:',
+                style: TextStyle(color: kSecondaryTextColor, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                '• Your profile and personal information\n'
+                '• All your posted animals\n'
+                '• All your adoption applications\n'
+                '• All your saved posts and favorites',
+                style: TextStyle(color: kSecondaryTextColor, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Type "delete" to confirm:',
+                style: TextStyle(
+                  color: kPrimaryTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: confirmController,
+                style: const TextStyle(color: kPrimaryTextColor),
+                decoration: InputDecoration(
+                  hintText: 'delete',
+                  hintStyle: const TextStyle(color: kSecondaryTextColor),
+                  filled: true,
+                  fillColor: kBackgroundColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: const BorderSide(color: kSecondaryTextColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: const BorderSide(color: kSecondaryTextColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: const BorderSide(color: Colors.redAccent),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                confirmController.dispose();
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: kSecondaryTextColor),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (confirmController.text.toLowerCase() == 'delete') {
+                  Navigator.of(dialogContext).pop();
+                  confirmController.dispose();
+                  await _deleteAccount();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please type "delete" to confirm'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete Account'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAccount() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final user = AuthService.getCurrentUser();
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Center(
+              child: CircularProgressIndicator(color: kPrimaryAccentColor),
+            );
+          },
+        );
+      }
+
+      // Store the UID before deletion
+      final String uid = user.uid;
+
+      // Delete the Firebase Auth account FIRST
+      // This is critical: if auth deletion fails, we don't delete Firestore data
+      await AuthService.deleteAccount();
+
+      // Only delete Firestore data if auth deletion succeeded
+      await UserService.deleteUserData(uid);
+
+      // Close loading dialog and navigate to entry point
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/entry-point', (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        String errorMessage = 'Failed to delete account';
+
+        if (e.code == 'requires-recent-login') {
+          errorMessage =
+              'Please log out and log back in before deleting your account for security reasons.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting account: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -307,6 +496,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: _showDeleteAccountDialog,
+              child: const Text(
+                'Delete Account',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

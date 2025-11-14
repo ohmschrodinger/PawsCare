@@ -168,6 +168,29 @@ class AuthService {
     await _auth.signOut();
   }
 
+  /// Delete user account
+  static Future<void> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No user is currently signed in');
+      }
+
+      // Clear the user cache before deleting
+      CurrentUserCache().clearCache();
+
+      // Delete the user account from Firebase Auth
+      await user.delete();
+
+      // Explicitly sign out to ensure auth state is cleared
+      await _auth.signOut();
+    } on FirebaseAuthException {
+      rethrow;
+    } catch (e) {
+      throw Exception('deleteAccount_generic: $e');
+    }
+  }
+
   /// Check if user is authenticated
   static bool isAuthenticated() {
     return _auth.currentUser != null;
