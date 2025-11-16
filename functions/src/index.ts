@@ -975,22 +975,14 @@ export const logUserToSheet = functions
       // ignore deletes
       if (before && !after) return null;
 
-      // Fields we track (and the column order after uid)
+      // Fields we track (order: uid, email, firstName, lastName, phoneNumber, role, address)
       const trackedFields = [
         "email",
         "firstName",
         "lastName",
         "phoneNumber",
-        "address",
         "role",
-        "isActive",
-        "profileCompleted",
-        "isEmailVerified",
-        "isPhoneVerified",
-        "signInMethod",
-        "fcmToken",
-        "createdAt",
-        "updatedAt"
+        "address"
       ];
 
       const normalize = (val: any): string => {
@@ -1043,30 +1035,26 @@ export const logUserToSheet = functions
         return null;
       }
 
-      // Build the row in requested order:
-      // uid, email, firstName, lastName, phoneNumber, address, role, isActive, profileCompleted, isEmailVerified, isPhoneVerified, signInMethod, fcmToken, createdAt, updatedAt, field_updated, timestamp
+      // Build the row: uid, email, firstName, lastName, phoneNumber, role, address, fieldUpdated, timestamp
       const rowValues: string[] = [
         uid,
         afterNormalized["email"] || "",
         afterNormalized["firstName"] || "",
         afterNormalized["lastName"] || "",
         afterNormalized["phoneNumber"] || "",
-        afterNormalized["address"] || "",
         afterNormalized["role"] || "",
-        afterNormalized["isActive"] || "",
-        afterNormalized["profileCompleted"] || "",
-        afterNormalized["isEmailVerified"] || "",
-        afterNormalized["isPhoneVerified"] || "",
-        afterNormalized["signInMethod"] || "",
-        afterNormalized["fcmToken"] || "",
-        afterNormalized["createdAt"] || "",
-        afterNormalized["updatedAt"] || ""
+        afterNormalized["address"] || ""
       ];
 
       const fieldUpdated = isCreate ? "new_user" : changedFields.join(", ");
-      const timestampISO = new Date().toISOString();
+      
+      // Indian Standard Time (IST = UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+      const istTime = new Date(now.getTime() + istOffset);
+      const timestampIST = istTime.toISOString().replace('Z', '+05:30');
 
-      rowValues.push(fieldUpdated || "none", timestampISO);
+      rowValues.push(fieldUpdated || "none", timestampIST);
 
       // Authenticate to Sheets
       const keyJson = JSON.parse(
@@ -1126,35 +1114,23 @@ export const logAnimalToSheet = functions
       // ignore deletes
       if (before && !after) return null;
 
-      // Fields to track and log (updated to match actual schema)
+      // Fields to track: postedBy, name, species, breed, age, gender, status, address, geopoint, approvalStatus, approvedBy, adminMessage, breedType, contactPhone, imageUrls
       const trackedFields = [
+        "postedBy",
         "name",
         "species",
-        "breedType",
         "breed",
         "age",
         "gender",
         "status",
-        "sterilization",
-        "vaccination",
-        "deworming",
-        "motherStatus",
-        "medicalIssues",
-        "location",
-        "latitude",
-        "longitude",
-        "contactPhone",
-        "rescueStory",
+        "location", // address
+        "geopoint",
         "approvalStatus",
-        "postedBy",
-        "postedByEmail",
-        "postedByName",
-        "imageUrls",
-        "adminMessage",
-        "isActive",
-        "approvedAt",
         "approvedBy",
-        "postedAt"
+        "adminMessage",
+        "breedType",
+        "contactPhone",
+        "imageUrls"
       ];
 
       const normalize = (val: any): string => {
@@ -1181,12 +1157,20 @@ export const logAnimalToSheet = functions
       const isCreate = !before && !!after;
       const isUpdate = !!before && !!after;
 
+      // Skip logging for new animals without images (wait for image upload)
+      if (isCreate && (!after.imageUrls || after.imageUrls.length === 0)) {
+        console.log(`Skipping initial log for animal ${animalId} - waiting for image upload`);
+        return null;
+      }
+
       // Build normalized maps for comparison
       const beforeNormalized: Record<string, string> = {};
       const afterNormalized: Record<string, string> = {};
       for (const f of trackedFields) {
-        beforeNormalized[f] = normalize(before?.[f]);
-        afterNormalized[f] = normalize(after?.[f]);
+        // Map location to address field
+        const fieldName = f === "location" ? "location" : f;
+        beforeNormalized[f] = normalize(before?.[fieldName]);
+        afterNormalized[f] = normalize(after?.[fieldName]);
       }
 
       // Determine changed tracked fields
@@ -1200,49 +1184,45 @@ export const logAnimalToSheet = functions
       }
 
       // Decide whether to append:
-      // - always append for create
-      // - for update append only if any tracked field changed
+      // - for create: only if images are present (already checked above)
+      // - for update: only if any tracked field changed
       if (!isCreate && !(isUpdate && changedFields.length > 0)) {
         // nothing to log
         return null;
       }
 
-      // Build the row in requested order:
-      // animalId, name, species, breedType, breed, age, gender, status, sterilization, vaccination, deworming, motherStatus, medicalIssues, location, latitude, longitude, contactPhone, rescueStory, approvalStatus, postedBy, postedByEmail, postedByName, imageUrls, adminMessage, isActive, approvedAt, approvedBy, postedAt, field_updated, timestamp
+      // Build the row: animalId, postedBy, name, species, breed, age, gender, status, address, geopoint, approvalStatus, approvedBy, adminMessage, breedType, contactPhone, imageUrls, fieldUpdated, timestamp
       const rowValues: string[] = [
         animalId,
+        afterNormalized["postedBy"] || "",
         afterNormalized["name"] || "",
         afterNormalized["species"] || "",
-        afterNormalized["breedType"] || "",
         afterNormalized["breed"] || "",
         afterNormalized["age"] || "",
         afterNormalized["gender"] || "",
         afterNormalized["status"] || "",
-        afterNormalized["sterilization"] || "",
-        afterNormalized["vaccination"] || "",
-        afterNormalized["deworming"] || "",
-        afterNormalized["motherStatus"] || "",
-        afterNormalized["medicalIssues"] || "",
         afterNormalized["location"] || "",
-        afterNormalized["latitude"] || "",
-        afterNormalized["longitude"] || "",
-        afterNormalized["contactPhone"] || "",
-        afterNormalized["rescueStory"] || "",
+        afterNormalized["geopoint"] || "",
         afterNormalized["approvalStatus"] || "",
-        afterNormalized["postedBy"] || "",
-        afterNormalized["postedByEmail"] || "",
-        afterNormalized["postedByName"] || "",
-        afterNormalized["imageUrls"] || "",
-        afterNormalized["adminMessage"] || "",
-        afterNormalized["isActive"] || "",
-        afterNormalized["approvedAt"] || "",
         afterNormalized["approvedBy"] || "",
-        afterNormalized["postedAt"] || ""
+        afterNormalized["adminMessage"] || "",
+        afterNormalized["breedType"] || "",
+        afterNormalized["contactPhone"] || "",
+        afterNormalized["imageUrls"] || ""
       ];
 
-      const fieldUpdated = isCreate ? "new_animal" : changedFields.join(", ");
-      const timestampISO = new Date().toISOString();
-      rowValues.push(fieldUpdated || "none", timestampISO);
+      // For new animals that had no images initially but now have images, mark as new_animal
+      const fieldUpdated = (isCreate || (before && (!before.imageUrls || before.imageUrls.length === 0) && after.imageUrls?.length > 0)) 
+        ? "new_animal" 
+        : changedFields.join(", ");
+      
+      // Indian Standard Time (IST = UTC+5:30)
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+      const istTime = new Date(now.getTime() + istOffset);
+      const timestampIST = istTime.toISOString().replace('Z', '+05:30');
+      
+      rowValues.push(fieldUpdated || "none", timestampIST);
 
       // Authenticate to Sheets
       const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));

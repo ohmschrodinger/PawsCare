@@ -24,13 +24,16 @@ void main() async {
   // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hide the system navigation bar (immersiveSticky = auto-hides after swipe up)
+  // Hide only the bottom navigation bar, keep status bar visible
+  // immersiveSticky mode with only top overlay = navigation bar auto-hides after swipe up
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.immersiveSticky,
-    overlays: [],
+    overlays: [
+      SystemUiOverlay.top,
+    ], // Keep status bar (top) visible, hide navigation bar (bottom)
   );
 
-  // Set the system UI overlay style for transparent navigation bar
+  // Set the system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
