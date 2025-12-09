@@ -224,14 +224,7 @@ class _PostComposerState extends State<PostComposer> {
             style: const TextStyle(color: kSecondaryTextColor),
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: kPrimaryAccentColor.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.send, color: kPrimaryAccentColor, size: 18),
-        ),
+        const Icon(Icons.send, color: kPrimaryAccentColor, size: 18),
       ],
     );
   }
@@ -439,75 +432,26 @@ class _PostComposerState extends State<PostComposer> {
                 ),
               ],
             ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(50.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: kPostButtonColor.withOpacity(0.2), // Medium Blue
-                    borderRadius: BorderRadius.circular(50.0),
-                    border: Border.all(
-                      color: kPostButtonColor.withOpacity(0.4),
-                      width: 1.5,
+            _isUploading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: kPostButtonColor.withOpacity(0.2),
-                        offset: const Offset(0, 4),
-                        blurRadius: 12,
-                      ),
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        offset: const Offset(0, 4),
-                        blurRadius: 12,
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _isUploading ? null : _postStory,
-                      borderRadius: BorderRadius.circular(50.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        child: _isUploading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    CupertinoIcons.paperplane_fill,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Post',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                  )
+                : GestureDetector(
+                    onTap: _postStory,
+                    child: const Text(
+                      'Post',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: kPrimaryAccentColor,
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
           ],
         ),
       ],

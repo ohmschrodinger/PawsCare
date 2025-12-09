@@ -45,6 +45,9 @@ class _PostCardWidgetState extends State<PostCardWidget>
   bool _isAdmin = false;
   bool _roleLoaded = false;
 
+  // Local state for likes to show instant updates
+  List<String>? _localLikes;
+
   // Animation controller for the comment icon (pop / rotate)
   late final AnimationController _iconController;
   late final Animation<double> _iconScaleAnimation;
@@ -56,6 +59,9 @@ class _PostCardWidgetState extends State<PostCardWidget>
     _commentFocusNode.addListener(_onFocusChange);
     currentUser = FirebaseAuth.instance.currentUser;
     _loadUserRole();
+
+    // Initialize local likes from widget data
+    _localLikes = List<String>.from(widget.postData['likes'] ?? []);
 
     // Pre-set the resolved name synchronously if it's the current user
     final userId = (widget.postData['userId'] ?? '').toString();
@@ -103,6 +109,9 @@ class _PostCardWidgetState extends State<PostCardWidget>
     // If the postId changed, we have a completely different post
     if (oldWidget.postId != widget.postId) {
       _resolvedAuthorName = null;
+
+      // Reset local likes for new post
+      _localLikes = List<String>.from(widget.postData['likes'] ?? []);
 
       // Pre-set the resolved name synchronously if it's the current user
       final userId = (widget.postData['userId'] ?? '').toString();
@@ -277,17 +286,49 @@ class _PostCardWidgetState extends State<PostCardWidget>
 
   Future<void> _toggleLike() async {
     if (currentUser == null) return;
+
+    // Update local state immediately for instant UI feedback
+    setState(() {
+      final isLiked = _localLikes!.contains(currentUser!.uid);
+      if (isLiked) {
+        _localLikes!.remove(currentUser!.uid);
+      } else {
+        _localLikes!.add(currentUser!.uid);
+      }
+    });
+
+    // Then update Firestore in the background
     final docRef = FirebaseFirestore.instance
         .collection('community_posts')
         .doc(widget.postId);
     final likes = List<String>.from(widget.postData['likes'] ?? []);
     final isLiked = likes.contains(currentUser!.uid);
 
-    await docRef.update({
-      'likes': isLiked
-          ? FieldValue.arrayRemove([currentUser!.uid])
-          : FieldValue.arrayUnion([currentUser!.uid]),
-    });
+    try {
+      await docRef.update({
+        'likes': isLiked
+            ? FieldValue.arrayRemove([currentUser!.uid])
+            : FieldValue.arrayUnion([currentUser!.uid]),
+      });
+    } catch (e) {
+      // If Firestore update fails, revert the local state
+      if (mounted) {
+        setState(() {
+          final isLiked = _localLikes!.contains(currentUser!.uid);
+          if (isLiked) {
+            _localLikes!.remove(currentUser!.uid);
+          } else {
+            _localLikes!.add(currentUser!.uid);
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating like: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _sharePost() async {
@@ -458,12 +499,13 @@ class _PostCardWidgetState extends State<PostCardWidget>
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     final timestamp =
         (widget.postData['postedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
     final timeAgo = _getTimeAgo(timestamp);
-    final likes = List<String>.from(widget.postData['likes'] ?? []);
+
+    // Use local likes state for instant UI updates
+    final likes = _localLikes ?? [];
     final isLiked = currentUser != null && likes.contains(currentUser!.uid);
     final int commentCount = (widget.postData['commentCount'] ?? 0) as int;
     final String storyText = widget.postData['story'] ?? '';
@@ -895,32 +937,10 @@ class _PostCardWidgetState extends State<PostCardWidget>
                     ),
                   ),
                   const SizedBox(width: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(25.0),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.4),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withOpacity(0.2),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.send, color: Colors.white),
-                          onPressed: _postComment,
-                          tooltip: 'Post comment',
-                        ),
-                      ),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: kPrimaryAccentColor),
+                    onPressed: _postComment,
+                    tooltip: 'Post comment',
                   ),
                 ],
               ),
