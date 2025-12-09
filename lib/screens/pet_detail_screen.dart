@@ -224,20 +224,20 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: Stack(
         children: [
           _buildImageGallery(imageUrls),
           _buildContentBody(status),
           if (!isAdopted && !hideAdoptButton) _buildAdoptMeButton(),
+          // Back button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
         ],
       ),
     );

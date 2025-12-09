@@ -12,6 +12,7 @@ import '../../main_navigation_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:pawscare/constants/app_colors.dart';
 import 'package:pawscare/constants/animal_status.dart';
+import 'package:pawscare/screens/animal_map_screen.dart';
 
 // -------------------- HomeScreen --------------------
 class HomeScreen extends StatefulWidget {
@@ -110,6 +111,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainNavKey.currentState?.selectTab(2);
                     } else if (value == 'adopt') {
                       mainNavKey.currentState?.selectTab(1);
+                    } else if (value == 'find') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AnimalMapScreen(),
+                        ),
+                      );
                     }
                   },
                   itemBuilder: (BuildContext context) => [
@@ -138,6 +146,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(width: 12),
                           Text(
                             'Adopt Pet',
+                            style: TextStyle(color: kPrimaryTextColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'find',
+                      child: Row(
+                        children: [
+                          Icon(Icons.map, size: 20, color: kPrimaryTextColor),
+                          SizedBox(width: 12),
+                          Text(
+                            'Find Pets',
                             style: TextStyle(color: kPrimaryTextColor),
                           ),
                         ],

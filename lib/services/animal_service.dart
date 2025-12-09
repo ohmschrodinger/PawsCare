@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../constants/animal_status.dart';
 import 'logging_service.dart';
 import '../models/animal_location.dart';
@@ -7,6 +8,7 @@ import '../models/animal_location.dart';
 class AnimalService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseStorage _storage = FirebaseStorage.instance;
 
   /// Post a new animal for adoption
   static Future<DocumentReference> postAnimal({
@@ -246,7 +248,7 @@ class AnimalService {
 
   /// Delete animal post
   /// Only allows deletion if:
-  /// 1. User is the owner of the post
+  /// 1. User is the owner of the post OR user has admin role
   /// 2. Animal is still available for adoption (not adopted)
   static Future<void> deleteAnimalPost(String animalId) async {
     try {
@@ -267,8 +269,21 @@ class AnimalService {
 
       final animalData = animalDoc.data()!;
 
-      // Check if user is the owner
-      if (animalData['postedBy'] != user.uid) {
+      // Check if user is the owner or an admin
+      final isOwner = animalData['postedBy'] == user.uid;
+      bool isAdmin = false;
+
+      if (!isOwner) {
+        // Check if user has admin role
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final role = userDoc.data()?['role'] as String?;
+        isAdmin = role == 'admin' || role == 'superadmin';
+      }
+
+      if (!isOwner && !isAdmin) {
         throw Exception('You can only delete your own posts');
       }
 
@@ -276,6 +291,24 @@ class AnimalService {
       final status = animalData['status'] as String?;
       if (status == AnimalStatus.adopted) {
         throw Exception('Cannot delete an adopted animal');
+      }
+
+      // Delete images from Firebase Storage
+      final imageUrls = animalData['imageUrls'] as List<dynamic>?;
+      if (imageUrls != null && imageUrls.isNotEmpty) {
+        for (final imageUrl in imageUrls) {
+          if (imageUrl is String && imageUrl.isNotEmpty) {
+            try {
+              // Extract the storage path from the URL and delete the file
+              final ref = _storage.refFromURL(imageUrl);
+              await ref.delete();
+              print('Deleted image: $imageUrl');
+            } catch (e) {
+              // Continue even if image deletion fails (image might already be deleted)
+              print('Failed to delete image $imageUrl: $e');
+            }
+          }
+        }
       }
 
       // Delete the document
@@ -318,8 +351,21 @@ class AnimalService {
 
       final animalData = animalDoc.data()!;
 
-      // Check if user is the owner
-      if (animalData['postedBy'] != user.uid) {
+      // Check if user is the owner or an admin
+      final isOwner = animalData['postedBy'] == user.uid;
+      bool isAdmin = false;
+
+      if (!isOwner) {
+        // Check if user has admin role
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final role = userDoc.data()?['role'] as String?;
+        isAdmin = role == 'admin' || role == 'superadmin';
+      }
+
+      if (!isOwner && !isAdmin) {
         return {
           'canDelete': false,
           'reason': 'You can only delete your own posts',

@@ -8,6 +8,7 @@ import 'package:pawscare/services/user_service.dart';
 import 'package:pawscare/screens/terms_and_service.dart';
 import 'package:pawscare/screens/private_policy.dart';
 import 'package:pawscare/screens/my_posted_animals_screen.dart';
+import 'package:pawscare/screens/all_posted_animals_screen.dart';
 import 'package:pawscare/screens/contact_us_screen.dart';
 import 'package:pawscare/screens/about_developers_screen.dart';
 import 'package:pawscare/constants/app_colors.dart';
@@ -28,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _isEditing = false;
   bool _isLoading = true;
+  bool _isAdmin = false;
   String _errorMessage = '';
 
   @override
@@ -72,6 +74,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _lastNameController.text = data['lastName'] ?? '';
         _phoneController.text = data['phoneNumber'] ?? '';
         _addressController.text = data['address'] ?? '';
+
+        // Check if user is admin
+        final role = data['role'] as String?;
+        _isAdmin = role == 'admin' || role == 'superadmin';
       }
     } catch (e) {
       if (mounted) setState(() => _errorMessage = "Failed to load data.");
@@ -446,6 +452,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               context,
             ).push(MaterialPageRoute(builder: (_) => const SavedPostsScreen()));
           }),
+
+          // Admin Section - Only visible to admins
+          if (_isAdmin) ...[
+            const SizedBox(height: 20),
+            _buildSectionHeader('Admin'),
+            _buildNavigationTile('All Posted Animals', Icons.pets_outlined, () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllPostedAnimalsScreen(),
+                ),
+              );
+            }),
+          ],
 
           const SizedBox(height: 20),
           _buildSectionHeader('Support'),

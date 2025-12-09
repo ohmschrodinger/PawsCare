@@ -17,23 +17,18 @@ import 'main_navigation_screen.dart';
 import 'services/notification_service.dart';
 import 'services/adoption_counter_service.dart';
 
-// main.dart
-// This file initializes Firebase and handles the main app routing based on authentication state.
-
 void main() async {
-  // Ensure that Flutter is initialized before calling Firebase.initializeApp()
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Hide only the bottom navigation bar, keep status bar visible
-  // immersiveSticky mode with only top overlay = navigation bar auto-hides after swipe up
+  // --- FIX START ---
+  // Use 'manual' mode to explicitly keep the Top Bar (Status Bar) 
+  // while hiding the Bottom Bar (Navigation Bar).
   SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.immersiveSticky,
-    overlays: [
-      SystemUiOverlay.top,
-    ], // Keep status bar (top) visible, hide navigation bar (bottom)
+    SystemUiMode.manual,
+    overlays: [SystemUiOverlay.top], 
   );
+  // --- FIX END ---
 
-  // Set the system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
@@ -44,19 +39,13 @@ void main() async {
     ),
   );
 
-  // Load environment variables from .env file
   await dotenv.load(fileName: "assets/.env");
 
   try {
     await Firebase.initializeApp();
-
-    // Initialize notification service
     await NotificationService.initialize();
-
-    // Initialize adoption counter (creates document if doesn't exist)
     await AdoptionCounterService.initializeCounter();
   } catch (e) {
-    // If Firebase is already initialized, ignore the error
     if (e.toString().contains('duplicate-app')) {
       print('Firebase already initialized, continuing...');
     } else {
@@ -72,21 +61,21 @@ class PawsCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Re-apply immersive mode when app resumes
+    // --- FIX START ---
+    // Ensure the setting persists when the app rebuilds or resumes
     SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.immersiveSticky,
-      overlays: [],
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.top],
     );
+    // --- FIX END ---
 
     const primaryColor = Color(0xFF5AC8F2);
 
     return MaterialApp(
       title: 'PawsCare Adoption',
-      // Define a centralized theme for a consistent, modern UI
       theme: ThemeData(
         primaryColor: primaryColor,
-        scaffoldBackgroundColor:
-            Colors.grey[50], // Light background for all screens
+        scaffoldBackgroundColor: Colors.grey[50],
         visualDensity: VisualDensity.adaptivePlatformDensity,
         appBarTheme: const AppBarTheme(
           backgroundColor: primaryColor,
@@ -141,8 +130,7 @@ class PawsCareApp extends StatelessWidget {
         '/signin': (context) => const NewSignInScreen(),
         '/main': (context) => MainNavigationScreen(key: mainNavKey),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
-        '/admin-animal-approval': (context) =>
-            const AdminAnimalApprovalScreen(),
+        '/admin-animal-approval': (context) => const AdminAnimalApprovalScreen(),
         '/password-reset': (context) => const PasswordResetScreen(),
         '/email-verification': (context) => const EmailVerificationScreen(),
         '/cat-facts': (context) => const CatFactsScreen(),
