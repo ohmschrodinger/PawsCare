@@ -254,7 +254,7 @@ class _PostAnimalScreenState extends State<PostAnimalScreen>
             _buildSectionHeader('Basic Information'),
             _buildTextField(
               _nameController,
-              'Name*',
+              'Name of the pet*',
               'e.g., Bruno, Kitty',
               validator: (v) => v!.isEmpty ? "Name is required" : null,
             ),

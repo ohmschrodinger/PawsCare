@@ -6,6 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:pawscare/constants/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pawscare/services/contact_info_service.dart';
+import 'package:pawscare/models/contact_info_model.dart';
 
 class PetDetailScreen extends StatefulWidget {
   final Map<String, dynamic> petData;
@@ -21,11 +23,14 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
   int _currentPage = 0;
   bool _isAdmin = false;
   bool _isPoster = false;
+  ContactInfo? _pawsCareContact;
+  bool _isLoadingContactInfo = true;
 
   @override
   void initState() {
     super.initState();
     _checkUserPermissions();
+    _loadPawsCareContactInfo();
   }
 
   Future<void> _checkUserPermissions() async {
@@ -56,6 +61,25 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
       }
     } catch (e) {
       print('Error checking user permissions: $e');
+    }
+  }
+
+  Future<void> _loadPawsCareContactInfo() async {
+    try {
+      final contactInfo = await ContactInfoService.getContactInfo();
+      if (mounted) {
+        setState(() {
+          _pawsCareContact = contactInfo;
+          _isLoadingContactInfo = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading PawsCare contact info: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingContactInfo = false;
+        });
+      }
     }
   }
 
@@ -104,6 +128,40 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error opening WhatsApp: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchGoogleMaps(String location) async {
+    // Encode the location for URL
+    final encodedLocation = Uri.encodeComponent(location);
+
+    // Google Maps search URL
+    final Uri mapsUrl = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$encodedLocation',
+    );
+
+    try {
+      if (await canLaunchUrl(mapsUrl)) {
+        await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not open Google Maps'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening Google Maps: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -373,16 +431,14 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                       _buildDetailCard(
                         title: 'Contact & Location',
                         children: [
-                          _buildInfoRow(
-                            Icons.location_on,
-                            'Location:',
-                            getField('location'),
-                          ),
+                          _buildLocationRow(getField('location')),
                           _buildPhoneRow(getField('contactPhone')),
                           _buildInfoRow(
-                            Icons.email,
+                            Icons.person,
                             'Posted By:',
-                            getField('postedByEmail'),
+                            getField('postedByName').isNotEmpty
+                                ? getField('postedByName')
+                                : getField('postedByEmail'),
                           ),
                           _buildInfoRow(
                             Icons.access_time,
@@ -691,6 +747,17 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
 
   Widget _buildPhoneRow(String phoneNumber) {
     if (phoneNumber.isEmpty) return const SizedBox.shrink();
+
+    // For admins, show the original contact number
+    // For regular users, show "Contact PawsCare" with PawsCare WhatsApp number
+    final bool showPawsCareContact = !_isAdmin;
+    final String displayLabel = showPawsCareContact
+        ? 'Contact PawsCare: '
+        : 'Contact: ';
+    final String displayNumber = showPawsCareContact
+        ? (_pawsCareContact?.pawscareWhatsapp ?? phoneNumber)
+        : phoneNumber;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -702,16 +769,16 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
             child: Text.rich(
               TextSpan(
                 children: [
-                  const TextSpan(
-                    text: 'Contact: ',
-                    style: TextStyle(
+                  TextSpan(
+                    text: displayLabel,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                       color: kPrimaryTextColor,
                     ),
                   ),
                   TextSpan(
-                    text: phoneNumber,
+                    text: displayNumber,
                     style: const TextStyle(
                       fontSize: 16,
                       color: kSecondaryTextColor,
@@ -723,7 +790,58 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           ),
           const SizedBox(width: 8),
           InkWell(
-            onTap: () => _launchWhatsApp(phoneNumber),
+            onTap: () => _launchWhatsApp(displayNumber),
+            borderRadius: BorderRadius.circular(4),
+            child: const Padding(
+              padding: EdgeInsets.all(4.0),
+              child: Icon(
+                Icons.open_in_new,
+                color: kSecondaryTextColor,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationRow(String location) {
+    if (location.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.location_on, color: kSecondaryTextColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  const TextSpan(
+                    text: 'Location: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: kPrimaryTextColor,
+                    ),
+                  ),
+                  TextSpan(
+                    text: location,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: kSecondaryTextColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: () => _launchGoogleMaps(location),
             borderRadius: BorderRadius.circular(4),
             child: const Padding(
               padding: EdgeInsets.all(4.0),

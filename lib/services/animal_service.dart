@@ -58,6 +58,25 @@ class AnimalService {
         locationMap = locationData.toMap();
       }
 
+      // Fetch user's name from Firestore
+      String postedByName = user.email ?? 'Unknown';
+      try {
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userDoc.exists) {
+          final userData = userDoc.data();
+          final firstName = userData?['firstName'] ?? '';
+          final lastName = userData?['lastName'] ?? '';
+          if (firstName.isNotEmpty || lastName.isNotEmpty) {
+            postedByName = '$firstName $lastName'.trim();
+          }
+        }
+      } catch (e) {
+        print('Error fetching user name: $e');
+      }
+
       final animalData = {
         'name': name,
         'species': species,
@@ -77,6 +96,7 @@ class AnimalService {
         'rescueStory': rescueStory ?? '',
         'postedBy': user.uid,
         'postedByEmail': user.email,
+        'postedByName': postedByName,
         'postedAt': FieldValue.serverTimestamp(),
         'isActive': isActive,
         'approvalStatus': approvalStatus,
@@ -249,7 +269,7 @@ class AnimalService {
   /// Delete animal post
   /// Only allows deletion if:
   /// 1. User is the owner of the post OR user has admin role
-  /// 2. Animal is still available for adoption (not adopted)
+  /// 2. Animal is still available for adoption (not adopted) - unless user is admin
   static Future<void> deleteAnimalPost(String animalId) async {
     try {
       final user = _auth.currentUser;
@@ -287,9 +307,9 @@ class AnimalService {
         throw Exception('You can only delete your own posts');
       }
 
-      // Check if animal is already adopted
+      // Check if animal is already adopted (only restrict regular users, not admins)
       final status = animalData['status'] as String?;
-      if (status == AnimalStatus.adopted) {
+      if (status == AnimalStatus.adopted && !isAdmin) {
         throw Exception('Cannot delete an adopted animal');
       }
 
@@ -372,9 +392,9 @@ class AnimalService {
         };
       }
 
-      // Check if animal is already adopted
+      // Check if animal is already adopted (only restrict regular users, not admins)
       final status = animalData['status'] as String?;
-      if (status == AnimalStatus.adopted) {
+      if (status == AnimalStatus.adopted && !isAdmin) {
         return {
           'canDelete': false,
           'reason':
