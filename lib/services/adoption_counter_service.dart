@@ -146,26 +146,4 @@ class AdoptionCounterService {
       rethrow;
     }
   }
-
-  /// Get adoptions this month (still from animals collection)
-  static Future<int> getAdoptionsThisMonth() async {
-    try {
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
-
-      final snapshot = await _firestore
-          .collection('animals')
-          .where('status', isEqualTo: 'Adopted')
-          .where(
-            'adoptedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
-          )
-          .get();
-
-      return snapshot.docs.length;
-    } catch (e) {
-      print('Error getting adoptions this month: $e');
-      return 0;
-    }
-  }
 }

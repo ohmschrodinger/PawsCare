@@ -227,11 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         final stats =
                             snapshot.data ??
-                            {
-                              'totalAdoptions': 0,
-                              'adoptedThisMonth': 0,
-                              'activeRescues': 0,
-                            };
+                            {'totalAdoptions': 0, 'activeRescues': 0};
 
                         return Row(
                           children: [

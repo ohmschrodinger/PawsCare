@@ -15,8 +15,6 @@ class StatsService {
       final futures = await Future.wait([
         // Get TOTAL adoptions from permanent counter (never decreases)
         AdoptionCounterService.getTotalAdoptions(),
-        // Get adoptions this month
-        AdoptionCounterService.getAdoptionsThisMonth(),
         // Get available animals
         _firestore
             .collection('animals')
@@ -34,29 +32,27 @@ class StatsService {
       ]);
 
       final totalAdoptions = futures[0] as int;
-      final adoptedThisMonth = futures[1] as int;
-      final availableQuery = futures[2] as QuerySnapshot;
-      final pendingQuery = futures[3] as QuerySnapshot;
+      final availableQuery = futures[1] as QuerySnapshot;
+      final pendingQuery = futures[2] as QuerySnapshot;
 
       final activeRescues =
           availableQuery.docs.length + pendingQuery.docs.length;
 
       final stats = {
         'totalAdoptions': totalAdoptions, // This is the permanent counter
-        'adoptedThisMonth': adoptedThisMonth,
         'activeRescues': activeRescues,
       };
 
       // Cache the results
       _cachedStats = stats;
       print(
-        'DEBUG: Stats - Total adoptions: $totalAdoptions, This month: $adoptedThisMonth, Active rescues: $activeRescues',
+        'DEBUG: Stats - Total adoptions: $totalAdoptions, Active rescues: $activeRescues',
       );
 
       return stats;
     } catch (e) {
       print('Error fetching adoption stats: $e');
-      return {'totalAdoptions': 0, 'adoptedThisMonth': 0, 'activeRescues': 0};
+      return {'totalAdoptions': 0, 'activeRescues': 0};
     }
   }
 
