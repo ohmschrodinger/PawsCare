@@ -267,9 +267,9 @@ class AnimalService {
   }
 
   /// Delete animal post
-  /// Only allows deletion if:
-  /// 1. User is the owner of the post OR user has admin role
-  /// 2. Animal is still available for adoption (not adopted) - unless user is admin
+  /// Delete an animal post
+  /// Admins can delete any post (including adopted animals)
+  /// Regular users can delete their own posts (including adopted animals)
   static Future<void> deleteAnimalPost(String animalId) async {
     try {
       final user = _auth.currentUser;
@@ -289,29 +289,22 @@ class AnimalService {
 
       final animalData = animalDoc.data()!;
 
-      // Check if user is the owner or an admin
+      // Check if user is the owner
       final isOwner = animalData['postedBy'] == user.uid;
+
+      // Check if user has admin role
       bool isAdmin = false;
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final role = userDoc.data()?['role'] as String?;
+      isAdmin = role == 'admin' || role == 'superadmin';
 
-      if (!isOwner) {
-        // Check if user has admin role
-        final userDoc = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final role = userDoc.data()?['role'] as String?;
-        isAdmin = role == 'admin' || role == 'superadmin';
-      }
-
-      if (!isOwner && !isAdmin) {
+      // Admins can delete any post
+      if (!isAdmin && !isOwner) {
         throw Exception('You can only delete your own posts');
       }
 
-      // Check if animal is already adopted (only restrict regular users, not admins)
-      final status = animalData['status'] as String?;
-      if (status == AnimalStatus.adopted && !isAdmin) {
-        throw Exception('Cannot delete an adopted animal');
-      }
+      // Both admins and owners can delete adopted animals
+      // No restriction on deletion of adopted animals
 
       // Delete images from Firebase Storage
       final imageUrls = animalData['imageUrls'] as List<dynamic>?;
@@ -340,7 +333,7 @@ class AnimalService {
         data: {
           'animalId': animalId,
           'name': animalData['name'],
-          'status': status,
+          'status': animalData['status'],
         },
       );
 
@@ -371,37 +364,29 @@ class AnimalService {
 
       final animalData = animalDoc.data()!;
 
-      // Check if user is the owner or an admin
+      // Check if user is the owner
       final isOwner = animalData['postedBy'] == user.uid;
-      bool isAdmin = false;
 
-      if (!isOwner) {
-        // Check if user has admin role
-        final userDoc = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        final role = userDoc.data()?['role'] as String?;
-        isAdmin = role == 'admin' || role == 'superadmin';
+      // Check if user has admin role
+      bool isAdmin = false;
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      final role = userDoc.data()?['role'] as String?;
+      isAdmin = role == 'admin' || role == 'superadmin';
+
+      // Admins can delete any post (including adopted animals)
+      if (isAdmin) {
+        return {'canDelete': true, 'reason': ''};
       }
 
-      if (!isOwner && !isAdmin) {
+      // Regular users can only delete their own posts
+      if (!isOwner) {
         return {
           'canDelete': false,
           'reason': 'You can only delete your own posts',
         };
       }
 
-      // Check if animal is already adopted (only restrict regular users, not admins)
-      final status = animalData['status'] as String?;
-      if (status == AnimalStatus.adopted && !isAdmin) {
-        return {
-          'canDelete': false,
-          'reason':
-              'This animal has already been adopted and cannot be withdrawn',
-        };
-      }
-
+      // Owners can delete their own posts (including adopted animals)
       return {'canDelete': true, 'reason': ''};
     } catch (e) {
       return {

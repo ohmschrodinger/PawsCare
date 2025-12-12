@@ -6,6 +6,7 @@ import 'package:pawscare/screens/pet_detail_screen.dart';
 import 'package:pawscare/services/animal_service.dart';
 import 'package:pawscare/services/greeting_service.dart';
 import 'package:pawscare/services/stats_service.dart';
+import 'package:pawscare/services/pet_of_day_service.dart';
 import 'package:pawscare/theme/typography.dart';
 import '../widgets/paws_care_app_bar.dart';
 import '../../main_navigation_screen.dart';
@@ -382,26 +383,69 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
 
-              // Extract pet data
-              final petImage = data?['petImage'] ?? '';
-              final petName = data?['petName'] ?? 'Unknown Pet';
-              final petSpecies = data?['petSpecies'] ?? 'Pet';
-              final petAge = data?['petAge'] ?? '';
-              final fullPetData = data?['fullPetData'] as Map<String, dynamic>?;
+              // Validate that the animal still exists
+              final petId = data?['petId'] as String?;
+              if (petId == null) {
+                return _buildPetOfTheDayPlaceholder(
+                  message: 'No pets available at the moment',
+                );
+              }
 
-              // Use rescue story from fullPetData if available, otherwise use petDescription
-              final rescueStory =
-                  fullPetData?['rescueStory'] ??
-                  data?['petDescription'] ??
-                  'Meet this adorable pet!';
+              // Check if the animal document still exists
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('animals')
+                    .doc(petId)
+                    .get(),
+                builder: (context, animalSnapshot) {
+                  if (animalSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return _buildPetOfTheDayLoading();
+                  }
 
-              return _buildPetOfTheDayCard(
-                petImage: petImage,
-                petName: petName,
-                petSpecies: petSpecies,
-                petAge: petAge,
-                rescueStory: rescueStory,
-                fullPetData: fullPetData,
+                  // If animal doesn't exist or is not available, select a new pet
+                  if (!animalSnapshot.hasData ||
+                      !animalSnapshot.data!.exists ||
+                      (animalSnapshot.data!.data()
+                              as Map<String, dynamic>?)?['status'] !=
+                          'Available for Adoption') {
+                    // Trigger selection of a new pet (fire and forget)
+                    Future.microtask(() async {
+                      try {
+                        await PetOfTheDayService.selectNewPetOfTheDay();
+                      } catch (e) {
+                        // Silently fail - the scheduled function will handle it eventually
+                      }
+                    });
+
+                    return _buildPetOfTheDayPlaceholder(
+                      message: 'Selecting a new pet for you...',
+                    );
+                  }
+
+                  // Extract pet data
+                  final petImage = data?['petImage'] ?? '';
+                  final petName = data?['petName'] ?? 'Unknown Pet';
+                  final petSpecies = data?['petSpecies'] ?? 'Pet';
+                  final petAge = data?['petAge'] ?? '';
+                  final fullPetData =
+                      data?['fullPetData'] as Map<String, dynamic>?;
+
+                  // Use rescue story from fullPetData if available, otherwise use petDescription
+                  final rescueStory =
+                      fullPetData?['rescueStory'] ??
+                      data?['petDescription'] ??
+                      'Meet this adorable pet!';
+
+                  return _buildPetOfTheDayCard(
+                    petImage: petImage,
+                    petName: petName,
+                    petSpecies: petSpecies,
+                    petAge: petAge,
+                    rescueStory: rescueStory,
+                    fullPetData: fullPetData,
+                  );
+                },
               );
             },
           ),
