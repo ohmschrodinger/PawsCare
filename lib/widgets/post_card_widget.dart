@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/current_user_cache.dart';
 import '../constants/app_colors.dart';
+import '../screens/post_detail_screen.dart';
 
 class PostCardWidget extends StatefulWidget {
   final Map<String, dynamic> postData;
@@ -516,92 +517,113 @@ class _PostCardWidgetState extends State<PostCardWidget>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16.0),
-        child: Stack(
-          children: [
-            // NOTE: Background image removed as requested.
-            // Keep only the glassmorphism layer (blur + semi-transparent black card)
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PostDetailScreen(
+                postId: widget.postId,
+                postData: widget.postData,
+              ),
+            ),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16.0),
+          child: Stack(
+            children: [
+              // NOTE: Background image removed as requested.
+              // Keep only the glassmorphism layer (blur + semi-transparent black card)
 
-            // Glassmorphism effect layer (with requested blur and color)
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  // Use black with 25% opacity as requested
-                  color: Colors.black.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(16.0),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.15), // subtle border
-                    width: 1.5,
+              // Glassmorphism effect layer (with requested blur and color)
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    // Use black with 25% opacity as requested
+                    color: Colors.black.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(16.0),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.15), // subtle border
+                      width: 1.5,
+                    ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildPostHeader(displayAuthor, timeAgo),
-                      const SizedBox(height: 12),
-                      if (storyText.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              storyText,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                height: 1.4,
-                                color: kPrimaryTextColor,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildPostHeader(displayAuthor, timeAgo),
+                        const SizedBox(height: 12),
+                        if (storyText.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                storyText,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  height: 1.4,
+                                  color: kPrimaryTextColor,
+                                ),
+                                maxLines: _isExpanded
+                                    ? null
+                                    : _maxLinesCollapsed,
+                                overflow: _isExpanded
+                                    ? TextOverflow.visible
+                                    : TextOverflow.ellipsis,
                               ),
-                              maxLines: _isExpanded ? null : _maxLinesCollapsed,
-                              overflow: _isExpanded
-                                  ? TextOverflow.visible
-                                  : TextOverflow.ellipsis,
-                            ),
-                            if (isLongText)
-                              GestureDetector(
-                                onTap: () =>
-                                    setState(() => _isExpanded = !_isExpanded),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text(
-                                    _isExpanded ? 'Read less' : 'Read more...',
-                                    style: const TextStyle(
-                                      color: kPrimaryTextColor,
-                                      fontWeight: FontWeight.bold,
+                              if (isLongText)
+                                GestureDetector(
+                                  onTap: () => setState(
+                                    () => _isExpanded = !_isExpanded,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      _isExpanded
+                                          ? 'Read less'
+                                          : 'Read more...',
+                                      style: const TextStyle(
+                                        color: kPrimaryTextColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
+                        if ((widget.postData['imageUrl'] ?? '')
+                            .toString()
+                            .isNotEmpty)
+                          _buildPostImage(widget.postData['imageUrl']),
+                        const SizedBox(height: 8),
+                        _buildActionButtons(
+                          isLiked,
+                          likes.length,
+                          commentCount,
                         ),
-                      if ((widget.postData['imageUrl'] ?? '')
-                          .toString()
-                          .isNotEmpty)
-                        _buildPostImage(widget.postData['imageUrl']),
-                      const SizedBox(height: 8),
-                      _buildActionButtons(isLiked, likes.length, commentCount),
-                      AnimatedCrossFade(
-                        firstChild: const SizedBox.shrink(),
-                        secondChild: Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: _buildCommentSection(),
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox.shrink(),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: _buildCommentSection(),
+                          ),
+                          crossFadeState: _isCommentSectionVisible
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 300),
+                          firstCurve: Curves.easeOut,
+                          secondCurve: Curves.easeIn,
+                          sizeCurve: Curves.easeInOut,
                         ),
-                        crossFadeState: _isCommentSectionVisible
-                            ? CrossFadeState.showSecond
-                            : CrossFadeState.showFirst,
-                        duration: const Duration(milliseconds: 300),
-                        firstCurve: Curves.easeOut,
-                        secondCurve: Curves.easeIn,
-                        sizeCurve: Curves.easeInOut,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -713,27 +735,77 @@ class _PostCardWidgetState extends State<PostCardWidget>
   }
 
   Widget _buildPostImage(String url) {
+    final bool isSensitive = widget.postData['isSensitive'] ?? false;
+
     return Padding(
       padding: const EdgeInsets.only(top: 12.0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: CachedNetworkImage(
-            imageUrl: url,
-            fit: BoxFit.cover,
-            placeholder: (context, __) => Container(
-              color: Colors.grey.shade900,
-              child: const Center(
-                child: CircularProgressIndicator(color: kPrimaryAccentColor),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                placeholder: (context, __) => Container(
+                  color: Colors.grey.shade900,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: kPrimaryAccentColor,
+                    ),
+                  ),
+                ),
+                errorWidget: (context, __, ___) => Container(
+                  color: Colors.grey.shade900,
+                  child: const Center(
+                    child: Icon(Icons.broken_image, color: kSecondaryTextColor),
+                  ),
+                ),
               ),
-            ),
-            errorWidget: (context, __, ___) => Container(
-              color: Colors.grey.shade900,
-              child: const Center(
-                child: Icon(Icons.broken_image, color: kSecondaryTextColor),
-              ),
-            ),
+              if (isSensitive)
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                      child: Container(
+                        color: Colors.black.withOpacity(0.3),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.visibility_off,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Sensitive Content',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Tap to view',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -744,56 +816,73 @@ class _PostCardWidgetState extends State<PostCardWidget>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildActionButton(
-          icon: isLiked ? Icons.favorite : Icons.favorite_border,
-          text: '$likeCount',
-          color: isLiked
-              ? Colors.redAccent
-              : kSecondaryTextColor, // like button red when liked
-          onTap: _toggleLike,
+        GestureDetector(
+          onTap: () {
+            _toggleLike();
+          },
+          child: _buildActionButton(
+            icon: isLiked ? Icons.favorite : Icons.favorite_border,
+            text: '$likeCount',
+            color: isLiked
+                ? Colors.redAccent
+                : kSecondaryTextColor, // like button red when liked
+            onTap: () {}, // Empty because handled by GestureDetector
+          ),
         ),
         // Comment button: wrapped with animation widgets
-        InkWell(
-          onTap: _toggleCommentSection,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                // Animated icon (rotation + scale)
-                AnimatedBuilder(
-                  animation: _iconController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _iconRotationAnimation.value,
-                      child: Transform.scale(
-                        scale: _iconScaleAnimation.value,
-                        child: Icon(
-                          Icons.chat_bubble_outline,
-                          color: kSecondaryTextColor,
-                          size: 20,
+        GestureDetector(
+          onTap: () {
+            _toggleCommentSection();
+          },
+          child: InkWell(
+            onTap: () {
+              _toggleCommentSection();
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  // Animated icon (rotation + scale)
+                  AnimatedBuilder(
+                    animation: _iconController,
+                    builder: (context, child) {
+                      return Transform.rotate(
+                        angle: _iconRotationAnimation.value,
+                        child: Transform.scale(
+                          scale: _iconScaleAnimation.value,
+                          child: Icon(
+                            Icons.chat_bubble_outline,
+                            color: kSecondaryTextColor,
+                            size: 20,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '$commentCount',
-                  style: const TextStyle(
-                    color: kSecondaryTextColor,
-                    fontWeight: FontWeight.w500,
+                      );
+                    },
                   ),
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    '$commentCount',
+                    style: const TextStyle(
+                      color: kSecondaryTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        _buildActionButton(
-          icon: Icons.share_outlined,
-          text: 'Share',
-          color: kSecondaryTextColor,
-          onTap: _sharePost,
+        GestureDetector(
+          onTap: () {
+            _sharePost();
+          },
+          child: _buildActionButton(
+            icon: Icons.share_outlined,
+            text: 'Share',
+            color: kSecondaryTextColor,
+            onTap: () {}, // Empty because handled by GestureDetector
+          ),
         ),
       ],
     );

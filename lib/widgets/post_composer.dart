@@ -24,6 +24,7 @@ class _PostComposerState extends State<PostComposer> {
   File? _selectedImage;
   bool _isUploading = false;
   bool _isExpanded = false;
+  bool _markAsSensitive = false;
 
   String _selectedCategory = 'General';
   final List<String> _categories = [
@@ -75,6 +76,7 @@ class _PostComposerState extends State<PostComposer> {
       _isExpanded = false;
       _isUploading = false;
       _selectedCategory = 'General';
+      _markAsSensitive = false;
     });
     FocusScope.of(context).unfocus();
   }
@@ -137,6 +139,7 @@ class _PostComposerState extends State<PostComposer> {
         'likes': <String>[],
         'commentCount': 0,
         'userId': uid,
+        'isSensitive': _markAsSensitive,
       });
 
       if (!mounted) return;
@@ -406,6 +409,27 @@ class _PostComposerState extends State<PostComposer> {
             }).toList(),
           ),
         ),
+        if (_selectedImage != null)
+          Row(
+            children: [
+              Checkbox(
+                value: _markAsSensitive,
+                onChanged: (value) {
+                  setState(() => _markAsSensitive = value ?? false);
+                },
+                activeColor: kPrimaryAccentColor,
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _markAsSensitive = !_markAsSensitive);
+                },
+                child: const Text(
+                  'Mark as sensitive content',
+                  style: TextStyle(color: kPrimaryTextColor, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
         Divider(height: 24, color: Colors.white.withOpacity(0.1)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
