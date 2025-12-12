@@ -134,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _showDeleteAccountDialog() async {
+ Future<void> _showDeleteAccountDialog() async {
     final TextEditingController confirmController = TextEditingController();
 
     return showDialog(
@@ -144,105 +144,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return AlertDialog(
           backgroundColor: kCardColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(20.0), // More modern rounded corners
+            side: BorderSide(color: Colors.grey.shade800, width: 1), // Subtle border definition
           ),
-          title: const Text(
-            'Delete Account',
-            style: TextStyle(
-              color: kPrimaryTextColor,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
             children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+              const SizedBox(width: 12),
               const Text(
-                '⚠️ Warning: This action cannot be undone!',
-                style: TextStyle(
-                  color: Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Deleting your account will permanently remove:',
-                style: TextStyle(color: kSecondaryTextColor, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '• Your profile and personal information\n'
-                '• All your posted animals\n'
-                '• All your adoption applications\n'
-                '• All your saved posts and favorites',
-                style: TextStyle(color: kSecondaryTextColor, fontSize: 13),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Type "delete" to confirm:',
+                'Delete Account',
                 style: TextStyle(
                   color: kPrimaryTextColor,
-                  fontSize: 14,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: confirmController,
-                style: const TextStyle(color: kPrimaryTextColor),
-                decoration: InputDecoration(
-                  hintText: 'delete',
-                  hintStyle: const TextStyle(color: kSecondaryTextColor),
-                  filled: true,
-                  fillColor: kBackgroundColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: const BorderSide(color: kSecondaryTextColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: const BorderSide(color: kSecondaryTextColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: const BorderSide(color: Colors.redAccent),
-                  ),
+                  fontSize: 20,
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                confirmController.dispose();
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: kSecondaryTextColor),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (confirmController.text.toLowerCase() == 'delete') {
-                  Navigator.of(dialogContext).pop();
-                  confirmController.dispose();
-                  await _deleteAccount();
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please type "delete" to confirm'),
-                      backgroundColor: Colors.redAccent,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. IMPROVED WARNING SECTION
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'This action cannot be undone.',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'You will permanently lose:',
+                        style: TextStyle(color: kSecondaryTextColor, fontSize: 13),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildBulletPoint('Profile & personal info'),
+                      _buildBulletPoint('Posted animals & applications'),
+                      _buildBulletPoint('Saved posts & favorites'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // 2. INPUT INSTRUCTION
+                const Center(
+                  child: Text(
+                    'Type "delete" to confirm:',
+                    style: TextStyle(
+                      color: kPrimaryTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Delete Account'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // 3. IMPROVED INPUT FIELD
+                TextField(
+                  controller: confirmController,
+                  style: const TextStyle(
+                    color: kPrimaryTextColor,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                  textAlign: TextAlign.center, // Focuses attention
+                  decoration: InputDecoration(
+                    hintText: 'delete',
+                    hintStyle: TextStyle(color: kSecondaryTextColor.withOpacity(0.4)),
+                    filled: true,
+                    fillColor: kBackgroundColor,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide(color: kSecondaryTextColor.withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide(color: kSecondaryTextColor.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          actions: [
+            // 4. BALANCED BUTTONS
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      confirmController.dispose();
+                      Navigator.of(dialogContext).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: kSecondaryTextColor, 
+                        fontWeight: FontWeight.bold
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (confirmController.text.toLowerCase() == 'delete') {
+                        Navigator.of(dialogContext).pop();
+                        confirmController.dispose();
+                        await _deleteAccount();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please type "delete" to confirm'),
+                            backgroundColor: Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'Delete', 
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );
@@ -250,6 +309,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Add this helper widget method inside your class
+  Widget _buildBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0, left: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(color: kSecondaryTextColor, fontSize: 14)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: kSecondaryTextColor, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Future<void> _deleteAccount() async {
     try {
       setState(() => _isLoading = true);
