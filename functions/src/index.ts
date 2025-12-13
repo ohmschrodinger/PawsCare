@@ -294,6 +294,28 @@ const emailTemplates = {
         <p>Best regards,<br>The PawsCare System</p>
       </div>
     `
+  },
+
+  new_adoption_application_admin: {
+    subject: '📝 New Adoption Application Submitted - PawsCare Admin',
+    template: (data: any) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2196F3;">📝 New Adoption Application</h2>
+        <p>Hello Admin,</p>
+        <p>A new adoption application has been submitted and requires your review.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Application Details:</strong></p>
+          <p>Applicant: ${data.applicantName}</p>
+          <p>Email: ${data.applicantEmail}</p>
+          <p>Animal: ${data.animalName}</p>
+          <p>Species: ${data.animalSpecies}</p>
+          <p>Application ID: ${data.applicationId}</p>
+          <p>Submitted: ${new Date(data.appliedAt).toLocaleString()}</p>
+        </div>
+        <p>Please log in to the admin panel to review this application.</p>
+        <p>Best regards,<br>The PawsCare System</p>
+      </div>
+    `
   }
 };
 
@@ -834,6 +856,84 @@ export const onAdoptionApplicationSubmitted = functions.firestore
         status: 'sent'
       });
 
+      // NOTIFY ALL ADMINS ABOUT THE NEW APPLICATION
+      const adminsSnapshot = await admin.firestore()
+        .collection('users')
+        .where('role', '==', 'admin')
+        .get();
+
+      if (!adminsSnapshot.empty) {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: gmailEmail,
+            pass: gmailPassword
+          }
+        });
+
+        // Send email and push notification to each admin
+        const adminNotificationPromises = adminsSnapshot.docs.map(async (adminDoc) => {
+          const adminData = adminDoc.data();
+          const adminEmail = adminData?.email;
+
+          if (!adminEmail) {
+            console.log('Admin email not found for admin:', adminDoc.id);
+            return;
+          }
+
+          // Send email to admin
+          const adminMailOptions = {
+            from: gmailEmail,
+            to: adminEmail,
+            subject: '📝 New Adoption Application Submitted - PawsCare Admin',
+            html: emailTemplates.new_adoption_application_admin.template({
+              applicantName: applicationData.applicantName || userData?.fullName || 'User',
+              applicantEmail: userEmail,
+              animalName: animalData?.name || applicationData.petName || 'Animal',
+              animalSpecies: animalData?.species || 'Pet',
+              applicationId: context.params.applicationId,
+              appliedAt: applicationData.appliedAt || new Date()
+            })
+          };
+
+          await transporter.sendMail(adminMailOptions);
+          console.log('New adoption application email sent to admin:', adminEmail);
+
+          // Send push notification to admin
+          await sendPushNotification({
+            userId: adminDoc.id,
+            title: '📝 New Adoption Application',
+            body: `${applicationData.applicantName || 'A user'} applied to adopt ${animalData?.name || 'an animal'}`,
+            data: {
+              type: 'new_adoption_application_admin',
+              applicationId: context.params.applicationId,
+              animalId: applicationData.petId || applicationData.animalId,
+              animalName: animalData?.name || 'Animal',
+              applicantName: applicationData.applicantName || 'User'
+            }
+          });
+
+          // Log admin email
+          await admin.firestore().collection('email_logs').add({
+            type: 'new_adoption_application_admin',
+            recipientEmail: adminEmail,
+            data: {
+              applicationId: context.params.applicationId,
+              animalId: applicationData.petId || applicationData.animalId,
+              animalName: animalData?.name,
+              animalSpecies: animalData?.species,
+              applicantName: applicationData.applicantName,
+              applicantEmail: userEmail
+            },
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'sent'
+          });
+        });
+
+        await Promise.all(adminNotificationPromises);
+        console.log(`New adoption application notifications sent to ${adminsSnapshot.docs.length} admins`);
+      }
+
     } catch (error) {
       console.error('Error sending adoption application submitted notification:', error);
     }
@@ -1111,8 +1211,8 @@ export const logAnimalToSheet = functions
       const before = change.before.exists ? change.before.data() : null;
       const after = change.after.exists ? change.after.data() : null;
 
-      // ignore deletes
-      if (before && !after) return null;
+      // Handle deletes - log deletion event
+      const isDelete = before && !after;
 
       // Fields to track: postedBy, name, species, breed, age, gender, status, address, geopoint, approvalStatus, approvedBy, adminMessage, breedType, contactPhone, imageUrls
       const trackedFields = [
@@ -1170,7 +1270,7 @@ export const logAnimalToSheet = functions
         // Map location to address field
         const fieldName = f === "location" ? "location" : f;
         beforeNormalized[f] = normalize(before?.[fieldName]);
-        afterNormalized[f] = normalize(after?.[fieldName]);
+        afterNormalized[f] = isDelete ? "" : normalize(after?.[fieldName]);
       }
 
       // Determine changed tracked fields
@@ -1186,35 +1286,42 @@ export const logAnimalToSheet = functions
       // Decide whether to append:
       // - for create: only if images are present (already checked above)
       // - for update: only if any tracked field changed
-      if (!isCreate && !(isUpdate && changedFields.length > 0)) {
+      // - for delete: always log
+      if (!isCreate && !isDelete && !(isUpdate && changedFields.length > 0)) {
         // nothing to log
         return null;
       }
 
-      // Build the row: animalId, postedBy, name, species, breed, age, gender, status, address, geopoint, approvalStatus, approvedBy, adminMessage, breedType, contactPhone, imageUrls, fieldUpdated, timestamp
+      // Build the row using dataToLog (before data for deletes, after data otherwise)
+      const dataSource = isDelete ? beforeNormalized : afterNormalized;
       const rowValues: string[] = [
         animalId,
-        afterNormalized["postedBy"] || "",
-        afterNormalized["name"] || "",
-        afterNormalized["species"] || "",
-        afterNormalized["breed"] || "",
-        afterNormalized["age"] || "",
-        afterNormalized["gender"] || "",
-        afterNormalized["status"] || "",
-        afterNormalized["location"] || "",
-        afterNormalized["geopoint"] || "",
-        afterNormalized["approvalStatus"] || "",
-        afterNormalized["approvedBy"] || "",
-        afterNormalized["adminMessage"] || "",
-        afterNormalized["breedType"] || "",
-        afterNormalized["contactPhone"] || "",
-        afterNormalized["imageUrls"] || ""
+        dataSource["postedBy"] || "",
+        dataSource["name"] || "",
+        dataSource["species"] || "",
+        dataSource["breed"] || "",
+        dataSource["age"] || "",
+        dataSource["gender"] || "",
+        dataSource["status"] || "",
+        dataSource["location"] || "",
+        dataSource["geopoint"] || "",
+        dataSource["approvalStatus"] || "",
+        dataSource["approvedBy"] || "",
+        dataSource["adminMessage"] || "",
+        dataSource["breedType"] || "",
+        dataSource["contactPhone"] || "",
+        dataSource["imageUrls"] || ""
       ];
 
-      // For new animals that had no images initially but now have images, mark as new_animal
-      const fieldUpdated = (isCreate || (before && (!before.imageUrls || before.imageUrls.length === 0) && after.imageUrls?.length > 0)) 
-        ? "new_animal" 
-        : changedFields.join(", ");
+      // Determine field_updated value
+      let fieldUpdated: string;
+      if (isDelete) {
+        fieldUpdated = "animal_deleted";
+      } else if (isCreate || (before && after && (!before.imageUrls || before.imageUrls.length === 0) && after.imageUrls?.length > 0)) {
+        fieldUpdated = "new_animal";
+      } else {
+        fieldUpdated = changedFields.join(", ");
+      }
       
       // Indian Standard Time (IST = UTC+5:30)
       const now = new Date();
@@ -1277,25 +1384,47 @@ export const logApplicationToSheet = functions
       // ignore deletes
       if (before && !after) return null;
 
-      // Core fields to track in dedicated columns (simplified for performance)
+      // All fields to track in dedicated columns as per new structure
       const trackedFields = [
-        "userId",
-        "petId",
-        "petName",
-        "applicantName",
+        "adminMessage",
+        "allMembersAgree",
+        "applicantAddress",
         "applicantEmail",
+        "applicantName",
         "applicantPhone",
-        "status",
         "appliedAt",
+        "currentPetsDetails",
+        "financiallyPrepared",
+        "hasAllergies",
+        "hasCurrentPets",
+        "hasPastPets",
+        "hasSurrenderedPets",
+        "hasVeterinarian",
+        "homeOwnership",
+        "hoursLeftAlone",
+        "householdMembers",
+        "ifCannotKeepCare",
+        "pastPetsDetails",
+        "petId",
+        "petImage",
+        "petName",
+        "petTypeLookingFor",
+        "preferenceForBreedAgeGender",
+        "preparedForLifetimeCommitment",
         "reviewedAt",
-        "adminMessage"
+        "status",
+        "surrenderedPetsCircumstance",
+        "userId",
+        "vetContactInfo",
+        "whereKeptWhenAlone",
+        "whyAdoptPet",
+        "willingToProvideVetCare"
       ];
 
-      // Header row for the sheet - includes applicationData for full details
+      // Header row for the sheet
       const headerRow = [
         "applicationId",
         ...trackedFields,
-        "applicationData",
         "field_updated",
         "timestamp"
       ];
@@ -1352,16 +1481,11 @@ export const logApplicationToSheet = functions
         return null;
       }
 
-      // Build the row in requested order:
-      // applicationId, userId, petId, petName, applicantName, applicantEmail, applicantPhone, status, appliedAt, reviewedAt, adminMessage, applicationData (full JSON), field_updated, timestamp
+      // Build the row in requested order with all individual fields
       const rowValues: string[] = [
         applicationId,
         ...trackedFields.map(f => afterNormalized[f] || ""),
       ];
-
-      // Add full application data as JSON for detailed analysis
-      const applicationDataJson = after ? JSON.stringify(after) : "";
-      rowValues.push(applicationDataJson);
 
       const fieldUpdated = isCreate ? "new_application" : changedFields.join(", ");
       const timestampISO = new Date().toISOString();
@@ -1433,14 +1557,25 @@ export const logEmailToSheet = functions
       const before = change.before.exists ? change.before.data() : null;
       const after = change.after.exists ? change.after.data() : null;
       if (!after) return null; // Only log creates/updates
-      const trackedFields = [
+      
+      // Top-level fields
+      const topLevelFields = [
         "type",
         "recipientEmail",
         "sentAt",
-        "status",
-        "data"
+        "status"
       ];
-      const headerRow = ["logId", ...trackedFields, "field_updated", "timestamp"];
+      
+      // Fields nested in data object
+      const nestedDataFields = [
+        "animalId",
+        "animalName",
+        "animalSpecies",
+        "adminMessage"
+      ];
+      
+      const headerRow = ["logId", ...topLevelFields, ...nestedDataFields, "data", "field_updated", "timestamp"];
+      
       const normalize = (val: any): string => {
         if (val === null || val === undefined) return "";
         if (typeof val?.toDate === "function") { try { return val.toDate().toISOString(); } catch { return String(val); } }
@@ -1451,30 +1586,29 @@ export const logEmailToSheet = functions
         if (typeof val === "object") { try { return JSON.stringify(val); } catch { return String(val); } }
         return String(val);
       };
+      
       const isCreate = !before && !!after;
-      const isUpdate = !!before && !!after;
-      const beforeNormalized: Record<string, string> = {};
-      const afterNormalized: Record<string, string> = {};
-      for (const f of trackedFields) {
-        beforeNormalized[f] = normalize(before?.[f]);
-        afterNormalized[f] = normalize(after?.[f]);
+      
+      // Build row values
+      const rowValues: string[] = [logId];
+      
+      // Add top-level fields
+      for (const f of topLevelFields) {
+        rowValues.push(normalize(after[f]));
       }
-      const changedFields: string[] = [];
-      if (isUpdate) {
-        for (const f of trackedFields) {
-          if (beforeNormalized[f] !== afterNormalized[f]) {
-            changedFields.push(f);
-          }
-        }
+      
+      // Extract and add nested fields from data object
+      const dataObj = after.data || {};
+      for (const f of nestedDataFields) {
+        rowValues.push(normalize(dataObj[f]));
       }
-      if (!isCreate && !(isUpdate && changedFields.length > 0)) return null;
-      const rowValues: string[] = [
-        logId,
-        ...trackedFields.map(f => afterNormalized[f] || ""),
-      ];
-      const fieldUpdated = isCreate ? "new_email_log" : changedFields.join(", ");
+      
+      // Add full data object as JSON
+      rowValues.push(normalize(after.data));
+      
+      const fieldUpdated = isCreate ? "new_email_log" : "updated";
       const timestampISO = new Date().toISOString();
-      rowValues.push(fieldUpdated || "none", timestampISO);
+      rowValues.push(fieldUpdated, timestampISO);
       const keyJson = JSON.parse(Buffer.from(KEY_B64, "base64").toString("utf8"));
       const jwt = new google.auth.JWT(keyJson.client_email, undefined, keyJson.private_key, ["https://www.googleapis.com/auth/spreadsheets"]);
       await jwt.authorize();
