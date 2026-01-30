@@ -100,7 +100,20 @@ class TermsAndServiceScreen extends StatelessWidget {
             'All adoption decisions and communication are your responsibility.',
           ),
 
-          _buildSectionHeader('5. Prohibited Activities'),
+          _buildSectionHeader('5. Adoption Application Agreement'),
+          _buildContent(
+            'By submitting an adoption application through PawsCare, you acknowledge and agree that:\n\n'
+            '• All information provided in the application is true, accurate, and complete to the best of your knowledge\n'
+            '• You have not knowingly omitted any information that may be relevant to your application\n'
+            '• You understand that providing false or misleading information may result in rejection of your application and/or suspension of your account\n'
+            '• You consent to the animal owner or PawsCare Team contacting you regarding your application\n'
+            '• You understand that submitting an application does not guarantee approval or adoption\n'
+            '• You are genuinely interested in adopting and capable of providing proper care for the animal\n'
+            '• You accept full responsibility for any consequences arising from inaccurate information provided\n\n'
+            'PawsCare reserves the right to verify the information provided and reject applications that contain false or misleading details.',
+          ),
+
+          _buildSectionHeader('6. Prohibited Activities'),
           _buildContent(
             'You agree NOT to:\n'
             '• Upload harmful, abusive, illegal, or misleading content\n'
@@ -113,7 +126,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             'Violation may result in account suspension or permanent ban.',
           ),
 
-          _buildSectionHeader('6. Third-Party Services'),
+          _buildSectionHeader('7. Third-Party Services'),
           _buildContent(
             'PawsCare uses third-party services to operate:\n'
             '• Firebase Authentication\n'
@@ -125,7 +138,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             'PawsCare is not responsible for issues arising from third-party services.',
           ),
 
-          _buildSectionHeader('7. Account Deletion'),
+          _buildSectionHeader('8. Account Deletion'),
           _buildContent(
             'You may delete your account at any time using the Delete Account feature in the app.\n\n'
             'When your account is deleted:\n'
@@ -136,7 +149,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             'We are not responsible for data loss resulting from account deletion.',
           ),
 
-          _buildSectionHeader('8. Intellectual Property'),
+          _buildSectionHeader('9. Intellectual Property'),
           _buildContent(
             'All app content, design, features, logos, and code are the property of PawsCare Team.\n\n'
             'You may not:\n'
@@ -145,7 +158,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             '• Use the app\'s branding without permission',
           ),
 
-          _buildSectionHeader('9. Limitation of Liability'),
+          _buildSectionHeader('10. Limitation of Liability'),
           _buildContent(
             'To the fullest extent permitted by law, PawsCare Team is NOT liable for:\n'
             '• Any damages from the use or inability to use the app\n'
@@ -156,7 +169,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             'You use the app at your own risk.',
           ),
 
-          _buildSectionHeader('10. Disclaimer'),
+          _buildSectionHeader('11. Disclaimer'),
           _buildContent(
             'PawsCare is a platform that facilitates animal adoption.\n'
             'We do not:\n'
@@ -166,7 +179,7 @@ class TermsAndServiceScreen extends StatelessWidget {
             'All user-generated content is the responsibility of the user who created it.',
           ),
 
-          _buildSectionHeader('11. Termination'),
+          _buildSectionHeader('12. Termination'),
           _buildContent(
             'We may suspend or terminate your account if you:\n'
             '• Violate these Terms\n'
@@ -176,13 +189,13 @@ class TermsAndServiceScreen extends StatelessWidget {
             'We may also modify or discontinue the Service at any time.',
           ),
 
-          _buildSectionHeader('12. Changes to These Terms'),
+          _buildSectionHeader('13. Changes to These Terms'),
           _buildContent(
             'We may update these Terms periodically. Updated Terms will be posted inside the app and take effect upon posting.\n\n'
             'Continued use of the app means you accept the updated Terms.',
           ),
 
-          _buildSectionHeader('13. Contact Us'),
+          _buildSectionHeader('14. Contact Us'),
           _buildContent(
             'For any questions, issues, or requests related to these Terms:\n\n'
             '📧 pawscareanimalresq@gmail.com\n'

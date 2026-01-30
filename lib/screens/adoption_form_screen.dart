@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pawscare/screens/my_applications_screen.dart';
+import 'package:pawscare/screens/terms_and_service.dart';
 import 'dart:ui'; // Import for ImageFilter
 import '../services/user_service.dart';
 import '../services/logging_service.dart';
@@ -995,10 +996,11 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              // You can show a dialog or navigate to a terms page here
-              _showSnackBar(
-                'Terms & Conditions page coming soon!',
-                isError: false,
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TermsAndServiceScreen(),
+                ),
               );
             },
             child: const Text.rich(
