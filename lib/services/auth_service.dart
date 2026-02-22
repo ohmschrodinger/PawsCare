@@ -268,14 +268,73 @@ class AuthService {
     required String smsCode,
   }) async {
     try {
+      // Create the credential with the verification ID and SMS code
       final credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: smsCode,
       );
-      return credential;
+
+      // Firebase validates the credential when it's created, but we need to
+      // test it more thoroughly by attempting to use it
+
+      // Save current auth state
+      final currentUser = _auth.currentUser;
+      final wasSignedIn = currentUser != null;
+
+      // Test the credential by attempting to sign in
+      try {
+        await _auth.signInWithCredential(credential);
+
+        // If we reach here, the OTP is valid
+        // Immediately sign out to restore the previous state
+        await _auth.signOut();
+
+        // Return the valid credential
+        return credential;
+      } catch (authError) {
+        // The sign-in failed, meaning the OTP is invalid
+        if (authError is FirebaseAuthException) {
+          // Re-throw the specific Firebase error for proper error handling
+          throw authError;
+        } else {
+          // Generic error - treat as invalid OTP
+          throw FirebaseAuthException(
+            code: 'invalid-verification-code',
+            message: 'The verification code is invalid',
+          );
+        }
+      }
+    } on FirebaseAuthException catch (e) {
+      print(
+        'Firebase Auth Error during OTP verification: ${e.code} - ${e.message}',
+      );
+
+      // Handle specific Firebase Auth errors for OTP verification
+      switch (e.code) {
+        case 'invalid-verification-code':
+          throw Exception(
+            'Invalid verification code. Please check and try again.',
+          );
+        case 'invalid-verification-id':
+          throw Exception(
+            'Verification ID is invalid. Please request a new code.',
+          );
+        case 'code-expired':
+          throw Exception(
+            'Verification code has expired. Please request a new code.',
+          );
+        case 'session-expired':
+          throw Exception(
+            'Verification session has expired. Please request a new code.',
+          );
+        default:
+          throw Exception(
+            'Verification failed: ${e.message ?? 'Unknown error'}',
+          );
+      }
     } catch (e) {
-      print('Error creating phone credential: $e');
-      throw Exception('Invalid verification code');
+      print('Error verifying phone code: $e');
+      throw Exception('Failed to verify code. Please try again.');
     }
   }
 

@@ -192,7 +192,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              height: _navBarHeight, // Enforce the exact height
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1C1E).withOpacity(0.6),
                 borderRadius: BorderRadius.circular(28),
@@ -251,20 +252,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: GestureDetector(
         onTap: () => _onItemTapped(index),
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          decoration: const BoxDecoration(color: Colors.transparent),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
+        child: SizedBox(
+          height: _navBarHeight, // Force exact height for each nav item
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: const BoxDecoration(color: Colors.transparent),
+            child: Center(
+              child: Icon(
                 icon,
                 size: isCenter ? 28 : 25,
                 color: isSelected ? kLegacyAccentColor : Colors.grey,
               ),
-            ],
+            ),
           ),
         ),
       ),

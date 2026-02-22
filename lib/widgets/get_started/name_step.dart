@@ -108,8 +108,53 @@ class _NameStepState extends State<NameStep> {
 
             // Continue button
             _buildContinueButton(),
+
+            const SizedBox(height: 24),
+
+            // Terms and Conditions agreement text
+            _buildTermsAndConditionsText(),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Terms and Conditions agreement text
+  Widget _buildTermsAndConditionsText() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Flexible(
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                children: [
+                  const TextSpan(text: 'By signing up you agree to the '),
+                  WidgetSpan(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/tnc-outer');
+                      },
+                      child: Text(
+                        'Terms and Conditions',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade300,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.blue.shade300,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -147,8 +192,10 @@ class _NameStepState extends State<NameStep> {
         ),
         filled: true,
         fillColor: const Color(0xFF2C2C2E), // Darker field color
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         // Error styling for dark theme
         errorStyle: TextStyle(color: Colors.red.shade300),
         errorBorder: OutlineInputBorder(
@@ -187,8 +234,10 @@ class _NameStepState extends State<NameStep> {
         ),
         filled: true,
         fillColor: const Color(0xFF2C2C2E),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         // Error styling for dark theme
         errorStyle: TextStyle(color: Colors.red.shade300),
         errorBorder: OutlineInputBorder(

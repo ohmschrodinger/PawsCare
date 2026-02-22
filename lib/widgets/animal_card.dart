@@ -6,6 +6,7 @@ import '../services/user_favorites_service.dart';
 import '../screens/pet_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:share_plus/share_plus.dart';
 import '../constants/app_colors.dart';
 
 // Custom cache manager
@@ -88,6 +89,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     });
 
     _getCityFromLocation();
+    _preloadAllImages();
   }
 
   @override
@@ -96,6 +98,7 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     // Reload location if the animal data has changed
     if (oldWidget.animal != widget.animal) {
       _getCityFromLocation();
+      _preloadAllImages();
     }
   }
 
@@ -105,6 +108,22 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     _likeAnimationController.dispose();
     _heartAnimationController.dispose();
     super.dispose();
+  }
+
+  // Preload all images in background for smooth swiping
+  void _preloadAllImages() {
+    final imageUrls = (widget.animal['imageUrls'] as List?)?.cast<String>() ?? [];
+    
+    if (imageUrls.length <= 1) return; // No need to preload if only one image
+    
+    for (int i = 1; i < imageUrls.length; i++) { // Start from index 1, since 0 loads immediately
+      customCacheManager.downloadFile(imageUrls[i]).catchError((error) {
+        print('Error preloading image ${imageUrls[i]}: $error');
+        return null;
+      });
+    }
+    
+    print('Preloading ${imageUrls.length - 1} additional images for ${widget.animal['name']}');
   }
 
   Future<void> _getCityFromLocation() async {
@@ -269,6 +288,113 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _shareAnimal() async {
+    try {
+      // Start all async operations in parallel for better performance
+      final appLinkFuture = _getAppLink();
+      final petName = widget.animal['name']?.toString() ?? 'This pet';
+      final age = widget.animal['age']?.toString() ?? 'Unknown age';
+      final breed = widget.animal['breed']?.toString() ?? 'Mixed Breed';
+      final location = _city.isNotEmpty
+          ? _city
+          : (widget.animal['location']?.toString() ?? 'Unknown location');
+      final description =
+          widget.animal['description']?.toString() ??
+          widget.animal['personality']?.toString() ??
+          'A wonderful companion waiting for a loving home';
+
+      // Wait for app link (this is usually quick)
+      final appLink = await appLinkFuture;
+
+      // Create share content
+      final shareText =
+          '''$petName is a $age $breed looking for love 💕
+📍 Location: $location
+
+$description
+
+If you or someone you know can give $petName a forever home, don't miss this chance 🏡✨
+
+View full profile & adopt here:
+🔗 $appLink
+
+Let's help $petName find their perfect human 🤍''';
+
+      // Try to share with cached image first (much faster)
+      final imageUrls = widget.animal['imageUrls'] as List<dynamic>?;
+      final imageUrl = imageUrls?.isNotEmpty == true
+          ? imageUrls!.first.toString()
+          : null;
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          // Check if image is in cache first
+          final cachedFile = await customCacheManager.getFileFromCache(
+            imageUrl,
+          );
+
+          if (cachedFile != null) {
+            // Use cached image - much faster!
+            final xFile = XFile(cachedFile.file.path);
+            await Share.shareXFiles([xFile], text: shareText);
+            return;
+          } else {
+            // Download and cache image in background, but share text immediately
+            _downloadImageForFutureSharing(imageUrl, petName);
+          }
+        } catch (e) {
+          print('Error sharing cached image: $e');
+          // Fall through to text-only sharing
+        }
+      }
+
+      // Share text only - much faster fallback
+      await Share.share(shareText);
+    } catch (e) {
+      print('Error sharing animal: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to share. Please try again.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  // Helper method to get app link with caching
+  Future<String> _getAppLink() async {
+    try {
+      final appLinkDoc = await FirebaseFirestore.instance
+          .collection('contact_info')
+          .doc('app_link')
+          .get();
+      if (appLinkDoc.exists && appLinkDoc.data()?['link'] != null) {
+        String link = appLinkDoc.data()!['link'].toString();
+        // Ensure the link has a proper protocol
+        if (!link.startsWith('http://') && !link.startsWith('https://')) {
+          link = 'https://$link';
+        }
+        return link;
+      }
+    } catch (e) {
+      print('Error fetching app link: $e');
+    }
+    return 'https://pawscare.app'; // fallback
+  }
+
+  // Background method to download and cache image for future shares
+  void _downloadImageForFutureSharing(String imageUrl, String petName) async {
+    try {
+      // Download image in background and store in cache
+      await customCacheManager.downloadFile(imageUrl);
+      print('Image cached for future sharing: $petName');
+    } catch (e) {
+      print('Error caching image for future sharing: $e');
+    }
+  }
+
   void _navigateToPetDetail(BuildContext context) {
     Navigator.push(
       context,
@@ -323,31 +449,32 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
     final imageUrls =
         (widget.animal['imageUrls'] as List?)?.cast<String>() ?? [];
     final hasImages = imageUrls.isNotEmpty;
+    final animalId = widget.animal['id'] as String?;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: GestureDetector(
-          onTap: () => _navigateToPetDetail(context),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // IMAGE LAYER
-              SizedBox(
-                height: 420,
-                width: double.infinity,
-                child: StreamBuilder<Map<String, dynamic>>(
-                  // Get real-time data for double-tap
-                  stream: _getLikeStatusStream(widget.animal['id']),
-                  builder: (context, snapshot) {
-                    final data = snapshot.data ?? {};
-                    final isLiked = data['isLiked'] ?? false;
-                    final likeCount = data['likeCount'] ?? 0;
+        child: StreamBuilder<Map<String, dynamic>>(
+          // Move StreamBuilder to top level to prevent rebuilds on page changes
+          stream: animalId != null ? _getLikeStatusStream(animalId) : null,
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? {'isLiked': false, 'likeCount': 0, 'isSaved': false};
+            final isLiked = data['isLiked'] ?? false;
+            final likeCount = data['likeCount'] ?? 0;
+            final isSaved = data['isSaved'] ?? false;
 
-                    return GestureDetector(
-                      onDoubleTap: () =>
-                          _handleDoubleTap(isLiked as bool, likeCount as int),
+            return GestureDetector(
+              onTap: () => _navigateToPetDetail(context),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // IMAGE LAYER
+                  SizedBox(
+                    height: 420,
+                    width: double.infinity,
+                    child: GestureDetector(
+                      onDoubleTap: () => _handleDoubleTap(isLiked as bool, likeCount as int),
                       onTap: () => _navigateToPetDetail(context),
                       child: hasImages
                           ? PageView.builder(
@@ -389,10 +516,8 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                                 color: kSecondaryTextColor,
                               ),
                             ),
-                    );
-                  },
-                ),
-              ),
+                    ),
+                  ),
 
               // DOUBLE TAP HEART ANIMATION
               if (_isHeartAnimating)
@@ -489,35 +614,22 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                           top: BorderSide(color: Colors.white.withOpacity(0.1)),
                         ),
                       ),
-                      child: _buildInfoContent(),
+                      child: _buildInfoContent(isLiked, isSaved, likeCount),
                     ),
                   ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
+        ))
     );
   }
 
-  Widget _buildInfoContent() {
-    final animalId = widget.animal['id'] as String?;
-    if (animalId == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildInfoContent(bool isLiked, bool isSaved, int likeCount) {
 
-    return StreamBuilder<Map<String, dynamic>>(
-      stream: _getLikeStatusStream(animalId),
-      builder: (context, snapshot) {
-        final data =
-            snapshot.data ??
-            {'isLiked': false, 'likeCount': 0, 'isSaved': false};
-        final isLiked = data['isLiked'] as bool;
-        final likeCount = data['likeCount'] as int;
-        final isSaved = data['isSaved'] as bool;
-
-        return Column(
+    return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -568,6 +680,16 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
+                      onPressed: _shareAnimal,
+                      icon: const Icon(
+                        Icons.share_outlined,
+                        color: kSecondaryTextColor,
+                        size: 24,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
                       onPressed: () => _toggleSave(isSaved),
                       icon: Icon(
                         isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -608,7 +730,5 @@ class _AnimalCardState extends State<AnimalCard> with TickerProviderStateMixin {
             ),
           ],
         );
-      },
-    );
   }
 }

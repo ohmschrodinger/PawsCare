@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
 import '../services/navigation_guard.dart';
 import '../services/data_cache_service.dart';
@@ -11,7 +10,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _logoOpacity;
   late Animation<double> _logoScale;
@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     // 2. Define Animations (Staggered)
-    
+
     // Logo appears from 0.0s to 1.0s
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -53,12 +53,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.4, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.4, 0.8, curve: Curves.easeOutCubic),
+          ),
+        );
 
     // Start Animation
     _controller.forward();
@@ -77,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     try {
       // Start preloading data in background
       final preloadFuture = DataCacheService().preloadData();
-      
+
       // Ensure the animation has time to finish visually (at least 2.5 seconds total)
       final minWaitFuture = Future.delayed(const Duration(milliseconds: 2500));
 
@@ -103,12 +104,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) {
-          // You need to resolve the route name to a widget here. 
+          // You need to resolve the route name to a widget here.
           // Assuming you have a route generator or named routes map.
           // For now, I will use Navigator.pushReplacementNamed with a custom transition
           // But PageRouteBuilder is best if you return the actual Widget class.
-          
-          // Since we are using named routes, we stick to named push 
+
+          // Since we are using named routes, we stick to named push
           // but we can wrap it in a custom transition if your app structure allows.
           // For simplicity in this snippet, let's just push named:
           return const SizedBox(); // Placeholder
@@ -119,11 +120,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         },
       ),
     );
-    
-    // NOTE: Since you are using Named Routes, standard pushReplacementNamed 
-    // uses the default OS transition. To force a fade, you usually need to 
+
+    // NOTE: Since you are using Named Routes, standard pushReplacementNamed
+    // uses the default OS transition. To force a fade, you usually need to
     // define the transition in your main.dart 'onGenerateRoute'.
-    // 
+    //
     // However, simplest fix for now:
     Navigator.of(context).pushReplacementNamed(routeName);
   }
@@ -136,26 +137,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated Logo
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _logoOpacity.value,
-                  child: Transform.scale(
-                    scale: _logoScale.value,
-                    child: SvgPicture.asset(
-                      'assets/images/pawscarelogo.svg',
-                      width: 150,
-                      height: 150,
-                    ),
-                  ),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 20),
-            
             // Animated Text
             AnimatedBuilder(
               animation: _controller,

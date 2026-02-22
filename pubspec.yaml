@@ -2,7 +2,7 @@ name: pawscare
 description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.0+5
 
 environment:
   sdk: ^3.8.1
@@ -44,6 +44,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
@@ -57,3 +58,19 @@ flutter:
     - family: Borel
       fonts:
         - asset: assets/fonts/Borel-Regular.ttf   # ✅ added your font
+
+# Flutter Launcher Icons Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/pawscarenewlogo_appicon.png"
+  
+  # Android adaptive icon configuration
+  adaptive_icon_foreground: "assets/images/pawscarenewlogo_appicon.png"
+  adaptive_icon_background: "assets/images/pawscarenewlogo_appicon.png"
+  
+  # iOS configuration
+  ios_content_margin: 0.15  # Adds padding for iOS to prevent clipping
+  
+  # Optional: Remove old launcher icon (default is false)
+  remove_alpha_ios: true

@@ -46,7 +46,20 @@ Widget _buildDefaultTitle(BuildContext context) {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Image.asset('lib/assets/pawscare_logo.png', width: 38, height: 35),
+        Container(
+          width: 35,
+          height: 35,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              'assets/images/pawscarenewlogo.jpeg',
+              width: 38,
+              height: 38,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
         const SizedBox(width: 8),
         Padding(
           padding: const EdgeInsets.only(top: 10.0),

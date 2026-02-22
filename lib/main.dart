@@ -13,6 +13,7 @@ import 'screens/admin_animal_approval_screen.dart';
 import 'screens/password_reset_screen.dart';
 import 'screens/email_verification_screen.dart';
 import 'screens/cat_facts_screen.dart';
+import 'screens/tnc_outer.dart';
 import 'main_navigation_screen.dart';
 import 'services/notification_service.dart';
 import 'services/adoption_counter_service.dart';
@@ -21,11 +22,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // --- FIX START ---
-  // Use 'manual' mode to explicitly keep the Top Bar (Status Bar) 
+  // Use 'manual' mode to explicitly keep the Top Bar (Status Bar)
   // while hiding the Bottom Bar (Navigation Bar).
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
-    overlays: [SystemUiOverlay.top], 
+    overlays: [SystemUiOverlay.top],
   );
   // --- FIX END ---
 
@@ -130,10 +131,12 @@ class PawsCareApp extends StatelessWidget {
         '/signin': (context) => const NewSignInScreen(),
         '/main': (context) => MainNavigationScreen(key: mainNavKey),
         '/recovery': (context) => const FirestoreRecoveryScreen(),
-        '/admin-animal-approval': (context) => const AdminAnimalApprovalScreen(),
+        '/admin-animal-approval': (context) =>
+            const AdminAnimalApprovalScreen(),
         '/password-reset': (context) => const PasswordResetScreen(),
         '/email-verification': (context) => const EmailVerificationScreen(),
         '/cat-facts': (context) => const CatFactsScreen(),
+        '/tnc-outer': (context) => const TncOuterScreen(),
       },
     );
   }

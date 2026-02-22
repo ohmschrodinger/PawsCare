@@ -816,18 +816,13 @@ class _PostCardWidgetState extends State<PostCardWidget>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        GestureDetector(
-          onTap: () {
-            _toggleLike();
-          },
-          child: _buildActionButton(
-            icon: isLiked ? Icons.favorite : Icons.favorite_border,
-            text: '$likeCount',
-            color: isLiked
-                ? Colors.redAccent
-                : kSecondaryTextColor, // like button red when liked
-            onTap: () {}, // Empty because handled by GestureDetector
-          ),
+        _buildActionButton(
+          icon: isLiked ? Icons.favorite : Icons.favorite_border,
+          text: '$likeCount',
+          color: isLiked
+              ? Colors.redAccent
+              : kSecondaryTextColor, // like button red when liked
+          onTap: _toggleLike,
         ),
         // Comment button: wrapped with animation widgets
         GestureDetector(
@@ -873,16 +868,11 @@ class _PostCardWidgetState extends State<PostCardWidget>
             ),
           ),
         ),
-        GestureDetector(
-          onTap: () {
-            _sharePost();
-          },
-          child: _buildActionButton(
-            icon: Icons.share_outlined,
-            text: 'Share',
-            color: kSecondaryTextColor,
-            onTap: () {}, // Empty because handled by GestureDetector
-          ),
+        _buildActionButton(
+          icon: Icons.share_outlined,
+          text: 'Share',
+          color: kSecondaryTextColor,
+          onTap: _sharePost,
         ),
       ],
     );
